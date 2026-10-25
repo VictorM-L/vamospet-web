@@ -48,3 +48,7 @@ Cuentas de prueba (clave `Demo1234`): `admin@vamospet.test`, `vet1@vamospet.test
 | `relation "xxx" does not exist` | No cargaste `db/01_esquema_completo.sql` (Hibernate no crea tablas: `ddl-auto=none`). |
 | No llegan correos / el asistente no responde | Faltan o son inválidas las credenciales de Gmail / Gemini. |
 | Logs | Carpeta `backend/logs/` (`vamospet.log` y `vamospet-errores.log`). |
+
+
+
+*Nota: Documentación en proceso de actualización.*
