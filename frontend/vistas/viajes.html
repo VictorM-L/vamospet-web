@@ -1,0 +1,93 @@
+<div class="fade-in lab-hero">
+    <span style="background: rgba(255,255,255,0.1); padding: 8px 16px; border-radius: 20px; font-size: 12px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase;">Certificados y Trámites</span>
+    <h1 style="font-size: 42px; font-weight: 800; margin: 15px 0;">Prepara a tu Mascota para Volar</h1>
+    <p style="color: #9CA3AF; font-size: 16px; max-width: 600px; margin: 0 auto;">Certificados de salud internacional, microchips homologados y vacunas requeridas para viajar sin contratiempos.</p>
+</div>
+
+<div class="fade-in">
+
+    <div class="lab-section-modern">
+        <div style="flex: 1;">
+            <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 15px;">
+                <div style="width: 40px; height: 3px; background: var(--primary-green);"></div>
+                <span style="color: var(--primary-green); font-weight: 700; text-transform: uppercase; font-size: 13px;">Documentación al Día</span>
+            </div>
+            <h2 style="font-size: 36px; font-weight: 800; color: var(--dark-text); line-height: 1.2; margin-bottom: 20px;">Viaja tranquilo,<br>con todo en regla</h2>
+            <p style="color: var(--text-muted); font-size: 16px; line-height: 1.6; margin-bottom: 30px;">
+                Cada aerolínea y país de destino exige requisitos distintos. En <strong>Vamos Pet</strong> revisamos el itinerario junto a ti y preparamos toda la documentación con la anticipación necesaria.
+            </p>
+            <button class="btn-primary" onclick="irAAgendar()" style="padding: 15px 30px;"><i class="fa-solid fa-plane" style="margin-right: 8px;"></i> Agendar Revisión de Viaje</button>
+        </div>
+
+        <div class="lab-tests-grid">
+            <div class="lab-test-card hover-card" onclick="mostrarInfoTest('Certificado de Salud', 'Documento oficial que certifica que tu mascota está sana y apta para viajar, exigido por la mayoría de aerolíneas.')">
+                <div class="lab-test-icon"><i class="fa-solid fa-file-medical"></i></div>
+                Certificado de Salud
+            </div>
+            <div class="lab-test-card hover-card" onclick="mostrarInfoTest('Microchip Homologado', 'Identificación electrónica internacional (ISO 11784/11785), requisito obligatorio para la mayoría de destinos.')">
+                <div class="lab-test-icon"><i class="fa-solid fa-microchip"></i></div>
+                Microchip Homologado
+            </div>
+            <div class="lab-test-card hover-card" onclick="mostrarInfoTest('Vacuna Antirrábica', 'Vacuna obligatoria en prácticamente todos los países, aplicada con la anticipación mínima que exige el destino.')">
+                <div class="lab-test-icon"><i class="fa-solid fa-syringe"></i></div>
+                Vacuna Antirrábica
+            </div>
+            <div class="lab-test-card hover-card" onclick="mostrarInfoTest('Vacuna Séxtuple', 'Protege contra las principales enfermedades virales caninas y suele ser requisito adicional según el país de destino.')">
+                <div class="lab-test-icon"><i class="fa-solid fa-shield-virus"></i></div>
+                Vacuna Séxtuple
+            </div>
+            <div class="lab-test-card hover-card" onclick="mostrarInfoTest('Permiso Sanitario (SENASA)', 'Autorización sanitaria peruana necesaria para la exportación de mascotas, la tramitamos junto a ti.')">
+                <div class="lab-test-icon"><i class="fa-solid fa-stamp"></i></div>
+                Permiso Sanitario (SENASA)
+            </div>
+            <div class="lab-test-card hover-card" onclick="mostrarInfoTest('Guía de Transportadora', 'Verificamos que la transportadora cumpla con las medidas IATA exigidas por la aerolínea para el viaje.')">
+                <div class="lab-test-icon"><i class="fa-solid fa-kennel"></i></div>
+                Guía de Transportadora
+            </div>
+        </div>
+    </div>
+
+    <div class="lab-section-modern" style="background: #F9FAFB; padding: 60px 20px; border-radius: 40px; margin-bottom: 80px;">
+
+        <div class="lab-tests-grid">
+            <div class="lab-test-card hover-card" style="border: none;" onclick="mostrarInfoTest('1. Evaluación Médica', 'Chequeo general para confirmar que tu mascota está en condiciones de salud óptimas para viajar.')">
+                <div class="lab-test-icon" style="background: #E0E7FF; color: #4F46E5;"><i class="fa-solid fa-1"></i></div>
+                Evaluación Médica
+            </div>
+            <div class="lab-test-card hover-card" style="border: none;" onclick="mostrarInfoTest('2. Aplicación de Vacunas', 'Aplicamos las vacunas o refuerzos faltantes según el calendario y los requisitos del país de destino.')">
+                <div class="lab-test-icon" style="background: #E0E7FF; color: #4F46E5;"><i class="fa-solid fa-2"></i></div>
+                Aplicación de Vacunas
+            </div>
+            <div class="lab-test-card hover-card" style="border: none;" onclick="mostrarInfoTest('3. Emisión del Certificado', 'Con todo en regla, emitimos el certificado de salud internacional listo para presentar ante la aerolínea.')">
+                <div class="lab-test-icon" style="background: #E0E7FF; color: #4F46E5;"><i class="fa-solid fa-3"></i></div>
+                Emisión del Certificado
+            </div>
+            <div class="lab-test-card hover-card" style="border: none;" onclick="mostrarInfoTest('4. Entrega de Documentos', 'Te entregamos toda la documentación física y digital lista para el día del viaje.')">
+                <div class="lab-test-icon" style="background: #E0E7FF; color: #4F46E5;"><i class="fa-solid fa-4"></i></div>
+                Entrega de Documentos
+            </div>
+        </div>
+
+        <div style="flex: 1;">
+            <h2 style="font-size: 32px; font-weight: 800; color: var(--dark-text); margin-bottom: 20px;">Un proceso ordenado, paso a paso</h2>
+            <p style="color: var(--text-muted); font-size: 16px; line-height: 1.6; margin-bottom: 20px;">
+                Comenzamos con una evaluación médica completa, aplicamos las vacunas o refuerzos que falten según el destino, e implantamos el microchip homologado si tu mascota aún no lo tiene.
+            </p>
+            <p style="color: var(--text-muted); font-size: 16px; line-height: 1.6; margin-bottom: 30px;">
+                Recomendamos iniciar el trámite con al menos 30 días de anticipación, ya que algunos países exigen plazos mínimos entre la vacunación y el viaje.
+            </p>
+            <button class="btn-outline" onclick="irAAgendar()" style="padding: 12px 25px;"><i class="fa-regular fa-calendar-check"></i> Consultar Requisitos</button>
+        </div>
+    </div>
+
+    <div style="text-align: center; margin-bottom: 30px;">
+        <h2 style="font-size: 28px; font-weight: 800; color: var(--dark-text);">Viajando con Confianza</h2>
+    </div>
+    <div class="lab-premium-gallery">
+        <img src="https://images.unsplash.com/photo-1436076863939-06870fe779c2?q=80&w=400&auto=format&fit=crop" alt="Mascota viajando">
+        <img src="https://images.unsplash.com/photo-1583511655857-d19b40a7a54e?q=80&w=400&auto=format&fit=crop" alt="Perro en transportadora">
+        <img src="https://images.unsplash.com/photo-1544568100-847a948585b9?q=80&w=400&auto=format&fit=crop" alt="Documentación de viaje">
+        <img src="https://images.unsplash.com/photo-1601758003122-53c40e686a19?q=80&w=400&auto=format&fit=crop" alt="Veterinario revisando mascota">
+    </div>
+
+</div>

@@ -1,0 +1,147 @@
+<div class="fade-in lab-hero">
+    <span style="background: rgba(255,255,255,0.1); padding: 8px 16px; border-radius: 20px; font-size: 12px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase;">Atención Integral</span>
+    <h1 style="font-size: 42px; font-weight: 800; margin: 15px 0;">Todos Nuestros Servicios</h1>
+    <p style="color: #9CA3AF; font-size: 16px; max-width: 600px; margin: 0 auto;">Desde la consulta general hasta cirugías y hospedaje: un solo lugar para el cuidado completo de tu mascota.</p>
+</div>
+
+<div class="fade-in" style="max-width: 1200px; margin: 0 auto 80px auto; padding: 0 20px;">
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 30px;" id="servicios-grid">
+
+        <div class="hover-card servicio-hub-card" data-slug="__consulta-medica">
+            <div class="servicio-hub-icon"><i class="fa-solid fa-stethoscope"></i></div>
+            <h3>Consulta Médica</h3>
+            <p>Evaluación física completa, diagnóstico y tratamiento para mantener a tu mascota sana.</p>
+            <span class="servicio-hub-precio" data-servicio="Consulta Médica"></span>
+            <button class="btn-outline" onclick="irAAgendar()">Agendar Cita</button>
+        </div>
+
+        <div class="hover-card servicio-hub-card" data-slug="__consulta-domicilio">
+            <div class="servicio-hub-icon"><i class="fa-solid fa-house-chimney-medical"></i></div>
+            <h3>Consulta a Domicilio</h3>
+            <p>Atención veterinaria profesional en la comodidad de tu hogar, sin estrés para tu engreído.</p>
+            <span class="servicio-hub-precio" data-servicio="Consulta a Domicilio"></span>
+            <button class="btn-outline" onclick="irAAgendar()">Agendar Cita</button>
+        </div>
+
+        <div class="hover-card servicio-hub-card" data-slug="__consulta-virtual">
+            <div class="servicio-hub-icon"><i class="fa-solid fa-video"></i></div>
+            <h3>Consulta Virtual</h3>
+            <p>Orientación veterinaria por videollamada para dudas, seguimiento y casos no urgentes.</p>
+            <span class="servicio-hub-precio" data-servicio="Consulta Virtual"></span>
+            <button class="btn-outline" onclick="irAAgendar()">Agendar Cita</button>
+        </div>
+
+        <div class="hover-card servicio-hub-card" data-slug="__cirugia">
+            <div class="servicio-hub-icon"><i class="fa-solid fa-syringe"></i></div>
+            <h3>Cirugías</h3>
+            <p>Quirófano equipado con tecnología de punta para cirugías preventivas y de emergencia.</p>
+            <span class="servicio-hub-precio" data-servicio="Cirugía"></span>
+            <button class="btn-outline" onclick="irAAgendar()">Agendar Cita</button>
+        </div>
+
+        <div class="hover-card servicio-hub-card" data-slug="__especialidades">
+            <div class="servicio-hub-icon"><i class="fa-solid fa-heart-pulse"></i></div>
+            <h3>Especialidades</h3>
+            <p>Cardiología, dermatología, oftalmología y más, con veterinarios especialistas.</p>
+            <span class="servicio-hub-precio" data-servicio="Especialidades"></span>
+            <button class="btn-outline" onclick="irAAgendar()">Agendar Cita</button>
+        </div>
+
+        <div class="hover-card servicio-hub-card" data-slug="__internamiento">
+            <div class="servicio-hub-icon"><i class="fa-solid fa-bed-pulse"></i></div>
+            <h3>Internamiento</h3>
+            <p>Hospitalización con monitoreo constante para casos que requieren observación médica.</p>
+            <span class="servicio-hub-precio" data-servicio="Internamiento"></span>
+            <button class="btn-outline" onclick="irAAgendar()">Agendar Cita</button>
+        </div>
+
+        <div class="hover-card servicio-hub-card" data-slug="__medicina-preventiva">
+            <div class="servicio-hub-icon"><i class="fa-solid fa-shield-heart"></i></div>
+            <h3>Medicina Preventiva</h3>
+            <p>Vacunas, desparasitación y chequeos periódicos para adelantarnos a cualquier enfermedad.</p>
+            <span class="servicio-hub-precio" data-servicio="Medicina Preventiva"></span>
+            <button class="btn-outline" onclick="irAAgendar()">Agendar Cita</button>
+        </div>
+
+        <div class="hover-card servicio-hub-card" data-slug="laboratorio">
+            <div class="servicio-hub-icon"><i class="fa-solid fa-flask"></i></div>
+            <h3>Laboratorio y Exámenes</h3>
+            <p>Hemogramas, bioquímica, ecografías y rayos X con resultados rápidos y confiables.</p>
+            <span class="servicio-hub-precio" data-servicio="Laboratorio"></span>
+            <button class="btn-outline" onclick="cargarVista('laboratorio')">Ver más</button>
+        </div>
+
+        <div class="hover-card servicio-hub-card" data-slug="hospedaje">
+            <div class="servicio-hub-icon"><i class="fa-solid fa-hotel"></i></div>
+            <h3>Hospedaje</h3>
+            <p>Un hotel pet friendly con supervisión veterinaria 24/7 para cuando viajas.</p>
+            <span class="servicio-hub-precio" data-servicio="Hospedaje"></span>
+            <button class="btn-outline" onclick="cargarVista('hospedaje')">Ver más</button>
+        </div>
+
+        <div class="hover-card servicio-hub-card" data-slug="grooming">
+            <div class="servicio-hub-icon"><i class="fa-solid fa-scissors"></i></div>
+            <h3>Grooming</h3>
+            <p>Baños medicados, cortes de raza y spa de patas para su bienestar y estética.</p>
+            <span class="servicio-hub-precio" data-servicio="Grooming"></span>
+            <button class="btn-outline" onclick="cargarVista('grooming')">Ver más</button>
+        </div>
+
+        <div class="hover-card servicio-hub-card" data-slug="viajes">
+            <div class="servicio-hub-icon"><i class="fa-solid fa-plane"></i></div>
+            <h3>Viaja con tu Mascota</h3>
+            <p>Certificados de salud, microchip y vacunas requeridas para viajar sin contratiempos.</p>
+            <span class="servicio-hub-precio" data-servicio="Viajes"></span>
+            <button class="btn-outline" onclick="cargarVista('viajes')">Ver más</button>
+        </div>
+
+    </div>
+</div>
+
+<style>
+    .servicio-hub-card {
+        background: white;
+        padding: 30px;
+        border-radius: 20px;
+        border: 1px solid #E4E7EC;
+        text-align: left;
+        display: flex;
+        flex-direction: column;
+    }
+    .servicio-hub-icon {
+        width: 60px;
+        height: 60px;
+        border-radius: 16px;
+        background: var(--light-green);
+        color: var(--primary-green);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 26px;
+        margin-bottom: 20px;
+    }
+    .servicio-hub-card h3 { font-size: 20px; margin-bottom: 10px; font-weight: 700; color: var(--dark-text); }
+    .servicio-hub-card p { color: var(--text-muted); font-size: 14px; margin-bottom: 12px; line-height: 1.5; flex: 1; }
+    .servicio-hub-precio { font-size: 13px; font-weight: 700; color: var(--primary-green); min-height: 18px; display: block; margin-bottom: 15px; }
+    .servicio-hub-card button { width: 100%; }
+</style>
+
+<script>
+    (async () => {
+        try {
+            const res = await fetch(`${API_BASE}/servicios`);
+            if (!res.ok) return;
+            const servicios = await res.json();
+
+            document.querySelectorAll('.servicio-hub-precio').forEach(span => {
+                const nombreBuscado = span.dataset.servicio.toLowerCase();
+                const match = servicios.find(s => (s.nombre || '').toLowerCase().includes(nombreBuscado) || nombreBuscado.includes((s.nombre || '').toLowerCase()));
+                if (match && match.precio_base) {
+                    span.innerText = `Desde S/ ${Number(match.precio_base).toFixed(2)}`;
+                }
+            });
+        } catch (error) {
+            console.warn('No se pudo conectar al backend para traer precios de servicios.');
+        }
+    })();
+</script>

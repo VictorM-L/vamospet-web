@@ -1,0 +1,179 @@
+<div class="fade-in admin-layout">
+    <aside class="admin-sidebar">
+        <div style="color: white; font-size: 18px; font-weight: 800; padding: 10px 18px 20px 18px; border-bottom: 1px solid #374151; margin-bottom: 10px;">
+            <i class="fa-solid fa-shield-halved" style="color: var(--primary-green);"></i> Admin Panel
+        </div>
+        <button class="sidebar-item" onclick="cargarVista('VistaAdmin/dashboard-admin')"><i class="fa-solid fa-chart-pie"></i> Dashboard</button>
+        <button class="sidebar-item" onclick="cargarVista('VistaAdmin/citas')"><i class="fa-solid fa-calendar-check"></i> Gestión de Citas</button>
+        <button class="sidebar-item" onclick="cargarVista('VistaAdmin/examenes')"><i class="fa-solid fa-flask-vial"></i> Exámenes y Cirugías</button>
+        <button class="sidebar-item" onclick="cargarVista('VistaAdmin/emergencias')"><i class="fa-solid fa-truck-medical"></i> Emergencias</button>
+        <button class="sidebar-item" onclick="cargarVista('VistaAdmin/clientes')"><i class="fa-solid fa-users"></i> Clientes y Mascotas</button>
+        <button class="sidebar-item" onclick="cargarVista('VistaAdmin/servicios')"><i class="fa-solid fa-briefcase-medical"></i> Servicios</button>
+        <button class="sidebar-item" onclick="cargarVista('VistaAdmin/inventario')"><i class="fa-solid fa-box-open"></i> Inventario Tienda</button>
+        <button class="sidebar-item" onclick="cargarVista('VistaAdmin/proveedores')"><i class="fa-solid fa-truck-field"></i> Proveedores</button>
+        <button class="sidebar-item" onclick="cargarVista('VistaAdmin/compras')"><i class="fa-solid fa-cart-flatbed"></i> Compras</button>
+        <button class="sidebar-item" onclick="cargarVista('VistaAdmin/devoluciones')"><i class="fa-solid fa-rotate-left"></i> Devoluciones</button>
+        <button class="sidebar-item" onclick="cargarVista('VistaAdmin/comprobantes')"><i class="fa-solid fa-receipt"></i> Comprobantes</button>
+        <button class="sidebar-item" onclick="cargarVista('VistaAdmin/finanzas')"><i class="fa-solid fa-file-invoice-dollar"></i> Finanzas</button>
+        <button class="sidebar-item" onclick="cargarVista('VistaAdmin/reportes')"><i class="fa-solid fa-chart-column"></i> Reportes</button>
+        <button class="sidebar-item" onclick="cargarVista('VistaAdmin/horarios')"><i class="fa-solid fa-clock"></i> Horarios Veterinarios</button>
+        <button class="sidebar-item active" onclick="cargarVista('VistaAdmin/personal')"><i class="fa-solid fa-user-nurse"></i> Personal</button>
+        <button class="sidebar-item" onclick="cargarVista('VistaAdmin/configuracion')"><i class="fa-solid fa-gear"></i> Configuración</button>
+    </aside>
+
+    <main class="admin-content">
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px;">
+            <h2 style="font-size: 24px; font-weight: 800; color: var(--dark-text);">Personal de la Clínica</h2>
+            <div style="display: flex; align-items: center; gap: 15px; flex-wrap: wrap;">
+                <label style="display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--text-muted); cursor: pointer;">
+                    <input type="checkbox" id="chk-bajas-personal"> Mostrar personal de baja
+                </label>
+                <button class="btn-primary" onclick="abrirModalNuevoPersonal()"><i class="fa-solid fa-user-plus"></i> Nuevo Colaborador</button>
+            </div>
+        </div>
+
+        <div class="admin-table-container">
+            <table class="admin-table">
+                <thead>
+                    <tr><th>Nombre</th><th>Correo</th><th>Rol</th><th>Teléfono</th><th>Acciones</th></tr>
+                </thead>
+                <tbody id="personal-admin-body">
+                    <tr><td colspan="5" style="text-align:center; color: var(--text-muted); padding: 20px;"><i class="fa-solid fa-spinner fa-spin"></i> Cargando...</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </main>
+</div>
+
+<div class="modal-overlay" id="modal-nuevo-personal" style="display: none;">
+    <div class="modal-box">
+        <h3><i class="fa-solid fa-user-nurse" style="color: var(--primary-green);"></i> Nuevo Colaborador</h3>
+        <form id="form-nuevo-personal">
+            <div class="input-group"><label>Nombre completo</label><input type="text" id="pers-nombre" required></div>
+            <div class="input-group"><label>DNI</label><input type="text" id="pers-dni" maxlength="8" required></div>
+            <div class="input-group"><label>Correo</label><input type="email" id="pers-correo" required></div>
+            <div class="input-group"><label>Contraseña temporal</label><input type="password" id="pers-contrasena" required></div>
+            <div class="input-group">
+                <label>Rol</label>
+                <select id="pers-rol" required>
+                    <option value="3">Veterinario</option>
+                    <option value="4">Auxiliar de Veterinaria</option>
+                </select>
+            </div>
+            <div class="input-group"><label>Teléfono</label><input type="tel" id="pers-telefono"></div>
+            <div style="display: flex; gap: 10px; margin-top: 20px;">
+                <button type="button" class="btn-outline" style="flex: 1; padding: 12px;" onclick="cerrarModalNuevoPersonal()">Cancelar</button>
+                <button type="submit" class="btn-primary" style="flex: 1; padding: 12px;">Guardar</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+(function () {
+    let __personal = [];
+
+    function nombreRol(rolId) {
+        const mapa = { 1: 'Administrador', 2: 'Cliente', 3: 'Veterinario', 4: 'Auxiliar de Veterinaria' };
+        return mapa[rolId] || 'Sin rol';
+    }
+
+    function colorRol(rolId) {
+        return rolId === 1 ? 'status-pendiente' : 'status-completado';
+    }
+
+    function pintar() {
+        const cuerpo = document.getElementById('personal-admin-body');
+        const verBajas = document.getElementById('chk-bajas-personal').checked;
+        const lista = __personal.filter(p => p.activo !== false || verBajas);
+        if (lista.length === 0) {
+            cuerpo.innerHTML = `<tr><td colspan="5" style="text-align:center; color: var(--text-muted); padding: 20px;">Aún no hay colaboradores internos registrados.</td></tr>`;
+            return;
+        }
+        cuerpo.innerHTML = lista.map(p => {
+            const deBaja = p.activo === false;
+            return `
+            <tr style="${deBaja ? 'opacity: .55;' : ''}">
+                <td><strong>${esc(p.nombre)}</strong>${deBaja ? ' <span class="status-badge" style="background:#F3F4F6; color:#6B7280;">De baja</span>' : ''}</td>
+                <td>${esc(p.correo || '—')}</td>
+                <td><span class="status-badge ${colorRol(p.rol_id)}">${nombreRol(p.rol_id)}</span></td>
+                <td>${esc(p.telefono || '—')}</td>
+                <td>${deBaja
+                    ? `<button class="btn-outline" style="padding: 5px 12px; font-size: 11px;" onclick="reactivarPersonal(${p.id})">Reactivar</button>`
+                    : `<button style="background:none; border:none; color:#EF4444; cursor:pointer; font-size:14px;" title="Dar de baja" onclick="darDeBajaPersonal(${p.id})"><i class="fa-solid fa-user-slash"></i></button>`}</td>
+            </tr>`;
+        }).join('');
+    }
+
+    document.getElementById('chk-bajas-personal').addEventListener('change', pintar);
+
+    async function cambiarEstadoPersonal(id, accion, mensajeError) {
+        try {
+            const res = await fetch(`${API_BASE}/usuarios/${id}/${accion}`, { method: 'PATCH' });
+            const data = await res.json().catch(() => ({}));
+            if (!res.ok) { alert(data.error || mensajeError); return; }
+            __personal = __personal.map(p => p.id === data.id ? data : p);
+            pintar();
+        } catch { alert(mensajeError); }
+    }
+    window.darDeBajaPersonal = function (id) {
+        if (!confirm('¿Dar de baja a este colaborador? No podrá iniciar sesión, pero su historial se conserva y puedes reactivarlo.')) return;
+        cambiarEstadoPersonal(id, 'baja', 'No se pudo dar de baja al colaborador.');
+    };
+    window.reactivarPersonal = function (id) {
+        cambiarEstadoPersonal(id, 'reactivar', 'No se pudo reactivar al colaborador.');
+    };
+
+    window.abrirModalNuevoPersonal = () => document.getElementById('modal-nuevo-personal').style.display = 'flex';
+    window.cerrarModalNuevoPersonal = () => document.getElementById('modal-nuevo-personal').style.display = 'none';
+
+    document.getElementById('form-nuevo-personal').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const boton = e.target.querySelector('button[type="submit"]');
+        boton.disabled = true;
+        boton.innerText = 'Guardando...';
+        try {
+            const res = await fetch(`${API_BASE}/usuarios/personal`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    nombre: document.getElementById('pers-nombre').value,
+                    dni: document.getElementById('pers-dni').value,
+                    correo: document.getElementById('pers-correo').value,
+                    contrasena: document.getElementById('pers-contrasena').value,
+                    telefono: document.getElementById('pers-telefono').value,
+                    rol_id: parseInt(document.getElementById('pers-rol').value, 10)
+                })
+            });
+
+            const data = await res.json().catch(() => ({}));
+            if (!res.ok) {
+                alert(data.error || 'No se pudo crear el colaborador.');
+                return;
+            }
+
+            __personal.push(data);
+            cerrarModalNuevoPersonal();
+            document.getElementById('form-nuevo-personal').reset();
+            pintar();
+        } catch {
+            alert('No se pudo crear el colaborador.');
+        } finally {
+            boton.disabled = false;
+            boton.innerText = 'Guardar';
+        }
+    });
+
+    (async () => {
+        try {
+            const res = await fetchUsuarios();
+            const todos = res.ok ? await res.json() : [];
+            __personal = todos.filter(u => u.rol_id && u.rol_id > 2);
+            pintar();
+        } catch (error) {
+            console.error('Error cargando personal:', error);
+            document.getElementById('personal-admin-body').innerHTML = `<tr><td colspan="5" style="text-align:center; color: var(--text-muted); padding: 20px;"><i class="fa-solid fa-plug-circle-xmark"></i> No pudimos conectar con el servidor.</td></tr>`;
+        }
+    })();
+})();
+</script>

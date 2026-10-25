@@ -1,0 +1,41 @@
+<div class="fade-in lab-hero">
+    <span style="background: rgba(255,255,255,0.1); padding: 8px 16px; border-radius: 20px; font-size: 12px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase;">Consejos de expertos</span>
+    <h1 style="font-size: 42px; font-weight: 800; margin: 15px 0;">Blog Vamos Pet</h1>
+    <p style="color: #9CA3AF; font-size: 16px; max-width: 600px; margin: 0 auto;">Salud, nutrición y bienestar animal explicados por nuestro equipo veterinario.</p>
+</div>
+
+<div class="fade-in" style="max-width: 1200px; margin: 0 auto 80px auto; padding: 0 20px;">
+    <div class="blog-grid" id="blog-grid">
+        <p style="text-align:center; color: var(--text-muted); grid-column: 1/-1; padding: 40px 0;"><i class="fa-solid fa-spinner fa-spin"></i> Cargando artículos...</p>
+    </div>
+</div>
+
+<script>
+    (async () => {
+        const grid = document.getElementById('blog-grid');
+        try {
+            const res = await fetch(`${API_BASE}/blog`);
+            if (!res.ok) throw new Error('No se pudo conectar');
+            const articulos = await res.json();
+
+            if (!Array.isArray(articulos) || articulos.length === 0) {
+                grid.innerHTML = `<p style="text-align:center; color: var(--text-muted); grid-column: 1/-1; padding: 40px 0;">Aún no hay artículos publicados. ¡Vuelve pronto!</p>`;
+                return;
+            }
+
+            grid.innerHTML = articulos.map(a => `
+                <div class="blog-card">
+                    <img src="${a.imagen_url || 'https://images.unsplash.com/photo-1601758228041-f3b2795255f1?q=80&w=500&auto=format&fit=crop'}" alt="${esc(a.titulo || 'Artículo')}">
+                    <div class="blog-card-content">
+                        <span class="blog-card-tag">${esc(a.categoria || 'General')}</span>
+                        <h3>${esc(a.titulo || '')}</h3>
+                        <p>${a.resumen || ''}</p>
+                    </div>
+                </div>
+            `).join('');
+        } catch (error) {
+            console.error('Error cargando el blog:', error);
+            grid.innerHTML = `<p style="text-align:center; color: var(--text-muted); grid-column: 1/-1; padding: 40px 0;"><i class="fa-solid fa-plug-circle-xmark"></i> No pudimos conectar con el servidor.</p>`;
+        }
+    })();
+</script>

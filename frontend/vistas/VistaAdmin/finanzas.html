@@ -1,0 +1,124 @@
+<div class="fade-in admin-layout">
+    <aside class="admin-sidebar">
+        <div style="color: white; font-size: 18px; font-weight: 800; padding: 10px 18px 20px 18px; border-bottom: 1px solid #374151; margin-bottom: 10px;">
+            <i class="fa-solid fa-shield-halved" style="color: var(--primary-green);"></i> Admin Panel
+        </div>
+
+        <button class="sidebar-item" onclick="cargarVista('VistaAdmin/dashboard-admin')"><i class="fa-solid fa-chart-pie"></i> Dashboard</button>
+        <button class="sidebar-item" onclick="cargarVista('VistaAdmin/citas')"><i class="fa-solid fa-calendar-check"></i> Gestión de Citas</button>
+        <button class="sidebar-item" onclick="cargarVista('VistaAdmin/examenes')"><i class="fa-solid fa-flask-vial"></i> Exámenes y Cirugías</button>
+        <button class="sidebar-item" onclick="cargarVista('VistaAdmin/emergencias')"><i class="fa-solid fa-truck-medical"></i> Emergencias</button>
+        <button class="sidebar-item" onclick="cargarVista('VistaAdmin/clientes')"><i class="fa-solid fa-users"></i> Clientes y Mascotas</button>
+        <button class="sidebar-item" onclick="cargarVista('VistaAdmin/servicios')"><i class="fa-solid fa-briefcase-medical"></i> Servicios</button>
+        <button class="sidebar-item" onclick="cargarVista('VistaAdmin/inventario')"><i class="fa-solid fa-box-open"></i> Inventario Tienda</button>
+        <button class="sidebar-item" onclick="cargarVista('VistaAdmin/proveedores')"><i class="fa-solid fa-truck-field"></i> Proveedores</button>
+        <button class="sidebar-item" onclick="cargarVista('VistaAdmin/compras')"><i class="fa-solid fa-cart-flatbed"></i> Compras</button>
+        <button class="sidebar-item" onclick="cargarVista('VistaAdmin/devoluciones')"><i class="fa-solid fa-rotate-left"></i> Devoluciones</button>
+        <button class="sidebar-item" onclick="cargarVista('VistaAdmin/comprobantes')"><i class="fa-solid fa-receipt"></i> Comprobantes</button>
+        <button class="sidebar-item active" onclick="cargarVista('VistaAdmin/finanzas')"><i class="fa-solid fa-file-invoice-dollar"></i> Finanzas</button>
+        <button class="sidebar-item" onclick="cargarVista('VistaAdmin/reportes')"><i class="fa-solid fa-chart-column"></i> Reportes</button>
+        <button class="sidebar-item" onclick="cargarVista('VistaAdmin/horarios')"><i class="fa-solid fa-clock"></i> Horarios Veterinarios</button>
+        <button class="sidebar-item" onclick="cargarVista('VistaAdmin/personal')"><i class="fa-solid fa-user-nurse"></i> Personal</button>
+        <button class="sidebar-item" onclick="cargarVista('VistaAdmin/configuracion')"><i class="fa-solid fa-gear"></i> Configuración</button>
+    </aside>
+
+    <main class="admin-content">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+            <h2 style="font-size: 24px; font-weight: 800; color: var(--dark-text);">Resumen Financiero</h2>
+        </div>
+
+        <div class="metrics-grid">
+            <div class="metric-card" style="background: var(--primary-green); color: white; border: none;">
+                <div class="metric-icon" style="background: rgba(255,255,255,0.2); color: white;"><i class="fa-solid fa-sack-dollar"></i></div>
+                <div>
+                    <h4 style="font-size: 13px; font-weight: 600; margin-bottom: 5px; opacity: 0.9;">Ingresos del Día</h4>
+                    <h2 style="font-size: 28px; font-weight: 800;" id="fin-ingresos-dia">S/ 0.00</h2>
+                </div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-icon"><i class="fa-solid fa-stethoscope"></i></div>
+                <div>
+                    <h4 style="color: var(--text-muted); font-size: 13px; font-weight: 600; margin-bottom: 5px;">Por Citas</h4>
+                    <h2 style="font-size: 24px; font-weight: 800; color: var(--dark-text);" id="fin-por-citas">S/ 0.00</h2>
+                </div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-icon" style="background: #E0E7FF; color: #4F46E5;"><i class="fa-solid fa-cart-shopping"></i></div>
+                <div>
+                    <h4 style="color: var(--text-muted); font-size: 13px; font-weight: 600; margin-bottom: 5px;">Por Tienda</h4>
+                    <h2 style="font-size: 24px; font-weight: 800; color: var(--dark-text);" id="fin-por-tienda">S/ 0.00</h2>
+                </div>
+            </div>
+        </div>
+
+        <div class="admin-table-container">
+            <h3 style="font-size: 18px; font-weight: 700; margin-bottom: 15px;">Últimos Pagos Registrados</h3>
+            <table class="admin-table">
+                <thead>
+                    <tr>
+                        <th>ID Pago</th>
+                        <th>Concepto</th>
+                        <th>Cliente</th>
+                        <th>Fecha</th>
+                        <th>Monto</th>
+                        <th>Método</th>
+                    </tr>
+                </thead>
+                <tbody id="finanzas-admin-body">
+                    <tr><td colspan="6" style="text-align:center; color: var(--text-muted); padding: 20px;"><i class="fa-solid fa-spinner fa-spin"></i> Cargando...</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </main>
+</div>
+
+<script>
+    (async () => {
+        try {
+            const [resPagos, resUsuarios] = await Promise.all([
+                fetch(`${API_BASE}/pagos`),
+                fetchUsuarios()
+            ]);
+
+            const pagos = resPagos.ok ? await resPagos.json() : [];
+            const usuarios = resUsuarios.ok ? await resUsuarios.json() : [];
+
+            const hoy = new Date().toDateString();
+            const pagosHoy = pagos.filter(p => p.fecha && new Date(p.fecha).toDateString() === hoy);
+            const ingresosHoy = pagosHoy.reduce((sum, p) => sum + Number(p.monto || 0), 0);
+            const porCitas = pagos.filter(p => p.cita_id).reduce((sum, p) => sum + Number(p.monto || 0), 0);
+            const porTienda = pagos.filter(p => p.pedido_id).reduce((sum, p) => sum + Number(p.monto || 0), 0);
+
+            document.getElementById('fin-ingresos-dia').innerText = `S/ ${ingresosHoy.toFixed(2)}`;
+            document.getElementById('fin-por-citas').innerText = `S/ ${porCitas.toFixed(2)}`;
+            document.getElementById('fin-por-tienda').innerText = `S/ ${porTienda.toFixed(2)}`;
+
+            const cuerpo = document.getElementById('finanzas-admin-body');
+            if (pagos.length === 0) {
+                cuerpo.innerHTML = `<tr><td colspan="6" style="text-align:center; color: var(--text-muted); padding: 20px;">Aún no hay pagos registrados en el sistema.</td></tr>`;
+                return;
+            }
+
+            const ordenados = [...pagos].sort((a, b) => new Date(b.fecha) - new Date(a.fecha)).slice(0, 20);
+
+            cuerpo.innerHTML = ordenados.map(p => {
+                const cliente = usuarios.find(u => u.id === p.usuario_id);
+                const concepto = p.cita_id ? `Cita #${p.cita_id}` : (p.pedido_id ? `Pedido Web #${p.pedido_id}` : 'Pago');
+                const fecha = p.fecha ? new Date(p.fecha).toLocaleString('es-PE', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }) : '—';
+                return `
+                    <tr>
+                        <td>#PAG-${p.id}</td>
+                        <td>${concepto}</td>
+                        <td>${cliente ? cliente.nombre : 'N/D'}</td>
+                        <td>${fecha}</td>
+                        <td><strong>S/ ${Number(p.monto).toFixed(2)}</strong></td>
+                        <td>${p.metodo || '—'}</td>
+                    </tr>
+                `;
+            }).join('');
+        } catch (error) {
+            console.error('Error cargando finanzas:', error);
+            document.getElementById('finanzas-admin-body').innerHTML = `<tr><td colspan="6" style="text-align:center; color: var(--text-muted); padding: 20px;"><i class="fa-solid fa-plug-circle-xmark"></i> No pudimos conectar con el servidor.</td></tr>`;
+        }
+    })();
+</script>

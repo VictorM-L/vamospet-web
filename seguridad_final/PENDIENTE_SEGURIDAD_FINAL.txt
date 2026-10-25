@@ -1,0 +1,36 @@
+VAMOS PET - BLOQUE DE SEGURIDAD FINAL (se aplica al terminar todo lo demás)
+==========================================================================
+
+Todo esto está preparado pero APAGADO / SIN EJECUTAR a propósito, para no
+estar re-probando inicios de sesión en cada bloque. Se hace junto, al final.
+
+1. BCRYPT (contraseñas con hash)
+   - Haz un respaldo:  pg_dump -U postgres vamospet_db > backup_antes_bcrypt.sql
+   - En backend/src/main/resources/application.properties cambia:
+         seguridad.bcrypt.activo=true
+   - Reinicia el backend. En la consola debe salir:
+         [Seguridad] Contraseñas migradas a BCrypt: N
+   - Comprueba:  SELECT correo, left(contrasena,4), length(contrasena) FROM usuario;
+     (todas deben mostrar  $2a$  y largo 60)
+   - Prueba iniciar sesión con una cuenta existente, registrar una nueva y
+     activar un cliente sin cuenta.
+
+2. ROLES DE POSTGRESQL (mínimo privilegio)
+   - Edita las 2 claves 'CAMBIAR_...' de SEGURIDAD_roles_postgres.sql y
+     ejecútalo como postgres sobre vamospet_db.
+   - En application.properties pon spring.datasource.username/password de
+     app_escritura. Reinicia y prueba login, una venta y un movimiento de kardex.
+   - Comprueba que no puede borrar:  DELETE FROM notificacion WHERE id = -1;
+     debe responder "permission denied".
+
+3. CREDENCIALES FUERA DEL CÓDIGO
+   - Pasar a variables de entorno: clave de la BD, contraseña de aplicación de
+     Gmail y API key de Gemini (${DB_PASSWORD}, ${MAIL_PASSWORD}, ${GEMINI_API_KEY}).
+
+4. REGENERAR CLAVES (porque se compartieron por chat)
+   - Nueva API key de Gemini, nueva contraseña de aplicación de Gmail y una
+     contraseña nueva para los roles de PostgreSQL.
+
+5. OPCIONAL (si se quiere ir más allá)
+   - Autenticación real en la API (token) y enmascarar el DNI también desde el
+     servidor. Hoy la API no exige sesión, así que la máscara de DNI es solo visual.

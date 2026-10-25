@@ -1,0 +1,96 @@
+<div class="fade-in admin-layout">
+    <aside class="admin-sidebar">
+        <div style="color: white; font-size: 18px; font-weight: 800; padding: 10px 18px 20px 18px; border-bottom: 1px solid #374151; margin-bottom: 10px;">
+            <i class="fa-solid fa-shield-halved" style="color: var(--primary-green);"></i> Admin Panel
+        </div>
+        <button class="sidebar-item" onclick="cargarVista('VistaAdmin/dashboard-admin')"><i class="fa-solid fa-chart-pie"></i> Dashboard</button>
+        <button class="sidebar-item" onclick="cargarVista('VistaAdmin/citas')"><i class="fa-solid fa-calendar-check"></i> Gestión de Citas</button>
+        <button class="sidebar-item" onclick="cargarVista('VistaAdmin/examenes')"><i class="fa-solid fa-flask-vial"></i> Exámenes y Cirugías</button>
+        <button class="sidebar-item" onclick="cargarVista('VistaAdmin/emergencias')"><i class="fa-solid fa-truck-medical"></i> Emergencias</button>
+        <button class="sidebar-item" onclick="cargarVista('VistaAdmin/clientes')"><i class="fa-solid fa-users"></i> Clientes y Mascotas</button>
+        <button class="sidebar-item" onclick="cargarVista('VistaAdmin/servicios')"><i class="fa-solid fa-briefcase-medical"></i> Servicios</button>
+        <button class="sidebar-item" onclick="cargarVista('VistaAdmin/inventario')"><i class="fa-solid fa-box-open"></i> Inventario Tienda</button>
+        <button class="sidebar-item" onclick="cargarVista('VistaAdmin/proveedores')"><i class="fa-solid fa-truck-field"></i> Proveedores</button>
+        <button class="sidebar-item" onclick="cargarVista('VistaAdmin/compras')"><i class="fa-solid fa-cart-flatbed"></i> Compras</button>
+        <button class="sidebar-item" onclick="cargarVista('VistaAdmin/devoluciones')"><i class="fa-solid fa-rotate-left"></i> Devoluciones</button>
+        <button class="sidebar-item" onclick="cargarVista('VistaAdmin/comprobantes')"><i class="fa-solid fa-receipt"></i> Comprobantes</button>
+        <button class="sidebar-item" onclick="cargarVista('VistaAdmin/finanzas')"><i class="fa-solid fa-file-invoice-dollar"></i> Finanzas</button>
+        <button class="sidebar-item" onclick="cargarVista('VistaAdmin/reportes')"><i class="fa-solid fa-chart-column"></i> Reportes</button>
+        <button class="sidebar-item" onclick="cargarVista('VistaAdmin/horarios')"><i class="fa-solid fa-clock"></i> Horarios Veterinarios</button>
+        <button class="sidebar-item" onclick="cargarVista('VistaAdmin/personal')"><i class="fa-solid fa-user-nurse"></i> Personal</button>
+        <button class="sidebar-item active" onclick="cargarVista('VistaAdmin/configuracion')"><i class="fa-solid fa-gear"></i> Configuración</button>
+    </aside>
+
+    <main class="admin-content">
+        <h2 style="font-size: 24px; font-weight: 800; color: var(--dark-text);">Configuración de la Clínica</h2>
+
+        <form id="form-configuracion" class="contact-form" style="max-width: 600px;">
+            <div class="input-group">
+                <label>Nombre de la clínica</label>
+                <input type="text" id="config-nombre" value="Vamos Pet Clínica Veterinaria">
+            </div>
+            <div class="input-group">
+                <label>Dirección</label>
+                <input type="text" id="config-direccion" value="Av. Los Peluditos 123, Lima, Perú">
+            </div>
+            <div style="display: flex; gap: 15px;">
+                <div class="input-group" style="flex: 1;">
+                    <label>Teléfono de emergencias</label>
+                    <input type="tel" id="config-telefono" value="+51 912 345 678">
+                </div>
+                <div class="input-group" style="flex: 1;">
+                    <label>Correo de contacto</label>
+                    <input type="email" id="config-correo" value="contacto@vamospet.pe">
+                </div>
+            </div>
+            <div style="display: flex; gap: 15px;">
+                <div class="input-group" style="flex: 1;">
+                    <label>Hora de apertura</label>
+                    <input type="time" id="config-apertura" value="08:00">
+                </div>
+                <div class="input-group" style="flex: 1;">
+                    <label>Hora de cierre</label>
+                    <input type="time" id="config-cierre" value="21:00">
+                </div>
+            </div>
+            <div class="input-group">
+                <label><input type="checkbox" id="config-emergencias" checked style="accent-color: var(--primary-green);"> Ofrecemos atención de emergencias 24/7</label>
+            </div>
+            <button type="submit" class="btn-primary" style="width: 100%; padding: 15px;"><i class="fa-solid fa-floppy-disk"></i> Guardar Cambios</button>
+        </form>
+
+        <p style="color: var(--text-muted); font-size: 13px; max-width: 600px;">
+            <i class="fa-solid fa-circle-info"></i> Estos datos se guardan localmente en el navegador. Si quieres que se guarden en la base de datos para todos los administradores, dime y agrego una entidad <code>Configuracion</code> con su endpoint en el backend.
+        </p>
+    </main>
+</div>
+
+<script>
+(function () {
+    const CLAVE = 'vamospetConfiguracion';
+
+    const guardada = JSON.parse(localStorage.getItem(CLAVE) || '{}');
+    if (guardada.nombre) document.getElementById('config-nombre').value = guardada.nombre;
+    if (guardada.direccion) document.getElementById('config-direccion').value = guardada.direccion;
+    if (guardada.telefono) document.getElementById('config-telefono').value = guardada.telefono;
+    if (guardada.correo) document.getElementById('config-correo').value = guardada.correo;
+    if (guardada.apertura) document.getElementById('config-apertura').value = guardada.apertura;
+    if (guardada.cierre) document.getElementById('config-cierre').value = guardada.cierre;
+    if (typeof guardada.emergencias === 'boolean') document.getElementById('config-emergencias').checked = guardada.emergencias;
+
+    document.getElementById('form-configuracion').addEventListener('submit', (e) => {
+        e.preventDefault();
+        const datos = {
+            nombre: document.getElementById('config-nombre').value,
+            direccion: document.getElementById('config-direccion').value,
+            telefono: document.getElementById('config-telefono').value,
+            correo: document.getElementById('config-correo').value,
+            apertura: document.getElementById('config-apertura').value,
+            cierre: document.getElementById('config-cierre').value,
+            emergencias: document.getElementById('config-emergencias').checked
+        };
+        localStorage.setItem(CLAVE, JSON.stringify(datos));
+        alert('Configuración guardada.');
+    });
+})();
+</script>

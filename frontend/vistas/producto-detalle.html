@@ -1,0 +1,114 @@
+<div class="fade-in" style="max-width: 1000px; margin: 40px auto 80px auto; padding: 0 20px;" id="producto-detalle-contenedor">
+    <p style="text-align:center; color: var(--text-muted); padding: 60px 0;"><i class="fa-solid fa-spinner fa-spin"></i> Cargando producto...</p>
+</div>
+
+<script>
+(function () {
+    function imagenPorDefecto(nombreCategoria) {
+        const c = (nombreCategoria || '').toLowerCase();
+        if (c.includes('dental')) return 'https://images.unsplash.com/photo-1623366302587-b25efec27488?q=80&w=700&auto=format&fit=crop';
+        if (c.includes('vitamin') || c.includes('suplemento')) return 'https://images.unsplash.com/photo-1584362917165-526a968579e8?q=80&w=700&auto=format&fit=crop';
+        if (c.includes('cama')) return 'https://images.unsplash.com/photo-1596704122119-21b06f8c7eeb?q=80&w=700&auto=format&fit=crop';
+        if (c.includes('correa') || c.includes('collar')) return 'https://images.unsplash.com/photo-1601322238423-f227546059e6?q=80&w=700&auto=format&fit=crop';
+        return 'https://images.unsplash.com/photo-1628527304948-0615f2a7ed82?q=80&w=700&auto=format&fit=crop';
+    }
+
+    async function init() {
+        const contenedor = document.getElementById('producto-detalle-contenedor');
+        const id = localStorage.getItem('productoSeleccionadoId');
+
+        if (!id) {
+            contenedor.innerHTML = `<p style="text-align:center; color: var(--text-muted); padding: 60px 0;">No se seleccionó ningún producto.</p>`;
+            return;
+        }
+
+        try {
+            const [resProd, resGaleria] = await Promise.all([
+                fetch(`${API_BASE}/productos/${id}`),
+                fetch(`${API_BASE}/producto-imagenes/producto/${id}`)
+            ]);
+            if (!resProd.ok) throw new Error('No encontrado');
+            const p = await resProd.json();
+            if (!p) throw new Error('No encontrado');
+            const galeria = resGaleria.ok ? await resGaleria.json() : [];
+
+            let nombreCategoria = p.tipo || 'Producto';
+            if (p.categoria_id) {
+                const resCat = await fetch(`${API_BASE}/categorias`);
+                if (resCat.ok) {
+                    const categorias = await resCat.json();
+                    const c = categorias.find(x => x.id === p.categoria_id);
+                    if (c) nombreCategoria = c.nombre;
+                }
+            }
+
+            const imagenPrincipal = p.imagen || imagenPorDefecto(nombreCategoria);
+            const fotosGaleria = [imagenPrincipal, ...galeria.map(g => g.url)];
+
+            contenedor.innerHTML = `
+                <div style="display: flex; gap: 50px; flex-wrap: wrap;">
+                    <div style="flex: 1; min-width: 280px;">
+                        <img id="foto-principal-producto" src="${imagenPrincipal}" style="width: 100%; border-radius: 24px; box-shadow: var(--shadow-soft); aspect-ratio: 1/1; object-fit: cover;" alt="${esc(p.nombre)}">
+                        ${fotosGaleria.length > 1 ? `
+                            <div style="display: flex; gap: 10px; margin-top: 12px; overflow-x: auto;">
+                                ${fotosGaleria.map(url => `<img src="${url}" onclick="document.getElementById('foto-principal-producto').src='${url}'" style="width: 64px; height: 64px; object-fit: cover; border-radius: 10px; cursor: pointer; border: 2px solid #E4E7EC;">`).join('')}
+                            </div>
+                        ` : ''}
+                    </div>
+                    <div style="flex: 1; min-width: 280px;">
+                        <span style="color: var(--primary-green); font-weight: 700; text-transform: uppercase; font-size: 12px;">${nombreCategoria}</span>
+                        <h1 style="font-size: 30px; font-weight: 800; margin: 10px 0 15px 0; color: var(--dark-text);">${esc(p.nombre)}</h1>
+
+                        ${p.marca ? `<p style="color: var(--text-muted); font-size: 14px; margin-bottom: 6px;"><i class="fa-solid fa-tag"></i> Marca: <strong>${esc(p.marca)}</strong></p>` : ''}
+                        ${p.unidad_presentacion ? `<p style="color: var(--text-muted); font-size: 14px; margin-bottom: 10px;"><i class="fa-solid fa-box"></i> Presentación: <strong>${esc(p.unidad_presentacion)}</strong></p>` : ''}
+
+                        <div style="font-size: 32px; font-weight: 800; color: var(--dark-text); margin: 20px 0;">S/ ${Number(p.precio).toFixed(2)}</div>
+
+                        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 25px; flex-wrap: wrap;">
+                            ${(p.stock || 0) > 0
+                                ? `<span class="status-badge status-completado">En stock (${p.stock} disponibles)</span>`
+                                : `<span class="status-badge" style="background:#FEE2E2; color:#DC2626;">Agotado</span>`}
+                            ${p.requiere_receta ? `<span class="status-badge status-pendiente"><i class="fa-solid fa-file-prescription"></i> Requiere receta</span>` : ''}
+                        </div>
+
+                        <p style="color: var(--text-muted); font-size: 15px; line-height: 1.7; margin-bottom: 30px;">
+                            ${esc(p.descripcion || 'Producto pensado para el cuidado de perros y gatos, seleccionado por el equipo veterinario de Vamos Pet.')}
+                            ${p.requiere_receta ? ' Al agregarlo al carrito, nuestro equipo validará la receta médica antes de confirmar el pedido.' : ''}
+                        </p>
+
+                        <div style="display: flex; gap: 15px;">
+                            <button class="btn-primary" style="flex:1; padding: 15px;" onclick='agregarProductoDetalle(${p.id}, ${JSON.stringify(p.nombre)}, ${JSON.stringify(nombreCategoria)}, ${p.precio}, ${!!p.requiere_receta}, ${JSON.stringify(imagenPrincipal)})' ${(p.stock || 0) <= 0 ? 'disabled style="opacity:0.5; cursor:not-allowed;"' : ''}>
+                                <i class="fa-solid fa-cart-plus"></i> Agregar al Carrito
+                            </button>
+                            <button class="btn-outline" style="padding: 15px 20px;" onclick="cargarVista('carrito')"><i class="fa-solid fa-basket-shopping"></i></button>
+                        </div>
+
+                        <button style="background:none; border:none; color: var(--text-muted); font-size: 13px; margin-top: 20px; cursor: pointer;" onclick="cargarVista(${JSON.stringify(p.tipo === 'Accesorio' ? 'accesorios' : 'farmacia')})">
+                            <i class="fa-solid fa-arrow-left"></i> Volver al catálogo
+                        </button>
+                    </div>
+                </div>
+            `;
+        } catch (error) {
+            console.error('Error cargando producto:', error);
+            contenedor.innerHTML = `<p style="text-align:center; color: var(--text-muted); padding: 60px 0;"><i class="fa-solid fa-plug-circle-xmark"></i> No pudimos cargar este producto.</p>`;
+        }
+    }
+
+    window.agregarProductoDetalle = function (id, nombre, categoria, precio, requiereReceta, imagen) {
+        if (requiereReceta) {
+            alert('Este producto requiere receta médica. Nuestro equipo la validará antes de confirmar el pedido.');
+        }
+        agregarAlCarrito({
+            producto_id: id,
+            nombre: nombre,
+            categoria: categoria,
+            precio: Number(precio),
+            imagen: imagen
+        });
+        alert(`"${nombre}" fue agregado al carrito.`);
+    };
+
+    init();
+})();
+</script>

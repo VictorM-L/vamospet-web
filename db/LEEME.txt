@@ -1,0 +1,27 @@
+Scripts de base de datos de Vamos Pet (PostgreSQL)
+===================================================
+Orden para una instalación limpia (base vacía llamada vamospet_db):
+
+  createdb -U postgres vamospet_db
+  psql -U postgres -d vamospet_db -f db/01_esquema_completo.sql
+  psql -U postgres -d vamospet_db -f db/03_datos_prueba.sql              (opcional: datos ficticios)
+  psql -U postgres -d vamospet_db -f db/03b_datos_prueba_complemento.sql (opcional: más casos de prueba)
+
+  psql -U postgres -d vamospet_db -f db/06_migracion_mk16.sql            (OBLIGATORIO desde el MK16)
+
+04_seguridad_roles.sql se ejecuta AL FINAL (ver seguridad_final/PENDIENTE_SEGURIDAD_FINAL.txt).
+Cambia las dos claves CAMBIAR_... antes de ejecutarlo.
+
+Cuentas de prueba (clave Demo1234): admin@vamospet.test, vet1@vamospet.test, vet2@vamospet.test,
+aux@vamospet.test, cliente1@vamospet.test, cliente2@vamospet.test
+(Si cargas solo 01, el administrador es admin@vamospet.test con clave Admin123!)
+
+NO subas a Git ni entregues respaldos con datos reales.
+
+05_datos_demo_en_tu_base.sql: para una base que YA TIENE datos (no borra nada, se ejecuta una sola vez).
+Agrega productos, horarios, citas, pedidos, etc. de prueba. NO uses 03/03b en una base con datos reales (03 hace TRUNCATE).
+
+06_migracion_mk16.sql: agrega exámenes prequirúrgicos, cirugías, ingreso por emergencia e inventario por lotes.
+Sirve tanto para una base nueva (después del 01) como para tu base actual: no borra nada, es idempotente
+(puedes ejecutarla dos veces) y crea un "LOTE-INICIAL" con el stock que ya tienes cada producto.
+Haz un respaldo antes:  pg_dump -U postgres vamospet_db > respaldo_antes_mk16.sql

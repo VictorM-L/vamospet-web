@@ -1,0 +1,104 @@
+<div class="fade-in admin-layout">
+    <aside class="admin-sidebar">
+        <div style="color: white; font-size: 18px; font-weight: 800; padding: 10px 18px 20px 18px; border-bottom: 1px solid #374151; margin-bottom: 10px;">
+            <i class="fa-solid fa-shield-halved" style="color: var(--primary-green);"></i> Admin Panel
+        </div>
+        <button class="sidebar-item" onclick="cargarVista('VistaAdmin/dashboard-admin')"><i class="fa-solid fa-chart-pie"></i> Dashboard</button>
+        <button class="sidebar-item" onclick="cargarVista('VistaAdmin/citas')"><i class="fa-solid fa-calendar-check"></i> Gestión de Citas</button>
+        <button class="sidebar-item" onclick="cargarVista('VistaAdmin/examenes')"><i class="fa-solid fa-flask-vial"></i> Exámenes y Cirugías</button>
+        <button class="sidebar-item" onclick="cargarVista('VistaAdmin/emergencias')"><i class="fa-solid fa-truck-medical"></i> Emergencias</button>
+        <button class="sidebar-item" onclick="cargarVista('VistaAdmin/clientes')"><i class="fa-solid fa-users"></i> Clientes y Mascotas</button>
+        <button class="sidebar-item" onclick="cargarVista('VistaAdmin/servicios')"><i class="fa-solid fa-briefcase-medical"></i> Servicios</button>
+        <button class="sidebar-item" onclick="cargarVista('VistaAdmin/inventario')"><i class="fa-solid fa-box-open"></i> Inventario Tienda</button>
+        <button class="sidebar-item" onclick="cargarVista('VistaAdmin/proveedores')"><i class="fa-solid fa-truck-field"></i> Proveedores</button>
+        <button class="sidebar-item" onclick="cargarVista('VistaAdmin/compras')"><i class="fa-solid fa-cart-flatbed"></i> Compras</button>
+        <button class="sidebar-item" onclick="cargarVista('VistaAdmin/devoluciones')"><i class="fa-solid fa-rotate-left"></i> Devoluciones</button>
+        <button class="sidebar-item active" onclick="cargarVista('VistaAdmin/comprobantes')"><i class="fa-solid fa-receipt"></i> Comprobantes</button>
+        <button class="sidebar-item" onclick="cargarVista('VistaAdmin/finanzas')"><i class="fa-solid fa-file-invoice-dollar"></i> Finanzas</button>
+        <button class="sidebar-item" onclick="cargarVista('VistaAdmin/reportes')"><i class="fa-solid fa-chart-column"></i> Reportes</button>
+        <button class="sidebar-item" onclick="cargarVista('VistaAdmin/horarios')"><i class="fa-solid fa-clock"></i> Horarios Veterinarios</button>
+        <button class="sidebar-item" onclick="cargarVista('VistaAdmin/personal')"><i class="fa-solid fa-user-nurse"></i> Personal</button>
+        <button class="sidebar-item" onclick="cargarVista('VistaAdmin/configuracion')"><i class="fa-solid fa-gear"></i> Configuración</button>
+    </aside>
+
+    <main class="admin-content">
+        <h2 style="font-size: 24px; font-weight: 800; color: var(--dark-text);">Comprobantes Emitidos</h2>
+
+        <div style="background: white; padding: 15px 20px; border-radius: 15px; box-shadow: var(--shadow-soft); border: 1px solid #E4E7EC; display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+            <i class="fa-solid fa-magnifying-glass" style="color: var(--text-muted);"></i>
+            <input type="text" id="buscador-comprobantes" placeholder="Buscar por número de comprobante o cliente..." style="border: none; outline: none; font-family: 'Poppins'; width: 100%; font-size: 14px;">
+        </div>
+
+        <div class="admin-table-container">
+            <table class="admin-table">
+                <thead>
+                    <tr><th>N° Comprobante</th><th>Tipo</th><th>Cliente</th><th>Monto</th><th>Fecha</th><th>PDF</th></tr>
+                </thead>
+                <tbody id="comprobantes-admin-body">
+                    <tr><td colspan="6" style="text-align:center; color: var(--text-muted); padding: 20px;"><i class="fa-solid fa-spinner fa-spin"></i> Cargando...</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </main>
+</div>
+
+<script>
+(function () {
+    let __comprobantes = [], __pagos = [], __usuarios = [];
+
+    window.abrirPdfComprobante = function (id) {
+        const yo = JSON.parse(localStorage.getItem('usuarioLogueado') || '{}');
+        window.open(`${API_BASE}/comprobantes/${id}/pdf?usuarioId=${yo.id}`, '_blank');
+    };
+
+    function pintar(lista) {
+        const cuerpo = document.getElementById('comprobantes-admin-body');
+        if (lista.length === 0) {
+            cuerpo.innerHTML = `<tr><td colspan="6" style="text-align:center; color: var(--text-muted); padding: 20px;">Aún no se han emitido comprobantes.</td></tr>`;
+            return;
+        }
+        cuerpo.innerHTML = lista.map(c => {
+            const pago = __pagos.find(p => p.id === c.pago_id);
+            const cliente = pago ? __usuarios.find(u => u.id === pago.usuario_id) : null;
+            const fecha = pago && pago.fecha ? new Date(pago.fecha).toLocaleString('es-PE', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }) : '—';
+            return `
+                <tr>
+                    <td><strong>${c.numero || '#' + c.id}</strong></td>
+                    <td><span class="status-badge status-completado">${c.tipo || 'Boleta'}</span></td>
+                    <td>${cliente ? cliente.nombre : 'N/D'}</td>
+                    <td>${pago ? 'S/ ' + Number(pago.monto).toFixed(2) : '—'}</td>
+                    <td>${fecha}</td>
+                    <td><button class="btn-outline" style="padding:5px 12px; font-size:11px;" onclick="abrirPdfComprobante(${c.id})"><i class="fa-solid fa-file-pdf"></i> Ver</button></td>
+                </tr>
+            `;
+        }).join('');
+    }
+
+    document.getElementById('buscador-comprobantes').addEventListener('input', (e) => {
+        const texto = e.target.value.toLowerCase();
+        const filtrados = __comprobantes.filter(c => {
+            const pago = __pagos.find(p => p.id === c.pago_id);
+            const cliente = pago ? __usuarios.find(u => u.id === pago.usuario_id) : null;
+            return (c.numero || '').toLowerCase().includes(texto) || (cliente && cliente.nombre.toLowerCase().includes(texto));
+        });
+        pintar(filtrados);
+    });
+
+    (async () => {
+        try {
+            const [resComp, resPagos, resUsuarios] = await Promise.all([
+                fetch(`${API_BASE}/comprobantes`),
+                fetch(`${API_BASE}/pagos`),
+                fetchUsuarios()
+            ]);
+            __comprobantes = resComp.ok ? await resComp.json() : [];
+            __pagos = resPagos.ok ? await resPagos.json() : [];
+            __usuarios = resUsuarios.ok ? await resUsuarios.json() : [];
+            pintar(__comprobantes);
+        } catch (error) {
+            console.error('Error cargando comprobantes:', error);
+            document.getElementById('comprobantes-admin-body').innerHTML = `<tr><td colspan="6" style="text-align:center; color: var(--text-muted); padding: 20px;"><i class="fa-solid fa-plug-circle-xmark"></i> No pudimos conectar con el servidor.</td></tr>`;
+        }
+    })();
+})();
+</script>

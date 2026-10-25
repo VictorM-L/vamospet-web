@@ -1,0 +1,293 @@
+<div class="fade-in" style="max-width: 900px; margin: 40px auto 80px auto; padding: 0 20px;" id="mascota-detalle-contenedor">
+    <p style="text-align:center; color: var(--text-muted); padding: 60px 0;"><i class="fa-solid fa-spinner fa-spin"></i> Cargando historial...</p>
+</div>
+
+<div class="modal-overlay" id="modal-subir-receta" style="display: none;">
+    <div class="modal-box">
+        <h3><i class="fa-solid fa-file-prescription" style="color: var(--primary-green);"></i> Subir Receta Médica</h3>
+        <form id="form-subir-receta">
+            <div class="input-group">
+                <label>Archivo (imagen o PDF)</label>
+                <input type="file" id="receta-archivo" accept="image/png, image/jpeg, image/webp, image/gif, application/pdf" required>
+            </div>
+            <div class="input-group">
+                <label>Nota para el veterinario (opcional)</label>
+                <input type="text" id="receta-nota" placeholder="Ej. receta de otra clínica para revalidar">
+            </div>
+            <div style="display: flex; gap: 10px; margin-top: 20px;">
+                <button type="button" class="btn-outline" style="flex: 1; padding: 12px;" onclick="cerrarModalSubirReceta()">Cancelar</button>
+                <button type="submit" class="btn-primary" style="flex: 1; padding: 12px;">Subir</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<style>
+    .historial-item {
+        display: flex;
+        gap: 15px;
+        padding: 15px 0;
+        border-bottom: 1px solid #F3F4F6;
+    }
+    .historial-item:last-child { border-bottom: none; }
+    .historial-icono {
+        width: 38px; height: 38px; min-width: 38px;
+        border-radius: 10px;
+        background: var(--light-green);
+        color: var(--primary-green);
+        display: flex; align-items: center; justify-content: center;
+    }
+</style>
+
+<script>
+(function () {
+    let __mascotaIdActual = null;
+    const usuarioJSON = localStorage.getItem('usuarioLogueado');
+    const usuarioActual = usuarioJSON ? JSON.parse(usuarioJSON) : null;
+    const esVeterinario = usuarioActual && usuarioActual.rol_id === 3;
+
+    function iconoPorEspecie(especie) {
+        const e = (especie || '').toLowerCase();
+        if (e.includes('gato')) return 'fa-cat';
+        return 'fa-dog';
+    }
+
+    function badgeEstadoReceta(estado) {
+        const clase = estado === 'Aprobada' ? 'status-completado' : (estado === 'Rechazada' ? 'status-cancelada' : 'status-pendiente');
+        return `<span class="status-badge ${clase}">${estado || 'Pendiente'}</span>`;
+    }
+
+    function esArchivoImagen(url) {
+        return /\.(jpg|jpeg|png|webp|gif)$/i.test(url || '');
+    }
+
+    async function cargarYRenderizar() {
+        const contenedor = document.getElementById('mascota-detalle-contenedor');
+        const id = __mascotaIdActual;
+
+        const [resMascota, resVacunas, resRecetas, resHistorial] = await Promise.all([
+            fetch(`${API_BASE}/mascotas/${id}`),
+            fetch(`${API_BASE}/vacunas/mascota/${id}`),
+            fetch(`${API_BASE}/recetas/mascota/${id}`),
+            fetch(`${API_BASE}/historial/mascota/${id}`)
+        ]);
+
+        const mascota = resMascota.ok ? await resMascota.json() : null;
+        const vacunas = resVacunas.ok ? await resVacunas.json() : [];
+        const recetas = resRecetas.ok ? await resRecetas.json() : [];
+        const historial = (resHistorial.ok ? await resHistorial.json() : []).sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
+        let examenes = [], cirugias = [];
+        if (usuarioActual) {
+            try {
+                const [rEx, rCi] = await Promise.all([
+                    fetch(`${API_BASE}/examenes?usuarioId=${usuarioActual.id}&mascotaId=${id}`),
+                    fetch(`${API_BASE}/cirugias?usuarioId=${usuarioActual.id}&mascotaId=${id}`)
+                ]);
+                examenes = rEx.ok ? await rEx.json() : [];
+                cirugias = rCi.ok ? await rCi.json() : [];
+            } catch (e) {  }
+        }
+
+        if (!mascota) {
+            contenedor.innerHTML = `<p style="text-align:center; color: var(--text-muted); padding: 60px 0;">No encontramos esta mascota.</p>`;
+            return;
+        }
+
+        const vacunasHtml = vacunas.length > 0 ? vacunas.map(v => `
+            <div class="historial-item">
+                <div class="historial-icono"><i class="fa-solid fa-syringe"></i></div>
+                <div>
+                    <strong style="font-size: 14px;">${esc(v.nombre)}</strong>
+                    <p style="font-size: 12px; color: var(--text-muted);">Aplicada: ${v.fecha_aplicacion || '—'}${v.proxima_dosis ? ' · Próxima dosis: ' + v.proxima_dosis : ''}</p>
+                </div>
+            </div>
+        `).join('') : `<p style="color: var(--text-muted); font-size: 13px;">Sin vacunas registradas.</p>`;
+
+        const recetasOrdenadas = [...recetas].sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
+        const recetasHtml = recetasOrdenadas.length > 0 ? recetasOrdenadas.map(r => `
+            <div class="historial-item">
+                <div class="historial-icono"><i class="fa-solid ${esArchivoImagen(r.archivo_url) ? 'fa-file-image' : 'fa-file-pdf'}"></i></div>
+                <div style="flex: 1;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+                        <strong style="font-size: 14px;">Receta médica</strong>
+                        ${badgeEstadoReceta(r.estado)}
+                    </div>
+                    <p style="font-size: 12px; color: var(--text-muted); margin: 3px 0;">${r.fecha ? new Date(r.fecha).toLocaleDateString('es-PE') : ''}</p>
+                    ${r.contenido ? `<p style="font-size: 13px; color: var(--dark-text); margin-top: 4px;">${esc(r.contenido)}</p>` : ''}
+                    ${r.archivo_url ? `<a href="${esc(r.archivo_url)}" target="_blank" style="font-size: 12px; color: var(--primary-green); font-weight: 600;"><i class="fa-solid fa-arrow-up-right-from-square"></i> Ver archivo</a>` : ''}
+                    ${esVeterinario && r.estado === 'Pendiente' ? `
+                        <div style="margin-top: 10px; display: flex; gap: 10px;">
+                            <button class="btn-primary" style="padding: 6px 14px; font-size: 12px;" onclick="cambiarEstadoReceta(${r.id}, 'Aprobada')"><i class="fa-solid fa-check"></i> Aprobar</button>
+                            <button class="btn-outline" style="padding: 6px 14px; font-size: 12px; color:#DC2626; border-color:#DC2626;" onclick="cambiarEstadoReceta(${r.id}, 'Rechazada')"><i class="fa-solid fa-xmark"></i> Rechazar</button>
+                        </div>
+                    ` : ''}
+                </div>
+            </div>
+        `).join('') : `<p style="color: var(--text-muted); font-size: 13px;">Sin recetas registradas.</p>`;
+
+        const historialHtml = historial.length > 0 ? historial.map(h => `
+            <div class="historial-item">
+                <div class="historial-icono"><i class="fa-solid fa-notes-medical"></i></div>
+                <div>
+                    <strong style="font-size: 14px;">${esc(h.tipo_evento || 'Evento médico')}</strong>
+                    <p style="font-size: 12px; color: var(--text-muted);">${h.fecha ? new Date(h.fecha).toLocaleDateString('es-PE') : ''}</p>
+                    <p style="font-size: 13px; color: var(--dark-text); margin-top: 4px; white-space: pre-line;">${esc(h.descripcion || '')}</p>
+                </div>
+            </div>
+        `).join('') : `<p style="color: var(--text-muted); font-size: 13px;">Sin eventos registrados aún.</p>`;
+
+        const etiquetaEx = { 'Pendiente': 'Esperando resultado', 'Resultados_Subidos': 'En revisión', 'Apto_Cirugia': 'Apto para cirugía', 'Rechazado': 'Rechazado' };
+        const examenesHtml = examenes.length > 0 ? examenes.map(o => `
+            <div class="historial-item">
+                <div class="historial-icono"><i class="fa-solid fa-flask-vial"></i></div>
+                <div style="flex: 1;">
+                    <strong style="font-size: 14px;">${esc(o.tipo_examen)}</strong>
+                    <span class="status-badge ${o.estado === 'Apto_Cirugia' ? 'status-completado' : (o.estado === 'Rechazado' ? 'status-cancelada' : 'status-pendiente')}" style="margin-left:6px;">${esc(etiquetaEx[o.estado] || o.estado)}</span>
+                    <p style="font-size: 12px; color: var(--text-muted);">Solicitado ${o.fecha_solicitud ? new Date(o.fecha_solicitud).toLocaleDateString('es-PE') : ''}${o.cirugia_prevista ? ' · Previo a: ' + esc(o.cirugia_prevista) : ''}${o.estado === 'Apto_Cirugia' && o.vigente_hasta ? ' · Vigente hasta ' + esc(o.vigente_hasta) : ''}</p>
+                    ${o.indicaciones ? `<p style="font-size: 12px;">Indicaciones: ${esc(o.indicaciones)}</p>` : ''}
+                    ${o.observaciones ? `<p style="font-size: 12px;">Observaciones del veterinario: ${esc(o.observaciones)}</p>` : ''}
+                    ${o.archivos.map(a => `<a href="${API_BASE}/examenes/archivo/${a.id}?usuarioId=${usuarioActual.id}" target="_blank" style="display:block; font-size:12px; color: var(--primary-green);"><i class="fa-solid fa-paperclip"></i> ${esc(a.nombre)}</a>`).join('')}
+                    ${!esVeterinario && usuarioActual.rol_id === 2 && (o.estado === 'Pendiente' || o.estado === 'Rechazado') ? `<button class="btn-outline" style="padding: 5px 12px; font-size: 12px; margin-top: 6px;" onclick="elegirResultadoExamen(${o.id})"><i class="fa-solid fa-upload"></i> Subir resultado (PDF o JPEG, máx. 5 MB)</button>` : ''}
+                </div>
+            </div>`).join('') : `<p style="color: var(--text-muted); font-size: 13px;">Sin exámenes solicitados.</p>`;
+        const cirugiasHtml = cirugias.length > 0 ? cirugias.map(c => `
+            <div class="historial-item">
+                <div class="historial-icono"><i class="fa-solid fa-user-doctor"></i></div>
+                <div><strong style="font-size: 14px;">${esc(c.tipo_cirugia)}</strong>
+                <p style="font-size: 12px; color: var(--text-muted);">${new Date(c.fecha_hora).toLocaleString('es-PE', { dateStyle: 'medium', timeStyle: 'short' })} · ${esc(c.estado)}</p></div>
+            </div>`).join('') : '';
+
+        contenedor.innerHTML = `
+            <input type="file" id="examen-archivo" accept=".pdf,.jpg,.jpeg,application/pdf,image/jpeg" style="display:none;">
+            <button style="background:none; border:none; color: var(--text-muted); font-size: 13px; margin-bottom: 20px; cursor: pointer;" onclick="cargarVista(${esVeterinario ? "'VistaAdmin/clientes'" : "'VistaCliente/perfil-cliente'"})">
+                <i class="fa-solid fa-arrow-left"></i> ${esVeterinario ? 'Volver a Clientes' : 'Volver a mi perfil'}
+            </button>
+
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px; margin-bottom: 30px;">
+                <div style="display: flex; align-items: center; gap: 20px;">
+                    <div style="width: 70px; height: 70px; border-radius: 20px; background: var(--light-green); color: var(--primary-green); display: flex; align-items: center; justify-content: center; font-size: 30px;">
+                        <i class="fa-solid ${iconoPorEspecie(mascota.especie)}"></i>
+                    </div>
+                    <div>
+                        <h1 style="font-size: 26px; font-weight: 800; color: var(--dark-text);">${esc(mascota.nombre)}</h1>
+                        <p style="color: var(--text-muted); font-size: 14px;">${mascota.especie || ''}${mascota.raza ? ' · ' + mascota.raza : ''}${mascota.sexo ? ' · ' + mascota.sexo : ''}</p>
+                    </div>
+                </div>
+                ${!esVeterinario ? `<button class="btn-primary" onclick="abrirModalSubirReceta()"><i class="fa-solid fa-upload"></i> Subir Receta</button>` : ''}
+            </div>
+
+            <div class="admin-table-container" style="margin-bottom: 25px;">
+                <h3 style="font-size: 16px; font-weight: 700; margin-bottom: 10px;"><i class="fa-solid fa-syringe" style="color: var(--primary-green);"></i> Vacunas</h3>
+                ${vacunasHtml}
+            </div>
+
+            <div class="admin-table-container" style="margin-bottom: 25px;">
+                <h3 style="font-size: 16px; font-weight: 700; margin-bottom: 10px;"><i class="fa-solid fa-file-prescription" style="color: var(--primary-green);"></i> Recetas Médicas</h3>
+                ${recetasHtml}
+            </div>
+
+            <div class="admin-table-container" style="margin-bottom: 25px;">
+                <h3 style="font-size: 16px; font-weight: 700; margin-bottom: 10px;"><i class="fa-solid fa-flask-vial" style="color: var(--primary-green);"></i> Exámenes y Cirugías</h3>
+                ${examenesHtml}${cirugiasHtml}
+            </div>
+
+            <div class="admin-table-container">
+                <h3 style="font-size: 16px; font-weight: 700; margin-bottom: 10px;"><i class="fa-solid fa-notes-medical" style="color: var(--primary-green);"></i> Historial de Eventos</h3>
+                ${historialHtml}
+            </div>
+        `;
+    }
+
+    let __ordenSubida = null;
+    window.elegirResultadoExamen = function (ordenId) {
+        __ordenSubida = ordenId;
+        const input = document.getElementById('examen-archivo');
+        input.value = '';
+        input.onchange = async () => {
+            const f = input.files[0];
+            if (!f) return;
+            if (f.size > 5 * 1024 * 1024) { alert('El archivo supera los 5 MB.'); return; }
+            const fd = new FormData();
+            fd.append('usuario_id', usuarioActual.id); fd.append('orden_id', __ordenSubida); fd.append('archivo', f);
+            const res = await fetch(`${API_BASE}/cliente/examenes/subir-pdf`, { method: 'POST', body: fd });
+            const d = await res.json().catch(() => ({}));
+            alert(res.ok ? d.mensaje : (d.error || 'No se pudo subir el archivo.'));
+            cargarYRenderizar();
+        };
+        input.click();
+    };
+
+    window.abrirModalSubirReceta = () => document.getElementById('modal-subir-receta').style.display = 'flex';
+    window.cerrarModalSubirReceta = () => document.getElementById('modal-subir-receta').style.display = 'none';
+
+    document.getElementById('form-subir-receta').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const boton = e.target.querySelector('button[type="submit"]');
+        boton.disabled = true;
+        boton.innerText = 'Subiendo...';
+
+        try {
+            const urlArchivo = await subirImagen(document.getElementById('receta-archivo'));
+            if (!urlArchivo) throw new Error('No se seleccionó archivo');
+
+            const res = await fetch(`${API_BASE}/recetas`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    mascota_id: __mascotaIdActual,
+                    archivo_url: urlArchivo,
+                    contenido: document.getElementById('receta-nota').value,
+                    estado: 'Pendiente'
+                })
+            });
+            if (!res.ok) throw new Error();
+
+            cerrarModalSubirReceta();
+            document.getElementById('form-subir-receta').reset();
+            alert('Receta subida. El veterinario la revisará pronto.');
+            cargarYRenderizar();
+        } catch (error) {
+            console.error('Error subiendo receta:', error);
+            alert('No se pudo subir la receta.');
+        } finally {
+            boton.disabled = false;
+            boton.innerText = 'Subir';
+        }
+    });
+
+    window.cambiarEstadoReceta = async (id, nuevoEstado) => {
+        try {
+            const res = await fetch(`${API_BASE}/recetas/${id}/estado`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ estado: nuevoEstado, veterinario_id: usuarioActual ? usuarioActual.id : null })
+            });
+            if (!res.ok) throw new Error();
+            cargarYRenderizar();
+        } catch (error) {
+            console.error('Error actualizando receta:', error);
+            alert('No se pudo actualizar la receta.');
+        }
+    };
+
+    async function init() {
+        const contenedor = document.getElementById('mascota-detalle-contenedor');
+        const id = localStorage.getItem('mascotaSeleccionadaId');
+
+        if (!id) {
+            contenedor.innerHTML = `<p style="text-align:center; color: var(--text-muted); padding: 60px 0;">No se seleccionó ninguna mascota.</p>`;
+            return;
+        }
+        __mascotaIdActual = id;
+
+        try {
+            await cargarYRenderizar();
+        } catch (error) {
+            console.error('Error cargando historial:', error);
+            contenedor.innerHTML = `<p style="text-align:center; color: var(--text-muted); padding: 60px 0;"><i class="fa-solid fa-plug-circle-xmark"></i> No pudimos conectar con el servidor.</p>`;
+        }
+    }
+
+    init();
+})();
+</script>

@@ -1,0 +1,85 @@
+<div class="fade-in lab-hero">
+    <span style="background: rgba(255,255,255,0.1); padding: 8px 16px; border-radius: 20px; font-size: 12px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase;">Estamos para ayudarte</span>
+    <h1 style="font-size: 42px; font-weight: 800; margin: 15px 0;">Contáctanos</h1>
+    <p style="color: #9CA3AF; font-size: 16px; max-width: 600px; margin: 0 auto;">Escríbenos, llámanos o visítanos. Nuestro equipo responde rápido, especialmente en emergencias.</p>
+</div>
+
+<div class="fade-in" style="max-width: 1200px; margin: 0 auto 80px auto; padding: 0 20px; display: flex; gap: 50px; flex-wrap: wrap;">
+
+    <div style="flex: 1; min-width: 300px;">
+        <h2 style="font-size: 28px; font-weight: 800; margin-bottom: 20px;">Nuestros canales</h2>
+
+        <div class="contact-info-card">
+            <div class="contact-info-icon"><i class="fa-solid fa-location-dot"></i></div>
+            <div>
+                <h4>Dirección</h4>
+                <p>Calle San Martín 849, Miraflores, Lima</p>
+            </div>
+        </div>
+
+        <div class="contact-info-card">
+            <div class="contact-info-icon"><i class="fa-brands fa-whatsapp"></i></div>
+            <div>
+                <h4>WhatsApp / Emergencias</h4>
+                <p>+51 912 345 678 — Atención 24/7</p>
+            </div>
+        </div>
+
+        <div class="contact-info-card">
+            <div class="contact-info-icon"><i class="fa-solid fa-envelope"></i></div>
+            <div>
+                <h4>Correo</h4>
+                <p>contacto@vamospet.pe</p>
+            </div>
+        </div>
+
+        <div class="contact-info-card">
+            <div class="contact-info-icon"><i class="fa-solid fa-clock"></i></div>
+            <div>
+                <h4>Horario de atención</h4>
+                <p>Lun a Dom: 8:00 am – 9:00 pm (emergencias 24/7)</p>
+            </div>
+        </div>
+
+        <div style="border-radius: 24px; overflow: hidden; margin-top: 30px; box-shadow: var(--shadow-soft);">
+            <iframe
+                src="https://www.google.com/maps?q=Calle%20San%20Mart%C3%ADn%20849%2C%20Miraflores%2C%20Lima&output=embed"
+                width="100%" height="260" style="border:0; display:block;" loading="lazy"
+                referrerpolicy="no-referrer-when-downgrade" title="Ubicación Vamos Pet">
+            </iframe>
+        </div>
+    </div>
+
+    <div style="flex: 1; min-width: 300px;">
+        <h2 style="font-size: 28px; font-weight: 800; margin-bottom: 20px;">Envíanos un mensaje</h2>
+        <form id="form-contacto" class="contact-form">
+            <div class="input-group">
+                <label>Nombre completo</label>
+                <input type="text" id="contacto-nombre" placeholder="Tu nombre" required>
+            </div>
+            <div class="input-group">
+                <label>Correo electrónico</label>
+                <input type="email" id="contacto-email" placeholder="tucorreo@ejemplo.com" required>
+            </div>
+            <div class="input-group">
+                <label>Teléfono</label>
+                <input type="tel" id="contacto-telefono" placeholder="+51 900 000 000">
+            </div>
+            <div class="input-group">
+                <label>Motivo</label>
+                <select id="contacto-motivo" required>
+                    <option value="">Selecciona una opción</option>
+                    <option value="cita">Agendar una cita</option>
+                    <option value="emergencia">Emergencia</option>
+                    <option value="farmacia">Consulta sobre farmacia</option>
+                    <option value="otro">Otro</option>
+                </select>
+            </div>
+            <div class="input-group">
+                <label>Mensaje</label>
+                <textarea id="contacto-mensaje" rows="5" placeholder="Cuéntanos en qué podemos ayudarte" required></textarea>
+            </div>
+            <button type="submit" class="btn-primary" style="width: 100%; padding: 15px;"><i class="fa-solid fa-paper-plane"></i> Enviar Mensaje</button>
+        </form>
+    </div>
+</div>

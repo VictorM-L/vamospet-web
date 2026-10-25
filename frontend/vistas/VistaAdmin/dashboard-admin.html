@@ -1,0 +1,129 @@
+<div class="fade-in admin-layout">
+
+    <aside class="admin-sidebar">
+        <div style="color: white; font-size: 18px; font-weight: 800; padding: 10px 18px 20px 18px; border-bottom: 1px solid #374151; margin-bottom: 10px;">
+            <i class="fa-solid fa-shield-halved" style="color: var(--primary-green);"></i> Admin Panel
+        </div>
+
+        <button class="sidebar-item active" onclick="cargarVista('VistaAdmin/dashboard-admin')"><i class="fa-solid fa-chart-pie"></i> Dashboard</button>
+        <button class="sidebar-item" onclick="cargarVista('VistaAdmin/citas')"><i class="fa-solid fa-calendar-check"></i> Gestión de Citas</button>
+        <button class="sidebar-item" onclick="cargarVista('VistaAdmin/examenes')"><i class="fa-solid fa-flask-vial"></i> Exámenes y Cirugías</button>
+        <button class="sidebar-item" onclick="cargarVista('VistaAdmin/emergencias')"><i class="fa-solid fa-truck-medical"></i> Emergencias</button>
+        <button class="sidebar-item" onclick="cargarVista('VistaAdmin/clientes')"><i class="fa-solid fa-users"></i> Clientes y Mascotas</button>
+        <button class="sidebar-item" onclick="cargarVista('VistaAdmin/servicios')"><i class="fa-solid fa-briefcase-medical"></i> Servicios</button>
+        <button class="sidebar-item" onclick="cargarVista('VistaAdmin/inventario')"><i class="fa-solid fa-box-open"></i> Inventario Tienda</button>
+        <button class="sidebar-item" onclick="cargarVista('VistaAdmin/proveedores')"><i class="fa-solid fa-truck-field"></i> Proveedores</button>
+        <button class="sidebar-item" onclick="cargarVista('VistaAdmin/compras')"><i class="fa-solid fa-cart-flatbed"></i> Compras</button>
+        <button class="sidebar-item" onclick="cargarVista('VistaAdmin/devoluciones')"><i class="fa-solid fa-rotate-left"></i> Devoluciones</button>
+        <button class="sidebar-item" onclick="cargarVista('VistaAdmin/comprobantes')"><i class="fa-solid fa-receipt"></i> Comprobantes</button>
+        <button class="sidebar-item" onclick="cargarVista('VistaAdmin/finanzas')"><i class="fa-solid fa-file-invoice-dollar"></i> Finanzas</button>
+        <button class="sidebar-item" onclick="cargarVista('VistaAdmin/reportes')"><i class="fa-solid fa-chart-column"></i> Reportes</button>
+        <button class="sidebar-item" onclick="cargarVista('VistaAdmin/horarios')"><i class="fa-solid fa-clock"></i> Horarios Veterinarios</button>
+        <button class="sidebar-item" onclick="cargarVista('VistaAdmin/personal')"><i class="fa-solid fa-user-nurse"></i> Personal</button>
+        <button class="sidebar-item" onclick="cargarVista('VistaAdmin/configuracion')"><i class="fa-solid fa-gear"></i> Configuración</button>
+    </aside>
+
+    <main class="admin-content">
+
+        <div class="metrics-grid" id="dashboard-metrics">
+            <div class="metric-card">
+                <div class="metric-icon"><i class="fa-solid fa-calendar-day"></i></div>
+                <div>
+                    <h4 style="color: var(--text-muted); font-size: 13px; font-weight: 600; margin-bottom: 5px;">Citas de Hoy</h4>
+                    <h2 style="font-size: 28px; font-weight: 800; color: var(--dark-text);" id="metric-citas-hoy">—</h2>
+                </div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-icon" style="background: #E0E7FF; color: #4F46E5;"><i class="fa-solid fa-bag-shopping"></i></div>
+                <div>
+                    <h4 style="color: var(--text-muted); font-size: 13px; font-weight: 600; margin-bottom: 5px;">Pedidos Tienda</h4>
+                    <h2 style="font-size: 28px; font-weight: 800; color: var(--dark-text);" id="metric-pedidos">—</h2>
+                </div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-icon" style="background: #FEF3C7; color: #D97706;"><i class="fa-solid fa-users"></i></div>
+                <div>
+                    <h4 style="color: var(--text-muted); font-size: 13px; font-weight: 600; margin-bottom: 5px;">Clientes Registrados</h4>
+                    <h2 style="font-size: 28px; font-weight: 800; color: var(--dark-text);" id="metric-clientes">—</h2>
+                </div>
+            </div>
+        </div>
+
+        <div class="admin-table-container">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                <h3 style="font-size: 18px; font-weight: 700;">Próximas Citas</h3>
+                <button class="btn-outline" style="padding: 8px 15px; font-size: 13px;" onclick="cargarVista('VistaAdmin/citas')">Ver todas</button>
+            </div>
+            <table class="admin-table">
+                <thead>
+                    <tr>
+                        <th>Mascota</th>
+                        <th>Cliente</th>
+                        <th>Fecha y Hora</th>
+                        <th>Estado</th>
+                    </tr>
+                </thead>
+                <tbody id="dashboard-citas-body">
+                    <tr><td colspan="4" style="text-align:center; color: var(--text-muted); padding: 20px;"><i class="fa-solid fa-spinner fa-spin"></i> Cargando...</td></tr>
+                </tbody>
+            </table>
+        </div>
+
+    </main>
+</div>
+
+<script>
+    (async () => {
+        try {
+            const [resCitas, resPedidos, resUsuarios, resMascotas] = await Promise.all([
+                fetch(`${API_BASE}/citas`),
+                fetch(`${API_BASE}/pedidos`),
+                fetchUsuarios(),
+                fetch(`${API_BASE}/mascotas`)
+            ]);
+
+            const citas = resCitas.ok ? await resCitas.json() : [];
+            const pedidos = resPedidos.ok ? await resPedidos.json() : [];
+            const usuarios = resUsuarios.ok ? await resUsuarios.json() : [];
+            const mascotas = resMascotas.ok ? await resMascotas.json() : [];
+
+            const hoy = new Date().toDateString();
+            const citasHoy = citas.filter(c => c.fecha_hora && new Date(c.fecha_hora).toDateString() === hoy);
+            const clientes = usuarios.filter(u => u.rol_id === 2);
+
+            document.getElementById('metric-citas-hoy').innerText = citasHoy.length;
+            document.getElementById('metric-pedidos').innerText = pedidos.length;
+            document.getElementById('metric-clientes').innerText = clientes.length;
+
+            const proximas = citas
+                .filter(c => c.estado === 'Pendiente' || c.estado === 'Confirmada')
+                .sort((a, b) => new Date(a.fecha_hora) - new Date(b.fecha_hora))
+                .slice(0, 6);
+
+            const cuerpo = document.getElementById('dashboard-citas-body');
+
+            if (proximas.length === 0) {
+                cuerpo.innerHTML = `<tr><td colspan="4" style="text-align:center; color: var(--text-muted); padding: 20px;">No hay citas pendientes registradas.</td></tr>`;
+                return;
+            }
+
+            cuerpo.innerHTML = proximas.map(c => {
+                const mascota = mascotas.find(m => m.id === c.mascota_id);
+                const cliente = mascota ? usuarios.find(u => u.id === mascota.usuario_id) : null;
+                const fecha = c.fecha_hora ? new Date(c.fecha_hora).toLocaleString('es-PE', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }) : '—';
+                const claseEstado = claseEstadoCita(c.estado);
+                return `
+                    <tr>
+                        <td><strong>${mascota ? mascota.nombre : 'N/D'}</strong><br><span style="color: var(--text-muted); font-size: 12px;">${mascota ? (mascota.especie || '') : ''}</span></td>
+                        <td>${cliente ? cliente.nombre : 'N/D'}</td>
+                        <td>${fecha}</td>
+                        <td><span class="status-badge ${claseEstado}">${c.estado}</span></td>
+                    </tr>
+                `;
+            }).join('');
+        } catch (error) {
+            console.error('Error cargando dashboard:', error);
+            document.getElementById('dashboard-citas-body').innerHTML = `<tr><td colspan="4" style="text-align:center; color: var(--text-muted); padding: 20px;"><i class="fa-solid fa-plug-circle-xmark"></i> No pudimos conectar con el servidor.</td></tr>`;
+        }
+    })();
+</script>

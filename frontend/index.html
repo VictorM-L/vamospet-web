@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vamos Pet - Clínica Veterinaria</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+
+    <header class="site-header" style="display: flex; justify-content: space-between; align-items: center; padding: 15px 5%; border-bottom: 1px solid #eee; background: white; position: sticky; top: 0; z-index: 100;">
+        <div class="logo-container" style="display: flex; align-items: center; gap: 10px; color: var(--primary-green); font-size: 24px; font-weight: bold; cursor: pointer;" onclick="cargarVista('home')">
+            <i class="fa-solid fa-paw"></i>
+            <div style="line-height: 1.1;">
+                Vamos Pet
+                <span style="display: block; font-size: 10px; color: var(--text-muted); font-weight: 500;">Clínica Veterinaria</span>
+            </div>
+        </div>
+
+        <nav class="nav-links" id="nav-links">
+            <a href="#" onclick="cargarVista('home')" style="color: var(--primary-green); font-weight: bold; text-decoration: none; border-bottom: 2px solid var(--primary-green);">Inicio</a>
+            <a href="#" onclick="cargarVista('nosotros')" style="color: var(--dark-text); text-decoration: none; font-weight: 500;">Nosotros</a>
+            <a href="#" onclick="cargarVista('servicios')" style="color: var(--dark-text); text-decoration: none; font-weight: 500;">Servicios <i class="fa-solid fa-chevron-down" style="font-size: 10px;"></i></a>
+            <a href="#" onclick="cargarVista('laboratorio')" style="color: var(--dark-text); text-decoration: none; font-weight: 500;">Laboratorio</a>
+            <a href="#" onclick="cargarVista('farmacia')" style="color: var(--dark-text); text-decoration: none; font-weight: 500;">Farmacia</a>
+            <a href="#" onclick="cargarVista('accesorios')" style="color: var(--dark-text); text-decoration: none; font-weight: 500;">Accesorios</a>
+            <a href="#" onclick="cargarVista('blog')" style="color: var(--dark-text); text-decoration: none; font-weight: 500;">Blog</a>
+            <a href="#" onclick="cargarVista('contacto')" style="color: var(--dark-text); text-decoration: none; font-weight: 500;">Contacto</a>
+        </nav>
+
+        <div style="display: flex; gap: 25px; align-items: center;">
+            <div class="header-emergency-info" style="text-align: right; line-height: 1.2;">
+                <span style="font-size: 11px; color: var(--text-muted); display: block;">Emergencias 24/7</span>
+                <strong style="color: var(--dark-text); font-size: 14px;"><i class="fa-solid fa-phone" style="color: var(--primary-green);"></i> +51 912 345 678</strong>
+            </div>
+            
+            <div class="hover-card" style="position: relative; cursor: pointer; font-size: 22px; color: var(--dark-text);" onclick="cargarVista('carrito')">
+                <i class="fa-solid fa-cart-shopping"></i>
+                <span class="carrito-badge" style="position: absolute; top: -8px; right: -10px; background: var(--primary-green); color: white; font-size: 11px; font-weight: bold; padding: 2px 6px; border-radius: 50%;">0</span>
+            </div>
+
+            <button class="btn-primary" id="btn-cuenta-header" onclick="cargarVista('login')">
+                <i class="fa-regular fa-user"></i> Mi cuenta
+            </button>
+
+            <button class="mobile-menu-toggle" onclick="toggleMenuMovil()" aria-label="Abrir menú">
+                <i class="fa-solid fa-bars"></i>
+            </button>
+        </div>
+    </header>
+
+    <main id="app-content" class="fade-in">
+    </main>
+
+    <footer style="background-color: #111827; color: white; padding: 60px 5% 20px 5%;">
+        <div style="display: flex; justify-content: space-between; flex-wrap: wrap; gap: 40px; margin-bottom: 40px;">
+            <div style="flex: 1; min-width: 250px;">
+                <div style="display: flex; align-items: center; gap: 10px; color: var(--primary-green); font-size: 24px; font-weight: bold; margin-bottom: 20px;">
+                    <i class="fa-solid fa-paw"></i> Vamos Pet
+                </div>
+                <p style="color: #9CA3AF; font-size: 14px; line-height: 1.6; font-weight: 400;">Brindamos atención veterinaria integral con amor, tecnología y profesionales comprometidos con la salud y bienestar de tu engreído.</p>
+            </div>
+            <div style="flex: 1; min-width: 200px;">
+                <h4 style="margin-bottom: 20px; font-size: 16px; font-weight: 600;">Enlaces Rápidos</h4>
+                <ul style="list-style: none; color: #9CA3AF; font-size: 14px; line-height: 2.2;">
+                    <li><a href="#" style="color: inherit; text-decoration: none; transition: color 0.3s;" onmouseover="this.style.color='#158A55'" onmouseout="this.style.color='#9CA3AF'" onclick="cargarVista('home')">Inicio</a></li>
+                    <li><a href="#" style="color: inherit; text-decoration: none; transition: color 0.3s;" onmouseover="this.style.color='#158A55'" onmouseout="this.style.color='#9CA3AF'" onclick="cargarVista('servicios')">Servicios Médicos</a></li>
+                    <li><a href="#" style="color: inherit; text-decoration: none; transition: color 0.3s;" onmouseover="this.style.color='#158A55'" onmouseout="this.style.color='#9CA3AF'" onclick="cargarVista('farmacia')">Tienda Online</a></li>
+                    <li><a href="#" style="color: inherit; text-decoration: none; transition: color 0.3s;" onmouseover="this.style.color='#158A55'" onmouseout="this.style.color='#9CA3AF'" onclick="cargarVista('blog')">Blog</a></li>
+                    <li><a href="#" style="color: inherit; text-decoration: none; transition: color 0.3s;" onmouseover="this.style.color='#158A55'" onmouseout="this.style.color='#9CA3AF'" onclick="cargarVista('contacto')">Contacto</a></li>
+                </ul>
+            </div>
+            <div style="flex: 1; min-width: 250px;">
+                <h4 style="margin-bottom: 20px; font-size: 16px; font-weight: 600;">Contáctanos</h4>
+                <ul style="list-style: none; color: #9CA3AF; font-size: 14px; line-height: 2.2;">
+                    <li><i class="fa-solid fa-location-dot" style="color: var(--primary-green); margin-right: 10px;"></i> Av. Los Peluditos 123, Lima, Perú</li>
+                    <li><i class="fa-solid fa-envelope" style="color: var(--primary-green); margin-right: 10px;"></i> contacto@vamospet.pe</li>
+                    <li><i class="fa-solid fa-phone" style="color: var(--primary-green); margin-right: 10px;"></i> +51 912 345 678</li>
+                </ul>
+            </div>
+        </div>
+        <div style="border-top: 1px solid #1F2937; padding-top: 20px; text-align: center; color: #6B7280; font-size: 13px;">
+            &copy; 2026 Vamos Pet Clínica Veterinaria. Todos los derechos reservados.
+        </div>
+    </footer>
+
+    <a href="https://wa.me/51912345678" target="_blank" class="hover-card" style="position: fixed; bottom: 30px; right: 30px; background: #25D366; color: white; width: 60px; height: 60px; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 30px; text-decoration: none; z-index: 1000;">
+        <i class="fa-brands fa-whatsapp"></i>
+    </a>
+
+    <button id="btn-asistente-ia" onclick="toggleAsistenteIA()" class="hover-card" style="display: none; position: fixed; bottom: 100px; right: 30px; background: var(--green-gradient); color: white; width: 60px; height: 60px; border-radius: 50%; justify-content: center; align-items: center; font-size: 26px; border: none; cursor: pointer; z-index: 1000; box-shadow: var(--shadow-glow);">
+        <i class="fa-solid fa-robot"></i>
+    </button>
+
+    <div id="panel-asistente-ia" style="display: none; position: fixed; bottom: 170px; right: 30px; width: 340px; max-width: 90vw; height: 460px; max-height: 70vh; background: white; border-radius: 20px; box-shadow: var(--shadow-hover-card); border: 1px solid #E4E7EC; z-index: 1000; flex-direction: column; overflow: hidden;">
+        <div style="background: var(--green-gradient); color: white; padding: 15px 18px; display: flex; justify-content: space-between; align-items: center;">
+            <div>
+                <strong style="font-size: 14px;"><i class="fa-solid fa-robot"></i> Asistente Vamos Pet</strong>
+                <div style="font-size: 11px; opacity: 0.85;">Pregúntame sobre servicios, citas o cuidado de mascotas</div>
+            </div>
+            <button onclick="toggleAsistenteIA()" style="background: none; border: none; color: white; font-size: 18px; cursor: pointer;"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div id="asistente-ia-mensajes" style="flex: 1; overflow-y: auto; padding: 15px; display: flex; flex-direction: column; gap: 12px;"></div>
+        <form id="form-asistente-ia" style="display: flex; gap: 8px; padding: 12px; border-top: 1px solid #F3F4F6;">
+            <input type="text" id="asistente-ia-input" placeholder="Escribe tu pregunta..." style="flex: 1; border: 1px solid #E4E7EC; border-radius: 20px; padding: 10px 15px; font-family: 'Poppins'; font-size: 13px; outline: none;">
+            <button type="submit" style="background: var(--primary-green); color: white; border: none; width: 38px; height: 38px; border-radius: 50%; cursor: pointer;"><i class="fa-solid fa-paper-plane"></i></button>
+        </form>
+    </div>
+
+    <script src="js/app.js"></script>
+</body>
+</html>

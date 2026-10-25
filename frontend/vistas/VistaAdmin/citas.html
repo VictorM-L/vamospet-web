@@ -1,0 +1,302 @@
+<div class="fade-in admin-layout">
+    <aside class="admin-sidebar">
+        <div style="color: white; font-size: 18px; font-weight: 800; padding: 10px 18px 20px 18px; border-bottom: 1px solid #374151; margin-bottom: 10px;">
+            <i class="fa-solid fa-shield-halved" style="color: var(--primary-green);"></i> Admin Panel
+        </div>
+
+        <button class="sidebar-item" onclick="cargarVista('VistaAdmin/dashboard-admin')"><i class="fa-solid fa-chart-pie"></i> Dashboard</button>
+        <button class="sidebar-item active" onclick="cargarVista('VistaAdmin/citas')"><i class="fa-solid fa-calendar-check"></i> Gestión de Citas</button>
+        <button class="sidebar-item" onclick="cargarVista('VistaAdmin/examenes')"><i class="fa-solid fa-flask-vial"></i> Exámenes y Cirugías</button>
+        <button class="sidebar-item" onclick="cargarVista('VistaAdmin/emergencias')"><i class="fa-solid fa-truck-medical"></i> Emergencias</button>
+        <button class="sidebar-item" onclick="cargarVista('VistaAdmin/clientes')"><i class="fa-solid fa-users"></i> Clientes y Mascotas</button>
+        <button class="sidebar-item" onclick="cargarVista('VistaAdmin/servicios')"><i class="fa-solid fa-briefcase-medical"></i> Servicios</button>
+        <button class="sidebar-item" onclick="cargarVista('VistaAdmin/inventario')"><i class="fa-solid fa-box-open"></i> Inventario Tienda</button>
+        <button class="sidebar-item" onclick="cargarVista('VistaAdmin/proveedores')"><i class="fa-solid fa-truck-field"></i> Proveedores</button>
+        <button class="sidebar-item" onclick="cargarVista('VistaAdmin/compras')"><i class="fa-solid fa-cart-flatbed"></i> Compras</button>
+        <button class="sidebar-item" onclick="cargarVista('VistaAdmin/devoluciones')"><i class="fa-solid fa-rotate-left"></i> Devoluciones</button>
+        <button class="sidebar-item" onclick="cargarVista('VistaAdmin/comprobantes')"><i class="fa-solid fa-receipt"></i> Comprobantes</button>
+        <button class="sidebar-item" onclick="cargarVista('VistaAdmin/finanzas')"><i class="fa-solid fa-file-invoice-dollar"></i> Finanzas</button>
+        <button class="sidebar-item" onclick="cargarVista('VistaAdmin/reportes')"><i class="fa-solid fa-chart-column"></i> Reportes</button>
+        <button class="sidebar-item" onclick="cargarVista('VistaAdmin/horarios')"><i class="fa-solid fa-clock"></i> Horarios Veterinarios</button>
+        <button class="sidebar-item" onclick="cargarVista('VistaAdmin/personal')"><i class="fa-solid fa-user-nurse"></i> Personal</button>
+        <button class="sidebar-item" onclick="cargarVista('VistaAdmin/configuracion')"><i class="fa-solid fa-gear"></i> Configuración</button>
+    </aside>
+
+    <main class="admin-content">
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px;">
+            <h2 style="font-size: 24px; font-weight: 800; color: var(--dark-text);">Gestión de Citas</h2>
+        </div>
+
+        <div style="background: white; padding: 20px; border-radius: 15px; box-shadow: var(--shadow-soft); border: 1px solid #E4E7EC; display: flex; gap: 15px; flex-wrap: wrap;">
+            <input type="date" id="filtro-fecha-citas" style="padding: 10px 15px; border-radius: 8px; border: 1px solid #E4E7EC; font-family: 'Poppins'; outline: none; color: var(--text-muted);">
+            <select id="filtro-estado-citas" style="padding: 10px 15px; border-radius: 8px; border: 1px solid #E4E7EC; font-family: 'Poppins'; outline: none; color: var(--text-muted); flex: 1;">
+                <option value="">Cualquier Estado</option>
+                <option value="Pendiente">Pendientes</option>
+                <option value="Confirmada">Confirmadas</option>
+                <option value="Atendida">Atendidas</option>
+                <option value="No asistió">No asistió</option>
+                <option value="Cancelada">Canceladas</option>
+            </select>
+            <button class="btn-outline" style="padding: 10px 20px;" onclick="filtrarCitasAdmin()"><i class="fa-solid fa-filter"></i> Filtrar</button>
+            <button class="btn-outline" style="padding: 10px 20px;" onclick="document.getElementById('filtro-fecha-citas').value=''; document.getElementById('filtro-estado-citas').value=''; filtrarCitasAdmin();">Limpiar</button>
+        </div>
+
+        <div class="admin-table-container">
+            <table class="admin-table">
+                <thead>
+                    <tr>
+                        <th>Fecha y Hora</th>
+                        <th>Mascota / Cliente</th>
+                        <th>Servicio</th>
+                        <th>Estado</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody id="citas-admin-body">
+                    <tr><td colspan="5" style="text-align:center; color: var(--text-muted); padding: 20px;"><i class="fa-solid fa-spinner fa-spin"></i> Cargando...</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </main>
+</div>
+
+<div class="modal-overlay" id="modal-costos-cita" style="display:none;">
+    <div class="modal-box">
+        <h3><i class="fa-solid fa-coins" style="color:#7C3AED;"></i> Costos de la cita <span id="costos-cita-num"></span></h3>
+        <div id="costos-cita-cuerpo"></div>
+        <form id="form-costo-extra" style="display:none; margin-top:12px;">
+            <div class="input-group"><label>Concepto</label><input type="text" id="costo-concepto" maxlength="200" placeholder="Ej. Radiografía, medicamento aplicado" required></div>
+            <div class="input-group"><label>Monto (S/)</label><input type="number" id="costo-monto" min="0.01" step="0.01" required></div>
+            <button type="submit" class="btn-primary" style="width:100%; padding:12px;"><i class="fa-solid fa-plus"></i> Agregar costo extra</button>
+        </form>
+        <div id="cobro-cita-bloque" style="display:none; margin-top:14px; padding-top:14px; border-top:1px solid #E4E7EC;">
+            <div style="display:flex; gap:10px; align-items:flex-end;">
+                <div class="input-group" style="flex:1; margin:0;"><label>Método de pago</label>
+                    <select id="cobro-cita-metodo"><option>Efectivo</option><option>Tarjeta</option><option>Yape</option><option>Plin</option><option>Transferencia</option></select></div>
+                <button type="button" class="btn-primary" style="padding:12px 18px;" onclick="cobrarCitaActual()"><i class="fa-solid fa-cash-register"></i> Cobrar <span id="cobro-cita-monto"></span></button>
+            </div>
+        </div>
+        <button class="btn-outline" style="width:100%; padding:12px; margin-top:12px;" onclick="document.getElementById('modal-costos-cita').style.display='none'">Cerrar</button>
+    </div>
+</div>
+
+<div class="modal-overlay" id="modal-atender" style="display:none;">
+    <div class="modal-box">
+        <h3><i class="fa-solid fa-notes-medical" style="color: var(--primary-green);"></i> Registrar atención <span id="atender-num"></span></h3>
+        <p id="atender-resumen" style="font-size:13px; color:var(--text-muted); margin-bottom:10px;"></p>
+        <form id="form-atender">
+            <div class="input-group"><label>Diagnóstico *</label><textarea id="atender-diagnostico" rows="3" maxlength="2000" required placeholder="Ej. Otitis externa leve en oído derecho"></textarea></div>
+            <div class="input-group"><label>Tratamiento / indicaciones</label><textarea id="atender-tratamiento" rows="3" maxlength="2000" placeholder="Ej. Limpieza ótica cada 12 h por 7 días"></textarea></div>
+            <label style="display:flex; align-items:center; gap:8px; font-size:13px; margin:8px 0;"><input type="checkbox" id="atender-con-vacuna"> Se aplicó una vacuna</label>
+            <div id="atender-vacuna-bloque" style="display:none;">
+                <div class="input-group"><label>Vacuna aplicada</label><input type="text" id="atender-vacuna-nombre" maxlength="100" placeholder="Ej. Quíntuple"></div>
+                <div class="input-group"><label>Próxima dosis (opcional)</label><input type="date" id="atender-vacuna-proxima"></div>
+            </div>
+            <button type="submit" class="btn-primary" style="width:100%; padding:12px; margin-top:8px;"><i class="fa-solid fa-check"></i> Guardar y marcar como atendida</button>
+        </form>
+        <button class="btn-outline" style="width:100%; padding:12px; margin-top:10px;" onclick="document.getElementById('modal-atender').style.display='none'">Cancelar</button>
+    </div>
+</div>
+
+<script>
+(function () {
+    let __citasTodas = [], __mascotasTodas = [], __usuariosTodos = [], __serviciosTodos = [];
+
+    function pintarCitasAdmin(lista) {
+        const cuerpo = document.getElementById('citas-admin-body');
+        if (lista.length === 0) {
+            cuerpo.innerHTML = `<tr><td colspan="5" style="text-align:center; color: var(--text-muted); padding: 20px;">No hay citas que coincidan con el filtro.</td></tr>`;
+            return;
+        }
+
+        cuerpo.innerHTML = lista.map(c => {
+            const mascota = __mascotasTodas.find(m => m.id === c.mascota_id);
+            const cliente = mascota ? __usuariosTodos.find(u => u.id === mascota.usuario_id) : null;
+            const servicio = __serviciosTodos.find(s => s.id === c.servicio_id);
+            const fecha = c.fecha_hora ? new Date(c.fecha_hora).toLocaleString('es-PE', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }) : '—';
+            const claseEstado = claseEstadoCita(c.estado);
+
+            const puedeAtender = [1, 3].includes(__yo().rol_id);
+            let acciones = `<span style="color: var(--text-muted); font-size: 12px;">Sin más acciones</span>`;
+            if (c.estado === 'Pendiente') {
+                acciones = `
+                    <button style="background:none; border:none; color:#2563EB; cursor:pointer; font-size:16px; margin-right: 10px;" onclick="cambiarEstadoCitaAdmin(${c.id}, 'Confirmada')" title="Confirmar cita"><i class="fa-solid fa-check-double"></i></button>
+                    <button style="background:none; border:none; color:#EF4444; cursor:pointer; font-size:16px;" onclick="cambiarEstadoCitaAdmin(${c.id}, 'Cancelada')" title="Cancelar"><i class="fa-solid fa-xmark"></i></button>
+                `;
+            } else if (c.estado === 'Confirmada') {
+                acciones = `
+                    ${puedeAtender ? `<button style="background:none; border:none; color:var(--primary-green); cursor:pointer; font-size:16px; margin-right: 10px;" onclick="abrirAtender(${c.id})" title="Registrar atención (marcar como atendida)"><i class="fa-solid fa-check"></i></button>` : ''}
+                    <button style="background:none; border:none; color:#D97706; cursor:pointer; font-size:16px; margin-right: 10px;" onclick="cambiarEstadoCitaAdmin(${c.id}, 'No asistió')" title="Marcar como No asistió"><i class="fa-solid fa-user-clock"></i></button>
+                    <button style="background:none; border:none; color:#EF4444; cursor:pointer; font-size:16px;" onclick="cambiarEstadoCitaAdmin(${c.id}, 'Cancelada')" title="Cancelar"><i class="fa-solid fa-xmark"></i></button>
+                `;
+            }
+
+            return `
+                <tr>
+                    <td>${fecha}</td>
+                    <td><strong>${mascota ? mascota.nombre : 'N/D'}</strong><br><span style="color: var(--text-muted); font-size: 12px;">${cliente ? cliente.nombre : 'N/D'}</span></td>
+                    <td>${servicio ? servicio.nombre : 'N/D'}</td>
+                    <td><span class="status-badge ${claseEstado}">${c.estado}</span></td>
+                    <td>${acciones}<button style="background:none; border:none; color:#7C3AED; cursor:pointer; font-size:16px; margin-left:10px;" onclick="abrirCostosCita(${c.id})" title="Costos de la cita"><i class="fa-solid fa-coins"></i></button></td>
+                </tr>
+            `;
+        }).join('');
+    }
+
+    let __citaAtenderId = null;
+    window.abrirAtender = function (id) {
+        const c = __citasTodas.find(x => x.id === id);
+        const m = c ? __mascotasTodas.find(x => x.id === c.mascota_id) : null;
+        __citaAtenderId = id;
+        document.getElementById('form-atender').reset();
+        document.getElementById('atender-vacuna-bloque').style.display = 'none';
+        document.getElementById('atender-num').innerText = '#' + id;
+        document.getElementById('atender-resumen').innerText = m ? 'Mascota: ' + m.nombre + ' (' + (m.especie || '') + ')' : '';
+        document.getElementById('modal-atender').style.display = 'flex';
+    };
+    document.getElementById('atender-con-vacuna').addEventListener('change', e => {
+        document.getElementById('atender-vacuna-bloque').style.display = e.target.checked ? 'block' : 'none';
+    });
+    document.getElementById('form-atender').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const conVacuna = document.getElementById('atender-con-vacuna').checked;
+        const cuerpo = {
+            usuario_id: __yo().id,
+            diagnostico: document.getElementById('atender-diagnostico').value,
+            tratamiento: document.getElementById('atender-tratamiento').value
+        };
+        if (conVacuna) {
+            cuerpo.vacuna_nombre = document.getElementById('atender-vacuna-nombre').value;
+            cuerpo.vacuna_proxima_dosis = document.getElementById('atender-vacuna-proxima').value || null;
+        }
+        const res = await fetch(`${API_BASE}/citas/${__citaAtenderId}/atender`, {
+            method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(cuerpo)
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) { alert(data.error || 'No se pudo registrar la atención.'); return; }
+        document.getElementById('modal-atender').style.display = 'none';
+        __citasTodas = __citasTodas.map(c => c.id === data.id ? data : c);
+        filtrarCitasAdmin();
+        alert('Atención registrada. Ya aparece en el historial médico de la mascota.');
+    });
+
+    let __citaCostosId = null;
+    const __yo = () => JSON.parse(localStorage.getItem('usuarioLogueado') || '{}');
+    const __escC = t => String(t == null ? '' : t).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+    async function pintarCostosCita() {
+        const res = await fetch(`${API_BASE}/citas/${__citaCostosId}/costos-adicionales`);
+        const d = res.ok ? await res.json() : null;
+        if (!d) { document.getElementById('costos-cita-cuerpo').innerHTML = '<p>No se pudo cargar.</p>'; return; }
+        const puede = d.editable && (__yo().rol_id === 1 || __yo().rol_id === 3);
+        document.getElementById('costos-cita-cuerpo').innerHTML = `
+            <table class="admin-table"><tbody>
+                <tr><td>Costo base del servicio</td><td style="text-align:right;">S/ ${Number(d.base).toFixed(2)}</td><td></td></tr>
+                ${d.extras.map(x => `<tr><td>${__escC(x.concepto)}</td><td style="text-align:right;">S/ ${Number(x.monto).toFixed(2)}</td>
+                    <td>${puede ? `<button style="background:none; border:none; color:#EF4444; cursor:pointer;" onclick="quitarCostoExtra(${x.id})"><i class="fa-solid fa-xmark"></i></button>` : ''}</td></tr>`).join('')}
+                <tr><td><strong>Total</strong></td><td style="text-align:right;"><strong>S/ ${Number(d.total).toFixed(2)}</strong></td><td></td></tr>
+            </tbody></table>
+            ${!d.editable ? '<p style="font-size:12px; color:var(--text-muted); margin-top:8px;">Esta cita ya no admite cambios de costo (cobrada, cancelada o No asistió).</p>' : ''}`;
+        document.getElementById('form-costo-extra').style.display = puede ? 'block' : 'none';
+
+        const cita = __citasTodas.find(c => c.id === __citaCostosId);
+        const puedeCobrar = d.editable && cita && cita.estado === 'Atendida' && (__yo().rol_id === 1 || __yo().rol_id === 4);
+        document.getElementById('cobro-cita-bloque').style.display = puedeCobrar ? 'block' : 'none';
+        document.getElementById('cobro-cita-monto').innerText = 'S/ ' + Number(d.total).toFixed(2);
+    }
+
+    window.cobrarCitaActual = async function () {
+        const metodo = document.getElementById('cobro-cita-metodo').value;
+        if (!confirm('¿Cobrar esta cita por ' + document.getElementById('cobro-cita-monto').innerText + ' (' + metodo + ')?')) return;
+        const res = await fetch(`${API_BASE}/citas/${__citaCostosId}/cobrar`, {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ usuario_id: __yo().id, metodo })
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) { alert(data.error || 'No se pudo cobrar la cita.'); return; }
+        alert('Cita cobrada. Se emitió el comprobante ' + data.comprobante.numero + '.');
+        window.open(`${API_BASE}/comprobantes/${data.comprobante.id}/pdf?usuarioId=${__yo().id}`, '_blank');
+        pintarCostosCita();
+    };
+
+    window.abrirCostosCita = function (id) {
+        __citaCostosId = id;
+        document.getElementById('costos-cita-num').innerText = '#' + id;
+        document.getElementById('form-costo-extra').reset();
+        document.getElementById('modal-costos-cita').style.display = 'flex';
+        pintarCostosCita();
+    };
+
+    document.getElementById('form-costo-extra').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const res = await fetch(`${API_BASE}/citas/${__citaCostosId}/costos-adicionales`, {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ usuario_id: __yo().id, concepto: document.getElementById('costo-concepto').value, monto: document.getElementById('costo-monto').value })
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) { alert(data.error || 'No se pudo agregar.'); return; }
+        document.getElementById('form-costo-extra').reset();
+        pintarCostosCita();
+    });
+
+    window.quitarCostoExtra = async function (id) {
+        const res = await fetch(`${API_BASE}/citas/${__citaCostosId}/costos-adicionales/${id}?usuarioId=${__yo().id}`, { method: 'DELETE' });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) alert(data.error || 'No se pudo quitar.');
+        pintarCostosCita();
+    };
+
+    window.filtrarCitasAdmin = function () {
+        const fecha = document.getElementById('filtro-fecha-citas').value;
+        const estado = document.getElementById('filtro-estado-citas').value;
+
+        let filtradas = __citasTodas;
+        if (fecha) {
+            filtradas = filtradas.filter(c => c.fecha_hora && c.fecha_hora.startsWith(fecha));
+        }
+        if (estado) {
+            filtradas = filtradas.filter(c => c.estado === estado);
+        }
+        pintarCitasAdmin(filtradas);
+    };
+
+    window.cambiarEstadoCitaAdmin = async function (id, nuevoEstado) {
+        try {
+            const res = await fetch(`${API_BASE}/citas/${id}/estado`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ estado: nuevoEstado })
+            });
+            const citaActualizada = await res.json().catch(() => ({}));
+            if (!res.ok) { alert(citaActualizada.error || 'No se pudo actualizar el estado de la cita.'); return; }
+            __citasTodas = __citasTodas.map(c => c.id === citaActualizada.id ? citaActualizada : c);
+            filtrarCitasAdmin();
+        } catch (error) {
+            console.error('Error actualizando cita:', error);
+            alert('No se pudo actualizar el estado de la cita.');
+        }
+    };
+
+    (async () => {
+        try {
+            const [resCitas, resMascotas, resUsuarios, resServicios] = await Promise.all([
+                fetch(`${API_BASE}/citas`),
+                fetch(`${API_BASE}/mascotas`),
+                fetchUsuarios(),
+                fetch(`${API_BASE}/servicios?incluirInactivos=true`)
+            ]);
+
+            __citasTodas = resCitas.ok ? await resCitas.json() : [];
+            __mascotasTodas = resMascotas.ok ? await resMascotas.json() : [];
+            __usuariosTodos = resUsuarios.ok ? await resUsuarios.json() : [];
+            __serviciosTodos = resServicios.ok ? await resServicios.json() : [];
+
+            __citasTodas.sort((a, b) => new Date(b.fecha_hora) - new Date(a.fecha_hora));
+            pintarCitasAdmin(__citasTodas);
+        } catch (error) {
+            console.error('Error cargando citas:', error);
+            document.getElementById('citas-admin-body').innerHTML = `<tr><td colspan="5" style="text-align:center; color: var(--text-muted); padding: 20px;"><i class="fa-solid fa-plug-circle-xmark"></i> No pudimos conectar con el servidor.</td></tr>`;
+        }
+    })();
+})();
+</script>

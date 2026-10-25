@@ -1,0 +1,274 @@
+<div class="fade-in lab-hero" style="padding: 70px 20px;">
+    <span style="background: rgba(255,255,255,0.1); padding: 8px 16px; border-radius: 20px; font-size: 12px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase;">Agenda tu Cita</span>
+    <h1 style="font-size: 38px; font-weight: 800; margin: 15px 0;">¿A quién atendemos hoy?</h1>
+    <p style="color: #9CA3AF; font-size: 15px; max-width: 550px; margin: 0 auto;">Elige a tu mascota, el servicio y el horario que mejor te acomode.</p>
+</div>
+
+<div class="fade-in" style="max-width: 720px; margin: 0 auto 80px auto; padding: 0 20px;">
+
+    <div id="agenda-sin-mascotas" style="display: none; text-align: center; background: white; border: 1px solid #E4E7EC; border-radius: 24px; padding: 50px 30px; box-shadow: var(--shadow-soft);">
+        <i class="fa-solid fa-paw" style="font-size: 40px; color: #E4E7EC; margin-bottom: 15px;"></i>
+        <h3 style="font-size: 18px; font-weight: 700; margin-bottom: 10px;">Aún no tienes mascotas registradas</h3>
+        <p style="color: var(--text-muted); margin-bottom: 20px;">Registra a tu perro o gato para poder agendarle una cita.</p>
+        <button class="btn-primary" onclick="cargarVista('VistaCliente/perfil-cliente')">Registrar Mascota</button>
+    </div>
+
+    <form id="form-agendar-cita" style="display: none;" class="contact-form">
+
+        <div class="input-group">
+            <label>Selecciona tu mascota</label>
+            <div id="agenda-mascotas-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; margin-top: 8px;"></div>
+            <input type="hidden" id="agenda-mascota-id" required>
+        </div>
+
+        <div class="input-group">
+            <label>¿Qué servicio necesita?</label>
+            <select id="agenda-servicio-id" required>
+                <option value="">Selecciona un servicio</option>
+            </select>
+        </div>
+
+        <div class="input-group">
+            <label>Especialidad</label>
+            <select id="agenda-especialidad-id" required disabled>
+                <option value="">Primero elige un servicio</option>
+            </select>
+        </div>
+
+        <div class="input-group">
+            <label>Veterinario</label>
+            <select id="agenda-vet-id" required disabled>
+                <option value="">Primero elige una especialidad</option>
+            </select>
+        </div>
+
+        <div class="input-group">
+            <label>Fecha</label>
+            <input type="date" id="agenda-fecha" required disabled>
+        </div>
+        <div class="input-group">
+            <label>Horario disponible <span style="font-weight:400; color:var(--text-muted);">(citas de 30 minutos)</span></label>
+            <div id="agenda-franjas" style="display:flex; flex-wrap:wrap; gap:8px; margin-top:6px;">
+                <span style="color:var(--text-muted); font-size:13px;">Elige veterinario y fecha para ver los horarios.</span>
+            </div>
+            <input type="hidden" id="agenda-hora" required>
+        </div>
+
+        <div id="agenda-resumen-precio" style="display:none; background: var(--light-green); border-radius: 12px; padding: 15px 18px; font-size: 14px; color: var(--primary-green-dark); font-weight: 600;"></div>
+
+        <button type="submit" class="btn-primary" style="width: 100%; padding: 15px;"><i class="fa-regular fa-calendar-check"></i> Confirmar Cita</button>
+    </form>
+</div>
+
+<style>
+    .agenda-franja { border: 2px solid #E4E7EC; background: white; border-radius: 10px; padding: 8px 14px; font-weight: 700; font-size: 13px; cursor: pointer; font-family: inherit; }
+    .agenda-franja:hover { border-color: var(--primary-green); }
+    .agenda-franja.selected { border-color: var(--primary-green); background: var(--light-green); color: var(--primary-green-dark); }
+    .agenda-mascota-opcion {
+        border: 2px solid #E4E7EC;
+        border-radius: 14px;
+        padding: 15px 10px;
+        text-align: center;
+        cursor: pointer;
+        transition: var(--transition-smooth);
+    }
+    .agenda-mascota-opcion:hover { border-color: var(--primary-green); }
+    .agenda-mascota-opcion.selected { border-color: var(--primary-green); background: var(--light-green); }
+    .agenda-mascota-opcion i { font-size: 26px; color: var(--primary-green); margin-bottom: 8px; display: block; }
+    .agenda-mascota-opcion span { font-size: 13px; font-weight: 700; color: var(--dark-text); }
+</style>
+
+<script>
+    (function () {
+        const usuarioJSON = localStorage.getItem('usuarioLogueado');
+
+        if (!usuarioJSON) {
+            alert('Debes iniciar sesión para agendar una cita.');
+            cargarVista('login');
+            return;
+        }
+
+        const usuario = JSON.parse(usuarioJSON);
+        let mascotaSeleccionada = null;
+        let serviciosCargados = [];
+
+        function iconoPorEspecie(especie) {
+            const e = (especie || '').toLowerCase();
+            if (e.includes('gato')) return 'fa-cat';
+            return 'fa-dog';
+        }
+
+        async function init() {
+            try {
+                const [resMascotas, resServicios] = await Promise.all([
+                    fetch(`${API_BASE}/mascotas/usuario/${usuario.id}`),
+                    fetch(`${API_BASE}/servicios`)
+                ]);
+
+                const mascotas = resMascotas.ok ? await resMascotas.json() : [];
+                serviciosCargados = resServicios.ok ? await resServicios.json() : [];
+
+                if (mascotas.length === 0) {
+                    document.getElementById('agenda-sin-mascotas').style.display = 'block';
+                    return;
+                }
+
+                document.getElementById('form-agendar-cita').style.display = 'flex';
+                document.getElementById('form-agendar-cita').style.flexDirection = 'column';
+                document.getElementById('form-agendar-cita').style.gap = '20px';
+
+                const grid = document.getElementById('agenda-mascotas-grid');
+                grid.innerHTML = mascotas.map(m => `
+                    <div class="agenda-mascota-opcion" data-id="${m.id}" onclick="seleccionarMascotaAgenda(${m.id}, this)">
+                        <i class="fa-solid ${iconoPorEspecie(m.especie)}"></i>
+                        <span>${esc(m.nombre)}</span>
+                    </div>
+                `).join('');
+
+                const selectServicio = document.getElementById('agenda-servicio-id');
+                selectServicio.innerHTML = `<option value="">Selecciona un servicio</option>` +
+                    serviciosCargados.map(s => `<option value="${s.id}">${esc(s.nombre)}${s.precio_base ? ' — S/ ' + Number(s.precio_base).toFixed(2) : ''}</option>`).join('');
+
+                selectServicio.addEventListener('change', () => {
+                    const servicio = serviciosCargados.find(s => s.id === parseInt(selectServicio.value, 10));
+                    const resumen = document.getElementById('agenda-resumen-precio');
+                    if (servicio && servicio.precio_base) {
+                        resumen.style.display = 'block';
+                        resumen.innerHTML = `<i class="fa-solid fa-circle-info"></i> Costo estimado: S/ ${Number(servicio.precio_base).toFixed(2)}`;
+                    } else {
+                        resumen.style.display = 'none';
+                    }
+                });
+
+                document.getElementById('agenda-fecha').min = new Date().toISOString().split('T')[0];
+
+                selectServicio.addEventListener('change', cargarEspecialidades);
+                document.getElementById('agenda-especialidad-id').addEventListener('change', cargarVeterinarios);
+                document.getElementById('agenda-vet-id').addEventListener('change', cargarFranjas);
+                document.getElementById('agenda-fecha').addEventListener('change', cargarFranjas);
+
+            } catch (error) {
+                console.error('Error inicializando agenda:', error);
+                alert('No pudimos conectar con el servidor. Verifica que Spring Boot esté corriendo.');
+            }
+        }
+
+        function resetSelect(id, texto, deshabilitar) {
+            const el = document.getElementById(id);
+            el.innerHTML = `<option value="">${texto}</option>`;
+            el.disabled = deshabilitar;
+            return el;
+        }
+
+        function limpiarFranjas(msg) {
+            document.getElementById('agenda-hora').value = '';
+            document.getElementById('agenda-franjas').innerHTML = `<span style="color:var(--text-muted); font-size:13px;">${msg}</span>`;
+        }
+
+        async function cargarEspecialidades() {
+            resetSelect('agenda-vet-id', 'Primero elige una especialidad', true);
+            document.getElementById('agenda-fecha').disabled = true;
+            limpiarFranjas('Elige veterinario y fecha para ver los horarios.');
+            const sel = resetSelect('agenda-especialidad-id', 'Cargando...', true);
+            if (!document.getElementById('agenda-servicio-id').value) { sel.innerHTML = '<option value="">Primero elige un servicio</option>'; return; }
+            const res = await fetch(`${API_BASE}/agenda/especialidades`);
+            const lista = res.ok ? await res.json() : [];
+            if (!lista.length) { sel.innerHTML = '<option value="">No hay veterinarios con horario disponible por ahora</option>'; return; }
+            sel.innerHTML = '<option value="">Selecciona una especialidad</option>' + lista.map(e => `<option value="${e.id}">${esc(e.nombre)}</option>`).join('');
+            sel.disabled = false;
+        }
+
+        async function cargarVeterinarios() {
+            const espId = document.getElementById('agenda-especialidad-id').value;
+            document.getElementById('agenda-fecha').disabled = true;
+            limpiarFranjas('Elige veterinario y fecha para ver los horarios.');
+            const sel = resetSelect('agenda-vet-id', 'Cargando...', true);
+            if (!espId) { sel.innerHTML = '<option value="">Primero elige una especialidad</option>'; return; }
+            const res = await fetch(`${API_BASE}/agenda/veterinarios?especialidad_id=${espId}`);
+            const lista = res.ok ? await res.json() : [];
+            if (!lista.length) { sel.innerHTML = '<option value="">Sin veterinarios disponibles</option>'; return; }
+            sel.innerHTML = '<option value="">Selecciona un veterinario</option>' + lista.map(v => `<option value="${v.id}">${esc(v.nombre)}</option>`).join('');
+            sel.disabled = false;
+        }
+
+        async function cargarFranjas() {
+            const vetId = document.getElementById('agenda-vet-id').value;
+            const fechaInput = document.getElementById('agenda-fecha');
+            fechaInput.disabled = !vetId;
+            const fecha = fechaInput.value;
+            if (!vetId || !fecha) { limpiarFranjas('Elige veterinario y fecha para ver los horarios.'); return; }
+            limpiarFranjas('Buscando horarios...');
+            const res = await fetch(`${API_BASE}/agenda/disponibilidad?veterinario_id=${vetId}&fecha=${fecha}`);
+            const data = res.ok ? await res.json() : { franjas: [] };
+            if (!data.franjas.length) { limpiarFranjas('No hay horarios libres ese día. Prueba con otra fecha.'); return; }
+            document.getElementById('agenda-franjas').innerHTML = data.franjas.map(h =>
+                `<button type="button" class="agenda-franja" data-hora="${h}" onclick="seleccionarFranjaAgenda('${h}', this)">${h}</button>`).join('');
+        }
+
+        window.seleccionarFranjaAgenda = function (hora, el) {
+            document.querySelectorAll('.agenda-franja').forEach(b => b.classList.remove('selected'));
+            el.classList.add('selected');
+            document.getElementById('agenda-hora').value = hora;
+        };
+
+        window.seleccionarMascotaAgenda = function (id, elemento) {
+            document.querySelectorAll('.agenda-mascota-opcion').forEach(el => el.classList.remove('selected'));
+            elemento.classList.add('selected');
+            document.getElementById('agenda-mascota-id').value = id;
+            mascotaSeleccionada = id;
+        };
+
+        document.getElementById('form-agendar-cita').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            if (!mascotaSeleccionada) {
+                alert('Selecciona a tu mascota primero.');
+                return;
+            }
+
+            const fecha = document.getElementById('agenda-fecha').value;
+            const hora = document.getElementById('agenda-hora').value;
+            const servicioId = document.getElementById('agenda-servicio-id').value;
+
+            const especialidadId = document.getElementById('agenda-especialidad-id').value;
+            const vetId = document.getElementById('agenda-vet-id').value;
+
+            if (!fecha || !hora || !servicioId || !especialidadId || !vetId) {
+                alert('Completa todos los campos y elige un horario.');
+                return;
+            }
+
+            const fechaHora = `${fecha}T${hora}:00`;
+
+            try {
+                const res = await fetch(`${API_BASE}/citas`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        mascota_id: mascotaSeleccionada,
+                        servicio_id: parseInt(servicioId, 10),
+                        especialidad_id: parseInt(especialidadId, 10),
+                        veterinario_id: parseInt(vetId, 10),
+                        fecha_hora: fechaHora,
+                        estado: 'Pendiente'
+                    })
+                });
+
+                if (!res.ok) {
+                    const err = await res.json().catch(() => ({}));
+                    alert(err.error || 'No se pudo agendar la cita. Intenta nuevamente.');
+                    if (res.status === 409) cargarFranjas();
+                    return;
+                }
+
+                alert('¡Tu cita fue agendada con éxito! Te esperamos.');
+                cargarVista('VistaCliente/perfil-cliente');
+            } catch (error) {
+                console.error('Error agendando cita:', error);
+                alert('No se pudo agendar la cita. Intenta nuevamente.');
+            }
+        });
+
+        init();
+    })();
+</script>

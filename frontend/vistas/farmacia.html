@@ -1,0 +1,145 @@
+<div class="fade-in lab-hero" style="padding: 60px 20px;">
+    <h1 style="font-size: 36px; font-weight: 800; margin-bottom: 10px;">Farmacia Veterinaria</h1>
+    <p style="color: #9CA3AF; font-size: 16px;">Medicamentos, suplementos y cuidado especializado para tu mascota.</p>
+</div>
+
+<div class="fade-in tienda-layout">
+
+    <aside class="tienda-sidebar">
+        <div class="filtro-seccion">
+            <div class="filtro-titulo">Categorías</div>
+            <div id="filtros-categoria-farmacia">
+                <label class="filtro-label"><input type="checkbox" checked value="__todos" class="filtro-cat-farmacia" style="accent-color: var(--primary-green);"> Todos</label>
+            </div>
+        </div>
+
+        <div class="filtro-seccion">
+            <div class="filtro-titulo">Buscar</div>
+            <input type="text" id="buscador-farmacia" placeholder="Nombre del producto..." style="width: 100%; padding: 10px 12px; border-radius: 8px; border: 1px solid #E4E7EC; font-family: 'Poppins'; font-size: 13px; outline: none;">
+        </div>
+    </aside>
+
+    <div class="tienda-carousel-wrapper">
+        <button class="carousel-arrow prev" onclick="desplazarCarrusel('grid-farmacia', -1)" aria-label="Anterior"><i class="fa-solid fa-chevron-left"></i></button>
+        <div class="tienda-carousel-track" id="grid-farmacia">
+            <p style="color: var(--text-muted);"><i class="fa-solid fa-spinner fa-spin"></i> Cargando productos...</p>
+        </div>
+        <button class="carousel-arrow next" onclick="desplazarCarrusel('grid-farmacia', 1)" aria-label="Siguiente"><i class="fa-solid fa-chevron-right"></i></button>
+    </div>
+</div>
+
+<script>
+    (function () {
+        let productosFarmacia = [];
+        let categoriasFarmacia = [];
+        let categoriaActiva = '__todos';
+
+        function formatearPrecio(p) {
+            return `S/ ${Number(p).toFixed(2)}`;
+        }
+
+        function nombreCategoria(categoriaId) {
+            const c = categoriasFarmacia.find(x => x.id === categoriaId);
+            return c ? c.nombre : 'Farmacia';
+        }
+
+        function imagenPorDefecto(categoriaId) {
+            const nombre = nombreCategoria(categoriaId).toLowerCase();
+            if (nombre.includes('dental')) return 'https://images.unsplash.com/photo-1623366302587-b25efec27488?q=80&w=300&auto=format&fit=crop';
+            if (nombre.includes('vitamin') || nombre.includes('suplemento')) return 'https://images.unsplash.com/photo-1584362917165-526a968579e8?q=80&w=300&auto=format&fit=crop';
+            if (nombre.includes('despara')) return 'https://images.unsplash.com/photo-1549467615-5e60803c6e93?q=80&w=300&auto=format&fit=crop';
+            return 'https://images.unsplash.com/photo-1628527304948-0615f2a7ed82?q=80&w=300&auto=format&fit=crop';
+        }
+
+        function renderProductos() {
+            const grid = document.getElementById('grid-farmacia');
+            const texto = (document.getElementById('buscador-farmacia').value || '').toLowerCase();
+
+            const filtrados = productosFarmacia.filter(p => {
+                const coincideCategoria = categoriaActiva === '__todos' || String(p.categoria_id) === String(categoriaActiva);
+                const coincideTexto = !texto || (p.nombre || '').toLowerCase().includes(texto);
+                return coincideCategoria && coincideTexto;
+            });
+
+            if (filtrados.length === 0) {
+                grid.innerHTML = `<p style="color: var(--text-muted); text-align:center; padding: 40px 0; width: 100%;">No encontramos productos con ese filtro.</p>`;
+                return;
+            }
+
+            grid.innerHTML = filtrados.map(p => `
+                <div class="shop-card">
+                    <div class="shop-card-media" onclick="verProductoDetalle(${p.id})" style="cursor: pointer;">
+                        <img src="${p.imagen || imagenPorDefecto(p.categoria_id)}" alt="${esc(p.nombre)}">
+                        ${p.requiere_receta ? '<span class="shop-card-badge"><i class="fa-solid fa-file-prescription"></i> Receta</span>' : ''}
+                    </div>
+                    <div class="shop-card-body">
+                        <div class="shop-card-cat">${nombreCategoria(p.categoria_id)}</div>
+                        <div class="shop-card-name" onclick="verProductoDetalle(${p.id})" style="cursor: pointer;">${esc(p.nombre)}</div>
+                        <div class="shop-card-price">${formatearPrecio(p.precio)}</div>
+                        <button class="shop-card-btn" onclick='agregarProductoFarmacia(${p.id})' ${(p.stock || 0) <= 0 ? 'disabled' : ''}>
+                            <i class="fa-solid fa-cart-plus"></i> ${(p.stock || 0) <= 0 ? 'Agotado' : 'Comprar Ahora'}
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        window.agregarProductoFarmacia = function (id) {
+            const p = productosFarmacia.find(x => x.id === id);
+            if (!p) return;
+            if (p.requiere_receta) {
+                alert('Este producto requiere receta médica. Nuestro equipo validará tu receta antes de confirmar el pedido.');
+            }
+            agregarAlCarrito({
+                producto_id: p.id,
+                nombre: p.nombre,
+                categoria: nombreCategoria(p.categoria_id),
+                precio: Number(p.precio),
+                imagen: p.imagen || imagenPorDefecto(p.categoria_id)
+            });
+            alert(`"${p.nombre}" fue agregado al carrito.`);
+        };
+
+        async function cargarProductosFarmacia() {
+            const grid = document.getElementById('grid-farmacia');
+            try {
+                const [resProductos, resCategorias] = await Promise.all([
+                    fetch(`${API_BASE}/productos`),
+                    fetch(`${API_BASE}/categorias?tipo=Farmacia`)
+                ]);
+                if (!resProductos.ok) throw new Error('No se pudo conectar');
+
+                const todos = await resProductos.json();
+                categoriasFarmacia = resCategorias.ok ? await resCategorias.json() : [];
+
+                productosFarmacia = todos.filter(p => p.tipo === 'Farmacia' && p.estado !== 'Descontinuado');
+
+                if (productosFarmacia.length === 0) {
+                    grid.innerHTML = `<p style="color: var(--text-muted); text-align:center; padding: 40px 0; width: 100%;">Aún no hay productos de farmacia registrados en el sistema.</p>`;
+                    return;
+                }
+
+                const contenedorFiltros = document.getElementById('filtros-categoria-farmacia');
+                contenedorFiltros.innerHTML = `<label class="filtro-label"><input type="checkbox" checked value="__todos" class="filtro-cat-farmacia" style="accent-color: var(--primary-green);"> Todos</label>` +
+                    categoriasFarmacia.map(c => `<label class="filtro-label"><input type="checkbox" value="${c.id}" class="filtro-cat-farmacia" style="accent-color: var(--primary-green);"> ${esc(c.nombre)}</label>`).join('');
+
+                document.querySelectorAll('.filtro-cat-farmacia').forEach(chk => {
+                    chk.addEventListener('change', (e) => {
+                        document.querySelectorAll('.filtro-cat-farmacia').forEach(c => c.checked = false);
+                        e.target.checked = true;
+                        categoriaActiva = e.target.value;
+                        renderProductos();
+                    });
+                });
+
+                renderProductos();
+            } catch (error) {
+                console.error('Error cargando productos:', error);
+                grid.innerHTML = `<p style="color: var(--text-muted); text-align:center; padding: 40px 0; width: 100%;"><i class="fa-solid fa-plug-circle-xmark"></i> No pudimos conectar con el servidor. Verifica que Spring Boot esté corriendo.</p>`;
+            }
+        }
+
+        document.getElementById('buscador-farmacia').addEventListener('input', renderProductos);
+        cargarProductosFarmacia();
+    })();
+</script>

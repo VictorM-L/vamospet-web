@@ -1,0 +1,261 @@
+<div class="fade-in admin-layout">
+    <aside class="admin-sidebar">
+        <div style="color: white; font-size: 18px; font-weight: 800; padding: 10px 18px 20px 18px; border-bottom: 1px solid #374151; margin-bottom: 10px;">
+            <i class="fa-solid fa-shield-halved" style="color: var(--primary-green);"></i> Admin Panel
+        </div>
+
+        <button class="sidebar-item" onclick="cargarVista('VistaAdmin/dashboard-admin')"><i class="fa-solid fa-chart-pie"></i> Dashboard</button>
+        <button class="sidebar-item" onclick="cargarVista('VistaAdmin/citas')"><i class="fa-solid fa-calendar-check"></i> Gestión de Citas</button>
+        <button class="sidebar-item" onclick="cargarVista('VistaAdmin/examenes')"><i class="fa-solid fa-flask-vial"></i> Exámenes y Cirugías</button>
+        <button class="sidebar-item" onclick="cargarVista('VistaAdmin/emergencias')"><i class="fa-solid fa-truck-medical"></i> Emergencias</button>
+        <button class="sidebar-item active" onclick="cargarVista('VistaAdmin/clientes')"><i class="fa-solid fa-users"></i> Clientes y Mascotas</button>
+        <button class="sidebar-item" onclick="cargarVista('VistaAdmin/servicios')"><i class="fa-solid fa-briefcase-medical"></i> Servicios</button>
+        <button class="sidebar-item" onclick="cargarVista('VistaAdmin/inventario')"><i class="fa-solid fa-box-open"></i> Inventario Tienda</button>
+        <button class="sidebar-item" onclick="cargarVista('VistaAdmin/proveedores')"><i class="fa-solid fa-truck-field"></i> Proveedores</button>
+        <button class="sidebar-item" onclick="cargarVista('VistaAdmin/compras')"><i class="fa-solid fa-cart-flatbed"></i> Compras</button>
+        <button class="sidebar-item" onclick="cargarVista('VistaAdmin/devoluciones')"><i class="fa-solid fa-rotate-left"></i> Devoluciones</button>
+        <button class="sidebar-item" onclick="cargarVista('VistaAdmin/comprobantes')"><i class="fa-solid fa-receipt"></i> Comprobantes</button>
+        <button class="sidebar-item" onclick="cargarVista('VistaAdmin/finanzas')"><i class="fa-solid fa-file-invoice-dollar"></i> Finanzas</button>
+        <button class="sidebar-item" onclick="cargarVista('VistaAdmin/reportes')"><i class="fa-solid fa-chart-column"></i> Reportes</button>
+        <button class="sidebar-item" onclick="cargarVista('VistaAdmin/horarios')"><i class="fa-solid fa-clock"></i> Horarios Veterinarios</button>
+        <button class="sidebar-item" onclick="cargarVista('VistaAdmin/personal')"><i class="fa-solid fa-user-nurse"></i> Personal</button>
+        <button class="sidebar-item" onclick="cargarVista('VistaAdmin/configuracion')"><i class="fa-solid fa-gear"></i> Configuración</button>
+    </aside>
+
+    <main class="admin-content">
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px;">
+            <h2 style="font-size: 24px; font-weight: 800; color: var(--dark-text);">Directorio de Clientes</h2>
+            <button class="btn-primary" onclick="abrirModalClienteSinCuentaAdmin()"><i class="fa-solid fa-user-plus"></i> Cliente Nuevo (sin cuenta)</button>
+        </div>
+
+        <div style="background: white; padding: 15px 20px; border-radius: 15px; box-shadow: var(--shadow-soft); border: 1px solid #E4E7EC; display: flex; align-items: center; gap: 15px; flex-wrap: wrap;">
+            <i class="fa-solid fa-magnifying-glass" style="color: var(--text-muted);"></i>
+            <input type="text" id="buscador-clientes-admin" placeholder="Buscar por nombre, DNI, correo o mascota..." style="border: none; outline: none; font-family: 'Poppins'; flex: 1; min-width: 200px; font-size: 14px;">
+            <label style="display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--text-muted); white-space: nowrap; cursor: pointer;">
+                <input type="checkbox" id="chk-bajas-clientes"> Mostrar clientes de baja
+            </label>
+        </div>
+
+        <div class="admin-table-container">
+            <table class="admin-table">
+                <thead>
+                    <tr>
+                        <th>Cliente</th>
+                        <th>DNI</th>
+                        <th>Contacto</th>
+                        <th>Mascotas Registradas</th>
+                        <th>Cuenta</th>
+                    </tr>
+                </thead>
+                <tbody id="clientes-admin-body">
+                    <tr><td colspan="5" style="text-align:center; color: var(--text-muted); padding: 20px;"><i class="fa-solid fa-spinner fa-spin"></i> Cargando...</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </main>
+</div>
+
+<div class="modal-overlay" id="modal-cliente-sin-cuenta-admin" style="display: none;">
+    <div class="modal-box">
+        <h3><i class="fa-solid fa-user-plus" style="color: var(--primary-green);"></i> Registrar Cliente Sin Cuenta</h3>
+        <form id="form-cliente-sin-cuenta-admin">
+            <div class="input-group"><label>Nombre completo</label><input type="text" id="csc-nombre" required></div>
+            <div class="input-group"><label>DNI</label><input type="text" id="csc-dni" maxlength="8" required></div>
+            <div class="input-group"><label>Teléfono</label><input type="tel" id="csc-telefono"></div>
+            <div class="input-group"><label>Correo de contacto (opcional)</label><input type="email" id="csc-correo" placeholder="Para verificar su cuenta web después"></div>
+            <div style="display: flex; gap: 10px; margin-top: 15px;">
+                <button type="button" class="btn-outline" style="flex: 1; padding: 12px;" onclick="cerrarModalClienteSinCuentaAdmin()">Cancelar</button>
+                <button type="submit" class="btn-primary" style="flex: 1; padding: 12px;">Registrar</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="modal-overlay" id="modal-activar-cuenta" style="display: none;">
+    <div class="modal-box">
+        <h3><i class="fa-solid fa-unlock" style="color: var(--primary-green);"></i> Activar Cuenta — <span id="activar-nombre-cliente"></span></h3>
+        <form id="form-activar-cuenta">
+            <div class="input-group"><label>Correo</label><input type="email" id="activar-correo" required></div>
+            <div class="input-group"><label>Contraseña</label><input type="password" id="activar-contrasena" required></div>
+            <div style="display: flex; gap: 10px; margin-top: 15px;">
+                <button type="button" class="btn-outline" style="flex: 1; padding: 12px;" onclick="cerrarModalActivarCuenta()">Cancelar</button>
+                <button type="submit" class="btn-primary" style="flex: 1; padding: 12px;">Activar</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+(function () {
+    let __clientesTodos = [], __mascotasClientesAdmin = [];
+    let __idClienteActivar = null;
+
+    function inicialesDe(nombre) {
+        return (nombre || '').split(' ').slice(0, 2).map(p => p[0] || '').join('').toUpperCase();
+    }
+
+    function pintarClientesAdmin(lista) {
+        const cuerpo = document.getElementById('clientes-admin-body');
+        const verBajas = document.getElementById('chk-bajas-clientes').checked;
+        lista = lista.filter(c => c.activo !== false || verBajas);
+        if (lista.length === 0) {
+            cuerpo.innerHTML = `<tr><td colspan="5" style="text-align:center; color: var(--text-muted); padding: 20px;">No se encontraron clientes.</td></tr>`;
+            return;
+        }
+
+        cuerpo.innerHTML = lista.map(cliente => {
+            const mascotas = __mascotasClientesAdmin.filter(m => m.usuario_id === cliente.id);
+            const tagsHtml = mascotas.length > 0
+                ? mascotas.map(m => `<span onclick="verHistorialMascota(${m.id})" style="cursor: pointer; background: #F3F4F6; padding: 4px 10px; border-radius: 15px; font-size: 12px; font-weight: 600; margin-right: 5px;" title="Ver historial clínico">${esc(m.nombre)} (${m.especie || ''}) <i class="fa-solid fa-chevron-right" style="font-size: 9px;"></i></span>`).join('')
+                : `<span style="color: var(--text-muted); font-size: 12px;">Sin mascotas registradas</span>`;
+
+            const tieneCuenta = cliente.correo && cliente.correo.trim() !== '';
+            const badgeCuenta = tieneCuenta
+                ? `<span class="status-badge status-completado">Con cuenta</span>`
+                : `<button class="btn-outline" style="padding: 5px 12px; font-size: 11px;" data-nombre="${esc(cliente.nombre || '')}" onclick="abrirModalActivarCuenta(${cliente.id}, this.dataset.nombre)">Activar cuenta</button>`;
+
+            const deBaja = cliente.activo === false;
+            const botonBaja = deBaja
+                ? `<button class="btn-outline" style="padding: 5px 12px; font-size: 11px; margin-left: 6px;" onclick="reactivarCliente(${cliente.id})">Reactivar</button>`
+                : `<button style="background:none; border:none; color:#EF4444; cursor:pointer; font-size:14px; margin-left: 6px;" title="Dar de baja" onclick="darDeBajaCliente(${cliente.id})"><i class="fa-solid fa-user-slash"></i></button>`;
+
+            return `
+                <tr style="${deBaja ? 'opacity: .55;' : ''}">
+                    <td>
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <div style="width: 35px; height: 35px; background: var(--light-green); color: var(--primary-green); border-radius: 50%; display: flex; justify-content: center; align-items: center; font-weight: 700;">${inicialesDe(cliente.nombre)}</div>
+                            <strong>${esc(cliente.nombre)}</strong>${deBaja ? ' <span class="status-badge" style="background:#F3F4F6; color:#6B7280;">De baja</span>' : ''}
+                        </div>
+                    </td>
+                    <td style="font-size: 12px; color: var(--text-muted);">${enmascararDni(cliente.dni)}</td>
+                    <td>${tieneCuenta ? cliente.correo : (cliente.telefono || '—') + '<br>' + (cliente.correo_contacto ? `<span style="font-size:11px;color:var(--text-muted);">${esc(cliente.correo_contacto)}</span>` : `<button style="background:none;border:none;color:var(--primary-green);cursor:pointer;font-size:11px;padding:0;" onclick="agregarCorreoContacto(${cliente.id})">+ agregar correo</button>`)}</td>
+                    <td>${tagsHtml}</td>
+                    <td style="white-space: nowrap;">${badgeCuenta}${botonBaja}</td>
+                </tr>
+            `;
+        }).join('');
+    }
+
+    document.getElementById('buscador-clientes-admin').addEventListener('input', (e) => {
+        const texto = e.target.value.toLowerCase();
+        const filtrados = __clientesTodos.filter(c => {
+            const mascotasCliente = __mascotasClientesAdmin.filter(m => m.usuario_id === c.id);
+            const coincideMascota = mascotasCliente.some(m => (m.nombre || '').toLowerCase().includes(texto));
+            return (c.nombre || '').toLowerCase().includes(texto)
+                || (c.correo || '').toLowerCase().includes(texto)
+                || (c.dni || '').toLowerCase().includes(texto)
+                || coincideMascota;
+        });
+        pintarClientesAdmin(filtrados);
+    });
+
+    document.getElementById('chk-bajas-clientes').addEventListener('change', () => {
+        document.getElementById('buscador-clientes-admin').dispatchEvent(new Event('input'));
+    });
+
+    async function cambiarEstadoCliente(id, accion, mensajeError) {
+        try {
+            const res = await fetch(`${API_BASE}/usuarios/${id}/${accion}`, { method: 'PATCH' });
+            const data = await res.json().catch(() => ({}));
+            if (!res.ok) { alert(data.error || mensajeError); return; }
+            __clientesTodos = __clientesTodos.map(c => c.id === data.id ? data : c);
+            document.getElementById('buscador-clientes-admin').dispatchEvent(new Event('input'));
+        } catch { alert(mensajeError); }
+    }
+    window.darDeBajaCliente = function (id) {
+        if (!confirm('¿Dar de baja a este cliente? No podrá iniciar sesión, pero su historial se conserva y puedes reactivarlo.')) return;
+        cambiarEstadoCliente(id, 'baja', 'No se pudo dar de baja al cliente.');
+    };
+    window.reactivarCliente = function (id) {
+        cambiarEstadoCliente(id, 'reactivar', 'No se pudo reactivar al cliente.');
+    };
+
+    window.abrirModalClienteSinCuentaAdmin = () => document.getElementById('modal-cliente-sin-cuenta-admin').style.display = 'flex';
+    window.cerrarModalClienteSinCuentaAdmin = () => document.getElementById('modal-cliente-sin-cuenta-admin').style.display = 'none';
+
+    document.getElementById('form-cliente-sin-cuenta-admin').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        try {
+            const res = await fetch(`${API_BASE}/usuarios/cliente-sin-cuenta`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    nombre: document.getElementById('csc-nombre').value,
+                    dni: document.getElementById('csc-dni').value,
+                    telefono: document.getElementById('csc-telefono').value,
+                    correo_contacto: document.getElementById('csc-correo').value
+                })
+            });
+            const data = await res.json();
+            if (!res.ok) { alert(data.error || 'No se pudo registrar.'); return; }
+
+            __clientesTodos.push(data);
+            cerrarModalClienteSinCuentaAdmin();
+            document.getElementById('form-cliente-sin-cuenta-admin').reset();
+            pintarClientesAdmin(__clientesTodos);
+        } catch { alert('No se pudo registrar el cliente.'); }
+    });
+
+    window.agregarCorreoContacto = async function (id) {
+        const correo = prompt('Correo de contacto del cliente:');
+        if (!correo) return;
+        const res = await fetch(`${API_BASE}/usuarios/${id}/correo-contacto`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ correo_contacto: correo })
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) { alert(data.error || 'No se pudo guardar.'); return; }
+        const i = __clientesTodos.findIndex(c => c.id === id);
+        if (i >= 0) __clientesTodos[i] = data;
+        pintarClientesAdmin(__clientesTodos);
+    };
+
+    window.abrirModalActivarCuenta = function (id, nombre) {
+        __idClienteActivar = id;
+        document.getElementById('activar-nombre-cliente').innerText = nombre;
+        document.getElementById('modal-activar-cuenta').style.display = 'flex';
+    };
+    window.cerrarModalActivarCuenta = () => document.getElementById('modal-activar-cuenta').style.display = 'none';
+
+    document.getElementById('form-activar-cuenta').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        try {
+            const res = await fetch(`${API_BASE}/usuarios/${__idClienteActivar}/activar`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    correo: document.getElementById('activar-correo').value,
+                    contrasena: document.getElementById('activar-contrasena').value
+                })
+            });
+            const data = await res.json();
+            if (!res.ok) { alert(data.error || 'No se pudo activar la cuenta.'); return; }
+
+            __clientesTodos = __clientesTodos.map(c => c.id === data.id ? data : c);
+            cerrarModalActivarCuenta();
+            document.getElementById('form-activar-cuenta').reset();
+            pintarClientesAdmin(__clientesTodos);
+            alert('Cuenta activada. El cliente ya puede iniciar sesión con ese correo.');
+        } catch { alert('No se pudo activar la cuenta.'); }
+    });
+
+    (async () => {
+        try {
+            const [resUsuarios, resMascotas] = await Promise.all([
+                fetchUsuarios(),
+                fetch(`${API_BASE}/mascotas`)
+            ]);
+
+            const usuarios = resUsuarios.ok ? await resUsuarios.json() : [];
+            __mascotasClientesAdmin = resMascotas.ok ? await resMascotas.json() : [];
+            __clientesTodos = usuarios.filter(u => u.rol_id === 2);
+
+            pintarClientesAdmin(__clientesTodos);
+        } catch (error) {
+            console.error('Error cargando clientes:', error);
+            document.getElementById('clientes-admin-body').innerHTML = `<tr><td colspan="5" style="text-align:center; color: var(--text-muted); padding: 20px;"><i class="fa-solid fa-plug-circle-xmark"></i> No pudimos conectar con el servidor.</td></tr>`;
+        }
+    })();
+})();
+</script>

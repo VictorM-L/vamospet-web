@@ -1,0 +1,117 @@
+<div class="fade-in admin-layout">
+    <aside class="admin-sidebar">
+        <div style="color: white; font-size: 18px; font-weight: 800; padding: 10px 18px 20px 18px; border-bottom: 1px solid #374151; margin-bottom: 10px;">
+            <i class="fa-solid fa-shield-halved" style="color: var(--primary-green);"></i> Admin Panel
+        </div>
+        <button class="sidebar-item" onclick="cargarVista('VistaAdmin/dashboard-admin')"><i class="fa-solid fa-chart-pie"></i> Dashboard</button>
+        <button class="sidebar-item" onclick="cargarVista('VistaAdmin/citas')"><i class="fa-solid fa-calendar-check"></i> Gestión de Citas</button>
+        <button class="sidebar-item" onclick="cargarVista('VistaAdmin/examenes')"><i class="fa-solid fa-flask-vial"></i> Exámenes y Cirugías</button>
+        <button class="sidebar-item" onclick="cargarVista('VistaAdmin/emergencias')"><i class="fa-solid fa-truck-medical"></i> Emergencias</button>
+        <button class="sidebar-item" onclick="cargarVista('VistaAdmin/clientes')"><i class="fa-solid fa-users"></i> Clientes y Mascotas</button>
+        <button class="sidebar-item" onclick="cargarVista('VistaAdmin/servicios')"><i class="fa-solid fa-briefcase-medical"></i> Servicios</button>
+        <button class="sidebar-item" onclick="cargarVista('VistaAdmin/inventario')"><i class="fa-solid fa-box-open"></i> Inventario Tienda</button>
+        <button class="sidebar-item active" onclick="cargarVista('VistaAdmin/proveedores')"><i class="fa-solid fa-truck-field"></i> Proveedores</button>
+        <button class="sidebar-item" onclick="cargarVista('VistaAdmin/compras')"><i class="fa-solid fa-cart-flatbed"></i> Compras</button>
+        <button class="sidebar-item" onclick="cargarVista('VistaAdmin/devoluciones')"><i class="fa-solid fa-rotate-left"></i> Devoluciones</button>
+        <button class="sidebar-item" onclick="cargarVista('VistaAdmin/comprobantes')"><i class="fa-solid fa-receipt"></i> Comprobantes</button>
+        <button class="sidebar-item" onclick="cargarVista('VistaAdmin/finanzas')"><i class="fa-solid fa-file-invoice-dollar"></i> Finanzas</button>
+        <button class="sidebar-item" onclick="cargarVista('VistaAdmin/reportes')"><i class="fa-solid fa-chart-column"></i> Reportes</button>
+        <button class="sidebar-item" onclick="cargarVista('VistaAdmin/horarios')"><i class="fa-solid fa-clock"></i> Horarios Veterinarios</button>
+        <button class="sidebar-item" onclick="cargarVista('VistaAdmin/personal')"><i class="fa-solid fa-user-nurse"></i> Personal</button>
+        <button class="sidebar-item" onclick="cargarVista('VistaAdmin/configuracion')"><i class="fa-solid fa-gear"></i> Configuración</button>
+    </aside>
+    <main class="admin-content">
+        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+            <h2 style="font-size: 24px; font-weight: 800; color: var(--dark-text);">Proveedores</h2>
+            <div style="display:flex; gap:10px; align-items:center;"><label style="font-size:13px; color:var(--text-muted);"><input type="checkbox" id="prov-inactivos"> Mostrar de baja</label><button class="btn-primary" onclick="abrirModalProveedor()"><i class="fa-solid fa-plus"></i> Nuevo proveedor</button></div>
+        </div>
+
+        <div class="admin-table-container">
+            <table class="admin-table">
+                <thead><tr><th>Razón social</th><th>RUC</th><th>Contacto</th><th>Teléfono / Correo</th><th>Acciones</th></tr></thead>
+                <tbody id="prov-body"><tr><td colspan="5" style="text-align:center; padding:20px;">Cargando...</td></tr></tbody>
+            </table>
+        </div>
+    </main>
+</div>
+
+<div class="modal-overlay" id="modal-proveedor" style="display:none;">
+    <div class="modal-box">
+        <h3 id="prov-titulo">Nuevo proveedor</h3>
+        <form id="form-proveedor">
+            <div class="input-group"><label>Razón social</label><input type="text" id="prov-razon" required></div>
+            <div class="input-group"><label>RUC (11 dígitos)</label><input type="text" id="prov-ruc" maxlength="11" required></div>
+            <div class="input-group"><label>Persona de contacto</label><input type="text" id="prov-contacto"></div>
+            <div class="input-group"><label>Teléfono</label><input type="tel" id="prov-telefono"></div>
+            <div class="input-group"><label>Correo</label><input type="email" id="prov-correo"></div>
+            <div class="input-group"><label>Dirección</label><input type="text" id="prov-direccion"></div>
+            <div style="display:flex; gap:10px; margin-top:15px;">
+                <button type="button" class="btn-outline" style="flex:1; padding:12px;" onclick="cerrarModalProveedor()">Cancelar</button>
+                <button type="submit" class="btn-primary" style="flex:1; padding:12px;">Guardar</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+(function () {
+    let __lista = [], __editando = null;
+
+    async function cargar() {
+        const inc = document.getElementById('prov-inactivos').checked;
+        const res = await fetch(`${API_BASE}/proveedores?incluirInactivos=${inc}`);
+        __lista = res.ok ? await res.json() : [];
+        const cuerpo = document.getElementById('prov-body');
+        if (!__lista.length) { cuerpo.innerHTML = '<tr><td colspan="5" style="text-align:center; color:var(--text-muted); padding:20px;">Aún no hay proveedores.</td></tr>'; return; }
+        cuerpo.innerHTML = __lista.map(p => {
+            const baja = p.activo === false;
+            return `<tr style="${baja ? 'opacity:.55;' : ''}">
+                <td><strong>${esc(p.razon_social)}</strong>${baja ? ' <span class="status-badge" style="background:#F3F4F6; color:#6B7280;">De baja</span>' : ''}</td>
+                <td>${esc(p.ruc)}</td><td>${esc(p.contacto) || '—'}</td>
+                <td>${esc(p.telefono) || '—'}<br><span style="font-size:12px; color:var(--text-muted);">${esc(p.correo)}</span></td>
+                <td>
+                    <button style="background:none; border:none; color:#2563EB; cursor:pointer;" title="Editar" onclick="abrirModalProveedor(${p.id})"><i class="fa-solid fa-pen"></i></button>
+                    ${baja ? `<button class="btn-outline" style="padding:5px 12px; font-size:11px;" onclick="reactivarProveedor(${p.id})">Reactivar</button>`
+                           : `<button style="background:none; border:none; color:#EF4444; cursor:pointer; margin-left:6px;" title="Dar de baja" onclick="bajaProveedor(${p.id})"><i class="fa-solid fa-ban"></i></button>`}
+                </td></tr>`;
+        }).join('');
+    }
+    document.getElementById('prov-inactivos').addEventListener('change', cargar);
+
+    window.abrirModalProveedor = function (id) {
+        __editando = id || null;
+        const p = id ? __lista.find(x => x.id === id) : null;
+        document.getElementById('prov-titulo').innerText = p ? 'Editar proveedor' : 'Nuevo proveedor';
+        document.getElementById('prov-razon').value = p ? p.razon_social : '';
+        document.getElementById('prov-ruc').value = p ? p.ruc : '';
+        document.getElementById('prov-contacto').value = p ? (p.contacto || '') : '';
+        document.getElementById('prov-telefono').value = p ? (p.telefono || '') : '';
+        document.getElementById('prov-correo').value = p ? (p.correo || '') : '';
+        document.getElementById('prov-direccion').value = p ? (p.direccion || '') : '';
+        document.getElementById('modal-proveedor').style.display = 'flex';
+    };
+    window.cerrarModalProveedor = () => document.getElementById('modal-proveedor').style.display = 'none';
+
+    document.getElementById('form-proveedor').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const body = {
+            razon_social: document.getElementById('prov-razon').value.trim(),
+            ruc: document.getElementById('prov-ruc').value.trim(),
+            contacto: document.getElementById('prov-contacto').value,
+            telefono: document.getElementById('prov-telefono').value,
+            correo: document.getElementById('prov-correo').value,
+            direccion: document.getElementById('prov-direccion').value
+        };
+        const res = await fetch(`${API_BASE}/proveedores${__editando ? '/' + __editando : ''}`, {
+            method: __editando ? 'PUT' : 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body)
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) { alert(data.error || 'No se pudo guardar.'); return; }
+        cerrarModalProveedor();
+        cargar();
+    });
+    window.bajaProveedor = async (id) => { if (confirm('¿Dar de baja este proveedor? Su historial de compras se conserva.')) { await fetch(`${API_BASE}/proveedores/${id}`, { method: 'DELETE' }); cargar(); } };
+    window.reactivarProveedor = async (id) => { await fetch(`${API_BASE}/proveedores/${id}/reactivar`, { method: 'PATCH' }); cargar(); };
+    cargar();
+})();
+</script>

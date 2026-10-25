@@ -1,0 +1,132 @@
+<div class="fade-in admin-layout">
+    <aside class="admin-sidebar">
+        <div style="color: white; font-size: 18px; font-weight: 800; padding: 10px 18px 20px 18px; border-bottom: 1px solid #374151; margin-bottom: 10px;">
+            <i class="fa-solid fa-shield-halved" style="color: var(--primary-green);"></i> Admin Panel
+        </div>
+        <button class="sidebar-item" onclick="cargarVista('VistaAdmin/dashboard-admin')"><i class="fa-solid fa-chart-pie"></i> Dashboard</button>
+        <button class="sidebar-item" onclick="cargarVista('VistaAdmin/citas')"><i class="fa-solid fa-calendar-check"></i> Gestión de Citas</button>
+        <button class="sidebar-item" onclick="cargarVista('VistaAdmin/examenes')"><i class="fa-solid fa-flask-vial"></i> Exámenes y Cirugías</button>
+        <button class="sidebar-item" onclick="cargarVista('VistaAdmin/emergencias')"><i class="fa-solid fa-truck-medical"></i> Emergencias</button>
+        <button class="sidebar-item" onclick="cargarVista('VistaAdmin/clientes')"><i class="fa-solid fa-users"></i> Clientes y Mascotas</button>
+        <button class="sidebar-item" onclick="cargarVista('VistaAdmin/servicios')"><i class="fa-solid fa-briefcase-medical"></i> Servicios</button>
+        <button class="sidebar-item" onclick="cargarVista('VistaAdmin/inventario')"><i class="fa-solid fa-box-open"></i> Inventario Tienda</button>
+        <button class="sidebar-item" onclick="cargarVista('VistaAdmin/proveedores')"><i class="fa-solid fa-truck-field"></i> Proveedores</button>
+        <button class="sidebar-item" onclick="cargarVista('VistaAdmin/compras')"><i class="fa-solid fa-cart-flatbed"></i> Compras</button>
+        <button class="sidebar-item active" onclick="cargarVista('VistaAdmin/devoluciones')"><i class="fa-solid fa-rotate-left"></i> Devoluciones</button>
+        <button class="sidebar-item" onclick="cargarVista('VistaAdmin/comprobantes')"><i class="fa-solid fa-receipt"></i> Comprobantes</button>
+        <button class="sidebar-item" onclick="cargarVista('VistaAdmin/finanzas')"><i class="fa-solid fa-file-invoice-dollar"></i> Finanzas</button>
+        <button class="sidebar-item" onclick="cargarVista('VistaAdmin/reportes')"><i class="fa-solid fa-chart-column"></i> Reportes</button>
+        <button class="sidebar-item" onclick="cargarVista('VistaAdmin/horarios')"><i class="fa-solid fa-clock"></i> Horarios Veterinarios</button>
+        <button class="sidebar-item" onclick="cargarVista('VistaAdmin/personal')"><i class="fa-solid fa-user-nurse"></i> Personal</button>
+        <button class="sidebar-item" onclick="cargarVista('VistaAdmin/configuracion')"><i class="fa-solid fa-gear"></i> Configuración</button>
+    </aside>
+    <main class="admin-content">
+        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+            <h2 style="font-size: 24px; font-weight: 800; color: var(--dark-text);">Devoluciones</h2>
+            <button class="btn-primary" onclick="abrirModalDevolucion()"><i class="fa-solid fa-plus"></i> Registrar devolución</button>
+        </div>
+
+        <div class="admin-table-container">
+            <table class="admin-table">
+                <thead><tr><th>N°</th><th>Fecha</th><th>Pedido</th><th>Motivo</th><th>Reembolso</th><th></th></tr></thead>
+                <tbody id="dev-body"><tr><td colspan="6" style="text-align:center; padding:20px;">Cargando...</td></tr></tbody>
+            </table>
+        </div>
+    </main>
+</div>
+
+<div class="modal-overlay" id="modal-devolucion" style="display:none;">
+    <div class="modal-box" style="max-width:600px; width:95%; max-height:90vh; overflow:auto;">
+        <h3>Registrar devolución</h3>
+        <div style="display:flex; gap:8px; align-items:flex-end; margin-bottom:12px;">
+            <div class="input-group" style="flex:1; margin:0;"><label>N° de pedido</label><input type="number" id="dev-pedido" min="1"></div>
+            <button type="button" class="btn-outline" style="padding:10px 16px;" onclick="buscarPedidoDevolucion()">Buscar</button>
+        </div>
+        <form id="form-devolucion" style="display:none;">
+            <table class="admin-table"><thead><tr><th>Producto</th><th>Vendido</th><th>Ya devuelto</th><th>Devolver</th></tr></thead><tbody id="dev-lineas"></tbody></table>
+            <div class="input-group" style="margin-top:12px;"><label>Motivo</label><input type="text" id="dev-motivo" maxlength="300" required></div>
+            <p style="font-size:12px; color:var(--text-muted);"><i class="fa-solid fa-circle-info"></i> Los productos devueltos vuelven al stock (Entrada en el kardex). Solo se aceptan productos vendidos en ese pedido.</p>
+            <div style="display:flex; gap:10px; margin-top:15px;">
+                <button type="button" class="btn-outline" style="flex:1; padding:12px;" onclick="cerrarModalDevolucion()">Cancelar</button>
+                <button type="submit" class="btn-primary" style="flex:1; padding:12px;">Registrar devolución</button>
+            </div>
+        </form>
+        <button type="button" id="dev-cancelar-busqueda" class="btn-outline" style="width:100%; padding:12px; margin-top:10px;" onclick="cerrarModalDevolucion()">Cerrar</button>
+    </div>
+</div>
+
+<div class="modal-overlay" id="modal-dev-detalle" style="display:none;">
+    <div class="modal-box">
+        <h3>Detalle de devolución</h3>
+        <div id="dev-detalle-cuerpo"></div>
+        <button class="btn-outline" style="width:100%; padding:12px; margin-top:15px;" onclick="document.getElementById('modal-dev-detalle').style.display='none'">Cerrar</button>
+    </div>
+</div>
+
+<script>
+(function () {
+    let __productos = [], __devs = [], __pedidoActual = null;
+    const yo = () => JSON.parse(localStorage.getItem('usuarioLogueado') || '{}');
+    const nombreProd = id => { const p = __productos.find(x => x.id === id); return p ? p.nombre : 'Producto #' + id; };
+
+    async function cargar() {
+        const [rp, rd] = await Promise.all([fetch(`${API_BASE}/productos?incluirInactivos=true`), fetch(`${API_BASE}/devoluciones`)]);
+        __productos = rp.ok ? await rp.json() : [];
+        __devs = rd.ok ? await rd.json() : [];
+        const cuerpo = document.getElementById('dev-body');
+        if (!__devs.length) { cuerpo.innerHTML = '<tr><td colspan="6" style="text-align:center; color:var(--text-muted); padding:20px;">Aún no hay devoluciones.</td></tr>'; return; }
+        cuerpo.innerHTML = __devs.map(d => `<tr><td><strong>#${d.id}</strong></td>
+            <td>${d.fecha ? new Date(d.fecha).toLocaleString('es-PE', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—'}</td>
+            <td>#${d.pedido_id}</td><td>${esc(d.motivo)}</td><td>S/ ${Number(d.total_reembolso).toFixed(2)}</td>
+            <td><button class="btn-outline" style="padding:5px 12px; font-size:11px;" onclick="verDetalleDevolucion(${d.id})">Ver detalle</button></td></tr>`).join('');
+    }
+
+    window.abrirModalDevolucion = function () {
+        __pedidoActual = null;
+        document.getElementById('dev-pedido').value = '';
+        document.getElementById('form-devolucion').style.display = 'none';
+        document.getElementById('dev-cancelar-busqueda').style.display = 'block';
+        document.getElementById('modal-devolucion').style.display = 'flex';
+    };
+    window.cerrarModalDevolucion = () => document.getElementById('modal-devolucion').style.display = 'none';
+
+    window.buscarPedidoDevolucion = async function () {
+        const id = Number(document.getElementById('dev-pedido').value);
+        if (!id) { alert('Ingresa el número de pedido.'); return; }
+        const res = await fetch(`${API_BASE}/devoluciones/pedido/${id}/disponible`);
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) { alert(data.error || 'No se pudo consultar el pedido.'); return; }
+        __pedidoActual = id;
+        document.getElementById('dev-lineas').innerHTML = data.lineas.map(l => `<tr>
+            <td>${esc(nombreProd(l.producto_id))}</td><td>${l.vendida}</td><td>${l.devuelta}</td>
+            <td><input type="number" class="dev-cant" data-producto="${l.producto_id}" min="0" max="${l.disponible}" value="0" ${l.disponible === 0 ? 'disabled' : ''} style="width:70px; padding:6px; border:1px solid #E4E7EC; border-radius:6px;"></td></tr>`).join('');
+        document.getElementById('form-devolucion').style.display = 'block';
+        document.getElementById('dev-cancelar-busqueda').style.display = 'none';
+    };
+
+    document.getElementById('form-devolucion').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const items = [...document.querySelectorAll('.dev-cant')]
+            .map(i => ({ producto_id: Number(i.dataset.producto), cantidad: Number(i.value) })).filter(i => i.cantidad > 0);
+        if (!items.length) { alert('Indica la cantidad a devolver de al menos un producto.'); return; }
+        const res = await fetch(`${API_BASE}/devoluciones`, {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ pedido_id: __pedidoActual, usuario_id: yo().id, motivo: document.getElementById('dev-motivo').value, items })
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) { alert(data.error || 'No se pudo registrar.'); return; }
+        cerrarModalDevolucion();
+        alert('Devolución registrada. Reembolso: S/ ' + Number(data.total_reembolso).toFixed(2) + '. El stock fue repuesto.');
+        cargar();
+    });
+
+    window.verDetalleDevolucion = async function (id) {
+        const res = await fetch(`${API_BASE}/devoluciones/${id}/detalle`);
+        const det = res.ok ? await res.json() : [];
+        document.getElementById('dev-detalle-cuerpo').innerHTML = `<table class="admin-table"><thead><tr><th>Producto</th><th>Cant.</th><th>Precio</th></tr></thead><tbody>` +
+            det.map(d => `<tr><td>${esc(nombreProd(d.producto_id))}</td><td>${d.cantidad}</td><td>S/ ${Number(d.precio_unitario).toFixed(2)}</td></tr>`).join('') + '</tbody></table>';
+        document.getElementById('modal-dev-detalle').style.display = 'flex';
+    };
+    cargar();
+})();
+</script>

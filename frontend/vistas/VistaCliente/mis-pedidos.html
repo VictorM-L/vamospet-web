@@ -1,0 +1,98 @@
+<div class="fade-in lab-hero" style="padding: 60px 20px;">
+    <span style="background: rgba(255,255,255,0.1); padding: 8px 16px; border-radius: 20px; font-size: 12px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase;">Historial de Compras</span>
+    <h1 style="font-size: 32px; font-weight: 800; margin: 15px 0;">Mis Pedidos</h1>
+</div>
+
+<div class="fade-in" style="max-width: 800px; margin: 0 auto 80px auto; padding: 0 20px;" id="mis-pedidos-contenedor">
+    <p style="text-align:center; color: var(--text-muted); padding: 40px 0;"><i class="fa-solid fa-spinner fa-spin"></i> Cargando tus pedidos...</p>
+</div>
+
+<script>
+(function () {
+    const usuarioJSON = localStorage.getItem('usuarioLogueado');
+
+    if (!usuarioJSON) {
+        cargarVista('login');
+        return;
+    }
+
+    const usuario = JSON.parse(usuarioJSON);
+
+    window.descargarComprobantePedido = async function (pedidoId) {
+        const res = await fetch(`${API_BASE}/comprobantes/por-pedido/${pedidoId}`);
+        if (!res.ok) { alert('Este pedido aún no tiene comprobante.'); return; }
+        const c = await res.json();
+        window.open(`${API_BASE}/comprobantes/${c.id}/pdf?usuarioId=${usuario.id}`, '_blank');
+    };
+
+    function badgeEstado(estado) {
+        const clase = estado === 'Pendiente' ? 'status-pendiente' : 'status-completado';
+        return `<span class="status-badge ${clase}">${estado}</span>`;
+    }
+
+    async function init() {
+        const contenedor = document.getElementById('mis-pedidos-contenedor');
+
+        try {
+            const [resPedidos, resProductos] = await Promise.all([
+                fetch(`${API_BASE}/pedidos/usuario/${usuario.id}`),
+                fetch(`${API_BASE}/productos?incluirInactivos=true`)
+            ]);
+
+            const pedidos = resPedidos.ok ? await resPedidos.json() : [];
+            const productos = resProductos.ok ? await resProductos.json() : [];
+
+            if (pedidos.length === 0) {
+                contenedor.innerHTML = `
+                    <div style="text-align: center; padding: 40px 0;">
+                        <i class="fa-solid fa-box-open" style="font-size: 40px; color: #E4E7EC; margin-bottom: 15px;"></i>
+                        <h3 style="font-size: 18px; font-weight: 700; margin-bottom: 10px;">Aún no tienes pedidos</h3>
+                        <button class="btn-primary" onclick="cargarVista('farmacia')">Ir a la Tienda</button>
+                    </div>
+                `;
+                return;
+            }
+
+            const ordenados = [...pedidos].sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
+
+            const detalles = await Promise.all(
+                ordenados.map(p => fetch(`${API_BASE}/pedido-detalle/pedido/${p.id}`).then(r => r.ok ? r.json() : []))
+            );
+
+            contenedor.innerHTML = ordenados.map((p, idx) => {
+                const fecha = p.fecha ? new Date(p.fecha).toLocaleDateString('es-PE', { day: '2-digit', month: 'long', year: 'numeric' }) : '';
+                const items = detalles[idx] || [];
+                const itemsHtml = items.map(d => {
+                    const prod = productos.find(pr => pr.id === d.producto_id);
+                    return `<li style="font-size: 13px; color: var(--text-muted); margin-bottom: 4px;">${d.cantidad}× ${prod ? prod.nombre : 'Producto'} <span style="color: var(--dark-text); font-weight: 600;">— S/ ${(Number(d.precio_unitario) * d.cantidad).toFixed(2)}</span></li>`;
+                }).join('');
+
+                return `
+                    <div class="admin-table-container" style="margin-bottom: 20px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                            <div>
+                                <h3 style="font-size: 16px; font-weight: 700;">Pedido #${p.id}</h3>
+                                <p style="font-size: 12px; color: var(--text-muted);">${fecha}</p>
+                            </div>
+                            ${badgeEstado(p.estado)}
+                        </div>
+                        <ul style="list-style: none; padding: 12px 0; border-top: 1px solid #F3F4F6; border-bottom: 1px solid #F3F4F6; margin-bottom: 10px;">
+                            ${itemsHtml || '<li style="font-size: 13px; color: var(--text-muted);">Sin detalle de productos disponible.</li>'}
+                        </ul>
+                        <div style="display: flex; justify-content: space-between; font-weight: 700;">
+                            <span>Total</span>
+                            <span style="color: var(--primary-green);">S/ ${Number(p.total || 0).toFixed(2)}</span>
+                        </div>
+                        <button class="btn-outline" style="margin-top: 12px; padding: 8px 16px; font-size: 12px;" onclick="descargarComprobantePedido(${p.id})"><i class="fa-solid fa-file-pdf"></i> Ver comprobante</button>
+                    </div>
+                `;
+            }).join('');
+        } catch (error) {
+            console.error('Error cargando pedidos:', error);
+            contenedor.innerHTML = `<p style="text-align:center; color: var(--text-muted); padding: 40px 0;"><i class="fa-solid fa-plug-circle-xmark"></i> No pudimos conectar con el servidor.</p>`;
+        }
+    }
+
+    init();
+})();
+</script>

@@ -1,0 +1,283 @@
+<div class="fade-in lab-hero" style="padding: 50px 20px;">
+    <span style="background: rgba(255,255,255,0.1); padding: 8px 16px; border-radius: 20px; font-size: 12px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase;">Último Paso</span>
+    <h1 style="font-size: 32px; font-weight: 800; margin: 15px 0;">Finalizar Compra</h1>
+    <p style="color: #9CA3AF; font-size: 14px;"><i class="fa-solid fa-store"></i> Recojo en Tienda — te avisaremos cuando esté listo</p>
+</div>
+
+<div class="fade-in" style="max-width: 760px; margin: 0 auto 20px auto; padding: 0 20px;">
+    <div id="checkout-pasos" style="display: flex; justify-content: center; gap: 40px; margin-bottom: 10px;">
+        <div class="checkout-paso" data-paso="1"><span class="checkout-paso-num">1</span> Confirmar</div>
+        <div class="checkout-paso" data-paso="2"><span class="checkout-paso-num">2</span> Pago</div>
+    </div>
+</div>
+
+<div class="fade-in" style="max-width: 760px; margin: 0 auto 80px auto; padding: 0 20px;" id="checkout-contenedor">
+    <p style="text-align:center; color: var(--text-muted); padding: 40px 0;"><i class="fa-solid fa-spinner fa-spin"></i> Cargando...</p>
+</div>
+
+<style>
+    .checkout-paso {
+        display: flex; align-items: center; gap: 8px;
+        font-size: 13px; font-weight: 700; color: var(--text-muted);
+    }
+    .checkout-paso.activo { color: var(--primary-green); }
+    .checkout-paso-num {
+        width: 26px; height: 26px; border-radius: 50%;
+        background: #E4E7EC; color: white;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 12px;
+    }
+    .checkout-paso.activo .checkout-paso-num { background: var(--green-gradient); }
+    .checkout-paso.completado .checkout-paso-num { background: var(--primary-green); }
+</style>
+
+<script>
+(function () {
+    const usuarioJSON = localStorage.getItem('usuarioLogueado');
+
+    if (!usuarioJSON) {
+        alert('Debes iniciar sesión para finalizar tu compra.');
+        cargarVista('login');
+        return;
+    }
+
+    const usuario = JSON.parse(usuarioJSON);
+    const carrito = obtenerCarrito();
+    let pasoActual = 1;
+    let telefonoContacto = usuario.telefono || '';
+
+    function calcularTotales() {
+        const total = carrito.reduce((sum, p) => sum + (p.precio * p.cantidad), 0);
+        return { total };
+    }
+
+    function marcarPasos() {
+        document.querySelectorAll('.checkout-paso').forEach(el => {
+            const n = parseInt(el.dataset.paso, 10);
+            el.classList.toggle('activo', n === pasoActual);
+            el.classList.toggle('completado', n < pasoActual);
+        });
+    }
+
+    function renderPasoConfirmar() {
+        const contenedor = document.getElementById('checkout-contenedor');
+        const { total } = calcularTotales();
+
+        contenedor.innerHTML = `
+            <form id="form-confirmar" class="contact-form">
+                <div style="background: var(--light-green); border-radius: 14px; padding: 18px 20px; display: flex; gap: 14px; align-items: flex-start;">
+                    <i class="fa-solid fa-store" style="color: var(--primary-green); font-size: 20px; margin-top: 2px;"></i>
+                    <div>
+                        <strong style="color: var(--dark-text); font-size: 14px;">Recojo en Tienda</strong>
+                        <p style="font-size: 13px; color: var(--text-muted); margin-top: 4px;">Tu pedido estará disponible en Vamos Pet Clínica Veterinaria. Te avisaremos por correo y dentro de la web cuando esté listo para recoger.</p>
+                    </div>
+                </div>
+
+                <div class="input-group">
+                    <label>Teléfono de contacto</label>
+                    <input type="tel" id="checkout-telefono" value="${telefonoContacto}" placeholder="+51 900 000 000" required>
+                </div>
+
+                <div style="background: #F9FAFB; border-radius: 14px; padding: 20px;">
+                    <h4 style="font-size: 14px; font-weight: 700; margin-bottom: 12px;">Resumen (${carrito.length} producto${carrito.length !== 1 ? 's' : ''})</h4>
+                    ${carrito.map(p => `
+                        <div style="display: flex; justify-content: space-between; font-size: 13px; color: var(--text-muted); margin-bottom: 6px;">
+                            <span>${p.cantidad}× ${esc(p.nombre)}</span><span>S/ ${(p.precio * p.cantidad).toFixed(2)}</span>
+                        </div>
+                    `).join('')}
+                    <div style="display: flex; justify-content: space-between; font-weight: 800; font-size: 16px; border-top: 1px solid #E4E7EC; padding-top: 10px; margin-top: 8px;">
+                        <span>Total</span><span style="color: var(--primary-green);">S/ ${total.toFixed(2)}</span>
+                    </div>
+                </div>
+
+                <button type="submit" class="btn-primary" style="width: 100%; padding: 15px;">Continuar a Pago <i class="fa-solid fa-arrow-right"></i></button>
+            </form>
+        `;
+
+        document.getElementById('form-confirmar').addEventListener('submit', (e) => {
+            e.preventDefault();
+            telefonoContacto = document.getElementById('checkout-telefono').value;
+            pasoActual = 2;
+            marcarPasos();
+            renderPasoPago();
+        });
+    }
+
+    function renderPasoPago() {
+        const contenedor = document.getElementById('checkout-contenedor');
+        const { total } = calcularTotales();
+
+        contenedor.innerHTML = `
+            <div style="display: flex; gap: 40px; flex-wrap: wrap; align-items: flex-start;">
+                <div style="flex: 1; min-width: 280px;">
+                    <div class="credit-card-preview" id="tarjeta-preview">
+                        <div class="credit-card-top">
+                            <div style="font-weight: 800; font-size: 15px; letter-spacing: 0.5px;">Vamos Pet</div>
+                            <i class="fa-brands fa-cc-visa" style="font-size: 26px; opacity: 0.9;"></i>
+                        </div>
+                        <div class="credit-card-chip"></div>
+                        <div class="credit-card-number" id="tarjeta-numero-preview">•••• •••• •••• ••••</div>
+                        <div class="credit-card-bottom">
+                            <div>
+                                <span>Titular</span>
+                                <strong id="tarjeta-nombre-preview">NOMBRE APELLIDO</strong>
+                            </div>
+                            <div>
+                                <span>Vence</span>
+                                <strong id="tarjeta-vence-preview">MM/AA</strong>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div style="text-align: center; color: var(--text-muted); font-size: 13px;">
+                        <i class="fa-solid fa-lock"></i> Tus datos de pago están protegidos.
+                    </div>
+                </div>
+
+                <div style="flex: 1; min-width: 280px;">
+                    <form id="form-pago" class="contact-form">
+                        <h3 style="font-size: 16px; font-weight: 700;"><i class="fa-solid fa-credit-card" style="color: var(--primary-green);"></i> Datos de la Tarjeta</h3>
+
+                        <div class="input-group">
+                            <label>Nombre del titular</label>
+                            <input type="text" id="pago-nombre" placeholder="Como aparece en la tarjeta" required autocomplete="cc-name">
+                        </div>
+                        <div class="input-group">
+                            <label>Número de tarjeta</label>
+                            <input type="text" id="pago-numero" placeholder="1234 5678 9012 3456" maxlength="19" required autocomplete="cc-number" inputmode="numeric">
+                        </div>
+                        <div style="display: flex; gap: 15px;">
+                            <div class="input-group" style="flex: 1;">
+                                <label>Mes</label>
+                                <input type="text" id="pago-mes" placeholder="MM" maxlength="2" required inputmode="numeric">
+                            </div>
+                            <div class="input-group" style="flex: 1;">
+                                <label>Año</label>
+                                <input type="text" id="pago-anio" placeholder="AA" maxlength="2" required inputmode="numeric">
+                            </div>
+                            <div class="input-group" style="flex: 1;">
+                                <label>CVV</label>
+                                <input type="text" id="pago-cvv" placeholder="123" maxlength="3" required inputmode="numeric">
+                            </div>
+                        </div>
+
+                        <div style="background: var(--light-green); border-radius: 12px; padding: 14px 18px; display: flex; justify-content: space-between; align-items: center;">
+                            <span style="font-size: 13px; font-weight: 600; color: var(--dark-text);">Monto a Pagar</span>
+                            <strong style="font-size: 18px; color: var(--primary-green);">S/ ${total.toFixed(2)}</strong>
+                        </div>
+
+                        <div style="display: flex; gap: 10px;">
+                            <button type="button" class="btn-outline" style="flex: 1; padding: 13px;" onclick="volverAConfirmar()"><i class="fa-solid fa-arrow-left"></i> Atrás</button>
+                            <button type="submit" class="btn-primary" style="flex: 2; padding: 13px;"><i class="fa-solid fa-lock"></i> Pagar</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        `;
+
+        const inputNumero = document.getElementById('pago-numero');
+        inputNumero.addEventListener('input', () => {
+            let digitos = inputNumero.value.replace(/\D/g, '').slice(0, 16);
+            inputNumero.value = digitos.replace(/(.{4})/g, '$1 ').trim();
+            const preview = digitos.padEnd(16, '•').replace(/(.{4})/g, '$1 ').trim();
+            document.getElementById('tarjeta-numero-preview').innerText = preview || '•••• •••• •••• ••••';
+        });
+
+        document.getElementById('pago-nombre').addEventListener('input', (e) => {
+            document.getElementById('tarjeta-nombre-preview').innerText = e.target.value.toUpperCase() || 'NOMBRE APELLIDO';
+        });
+
+        function actualizarVencimiento() {
+            const mes = document.getElementById('pago-mes').value.padStart(2, '0').slice(0, 2);
+            const anio = document.getElementById('pago-anio').value.slice(0, 2);
+            document.getElementById('tarjeta-vence-preview').innerText = `${mes.length ? mes : 'MM'}/${anio.length ? anio : 'AA'}`;
+        }
+        document.getElementById('pago-mes').addEventListener('input', actualizarVencimiento);
+        document.getElementById('pago-anio').addEventListener('input', actualizarVencimiento);
+
+        document.getElementById('form-pago').addEventListener('submit', procesarPago);
+    }
+
+    window.volverAConfirmar = function () {
+        pasoActual = 1;
+        marcarPasos();
+        renderPasoConfirmar();
+    };
+
+    async function procesarPago(e) {
+        e.preventDefault();
+        const { total } = calcularTotales();
+        const boton = e.target.querySelector('button[type="submit"]');
+        const textoBoton = boton.innerHTML;
+        boton.disabled = true;
+        boton.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Procesando...';
+
+        try {
+            const chk = await fetch(`${API_BASE}/pedido-detalle/validar-stock`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(carrito.map(i => ({ producto_id: i.producto_id, cantidad: i.cantidad })))
+            });
+            if (!chk.ok) {
+                const d = await chk.json().catch(() => ({}));
+                alert(d.error || 'No hay stock suficiente.');
+                boton.disabled = false;
+                boton.innerHTML = textoBoton;
+                return;
+            }
+
+            const resPedido = await fetch(`${API_BASE}/pedidos`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ usuario_id: usuario.id, estado: 'Pendiente', metodo_entrega: 'Recojo en tienda', total: total, canal: 'Web' })
+            });
+            if (!resPedido.ok) throw new Error();
+            const pedido = await resPedido.json();
+
+            for (const item of carrito) {
+                await fetch(`${API_BASE}/pedido-detalle`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ pedido_id: pedido.id, producto_id: item.producto_id, cantidad: item.cantidad, precio_unitario: item.precio })
+                });
+            }
+
+            const resPago = await fetch(`${API_BASE}/pagos`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ usuario_id: usuario.id, pedido_id: pedido.id, monto: total, metodo: 'Tarjeta', id_registrado_por: usuario.id })
+            });
+            if (resPago.ok) {
+                const pago = await resPago.json();
+                await fetch(`${API_BASE}/comprobantes`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ pago_id: pago.id, tipo: 'Boleta', numero: `B001-${pedido.id}` })
+                });
+            }
+
+            guardarCarrito([]);
+            alert('¡Pago realizado con éxito! Te avisaremos cuando tu pedido esté listo para recoger.');
+            cargarVista('VistaCliente/mis-pedidos');
+        } catch (error) {
+            console.error('Error en checkout:', error);
+            alert('No pudimos procesar tu pago. Verifica que el servidor esté corriendo e intenta de nuevo.');
+            boton.disabled = false;
+            boton.innerHTML = '<i class="fa-solid fa-lock"></i> Pagar';
+        }
+    }
+
+    if (carrito.length === 0) {
+        document.getElementById('checkout-pasos').style.display = 'none';
+        document.getElementById('checkout-contenedor').innerHTML = `
+            <div style="text-align: center; padding: 40px 0;">
+                <h3 style="font-size: 18px; font-weight: 700; margin-bottom: 10px;">Tu carrito está vacío</h3>
+                <button class="btn-primary" onclick="cargarVista('farmacia')">Ir a la Tienda</button>
+            </div>
+        `;
+    } else {
+        marcarPasos();
+        renderPasoConfirmar();
+    }
+})();
+</script>

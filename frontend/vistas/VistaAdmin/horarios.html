@@ -1,0 +1,119 @@
+<div class="fade-in admin-layout">
+    <aside class="admin-sidebar">
+        <div style="color: white; font-size: 18px; font-weight: 800; padding: 10px 18px 20px 18px; border-bottom: 1px solid #374151; margin-bottom: 10px;">
+            <i class="fa-solid fa-shield-halved" style="color: var(--primary-green);"></i> Admin Panel
+        </div>
+        <button class="sidebar-item" onclick="cargarVista('VistaAdmin/dashboard-admin')"><i class="fa-solid fa-chart-pie"></i> Dashboard</button>
+        <button class="sidebar-item" onclick="cargarVista('VistaAdmin/citas')"><i class="fa-solid fa-calendar-check"></i> Gestión de Citas</button>
+        <button class="sidebar-item" onclick="cargarVista('VistaAdmin/examenes')"><i class="fa-solid fa-flask-vial"></i> Exámenes y Cirugías</button>
+        <button class="sidebar-item" onclick="cargarVista('VistaAdmin/emergencias')"><i class="fa-solid fa-truck-medical"></i> Emergencias</button>
+        <button class="sidebar-item" onclick="cargarVista('VistaAdmin/clientes')"><i class="fa-solid fa-users"></i> Clientes y Mascotas</button>
+        <button class="sidebar-item" onclick="cargarVista('VistaAdmin/servicios')"><i class="fa-solid fa-briefcase-medical"></i> Servicios</button>
+        <button class="sidebar-item" onclick="cargarVista('VistaAdmin/inventario')"><i class="fa-solid fa-box-open"></i> Inventario Tienda</button>
+        <button class="sidebar-item" onclick="cargarVista('VistaAdmin/proveedores')"><i class="fa-solid fa-truck-field"></i> Proveedores</button>
+        <button class="sidebar-item" onclick="cargarVista('VistaAdmin/compras')"><i class="fa-solid fa-cart-flatbed"></i> Compras</button>
+        <button class="sidebar-item" onclick="cargarVista('VistaAdmin/devoluciones')"><i class="fa-solid fa-rotate-left"></i> Devoluciones</button>
+        <button class="sidebar-item" onclick="cargarVista('VistaAdmin/comprobantes')"><i class="fa-solid fa-receipt"></i> Comprobantes</button>
+        <button class="sidebar-item" onclick="cargarVista('VistaAdmin/finanzas')"><i class="fa-solid fa-file-invoice-dollar"></i> Finanzas</button>
+        <button class="sidebar-item" onclick="cargarVista('VistaAdmin/reportes')"><i class="fa-solid fa-chart-column"></i> Reportes</button>
+        <button class="sidebar-item active" onclick="cargarVista('VistaAdmin/horarios')"><i class="fa-solid fa-clock"></i> Horarios Veterinarios</button>
+        <button class="sidebar-item" onclick="cargarVista('VistaAdmin/personal')"><i class="fa-solid fa-user-nurse"></i> Personal</button>
+        <button class="sidebar-item" onclick="cargarVista('VistaAdmin/configuracion')"><i class="fa-solid fa-gear"></i> Configuración</button>
+    </aside>
+
+    <main class="admin-content">
+        <h2 style="font-size: 24px; font-weight: 800; color: var(--dark-text);">Horarios y Especialidades del Veterinario</h2>
+
+        <div style="background:white; padding:18px 20px; border-radius:15px; border:1px solid #E4E7EC; box-shadow:var(--shadow-soft); display:flex; gap:12px; align-items:center; flex-wrap:wrap;">
+            <label style="font-weight:700; font-size:14px;">Veterinario:</label>
+            <select id="hor-vet" style="padding:10px 15px; border-radius:8px; border:1px solid #E4E7EC; font-family:'Poppins'; min-width:240px;"></select>
+        </div>
+
+        <div id="hor-contenido" style="display:none; display:none; gap:20px; flex-direction:column;">
+            <div style="background:white; padding:20px; border-radius:15px; border:1px solid #E4E7EC; box-shadow:var(--shadow-soft);">
+                <h3 style="font-size:16px; font-weight:800; margin-bottom:12px;">Especialidades que atiende</h3>
+                <div id="hor-especialidades" style="display:flex; gap:10px; flex-wrap:wrap; margin-bottom:12px;"></div>
+                <button class="btn-primary" style="padding:10px 18px;" onclick="guardarEspecialidadesVet()">Guardar especialidades</button>
+            </div>
+
+            <div style="background:white; padding:20px; border-radius:15px; border:1px solid #E4E7EC; box-shadow:var(--shadow-soft);">
+                <h3 style="font-size:16px; font-weight:800; margin-bottom:4px;">Horario de atención semanal</h3>
+                <p style="font-size:12px; color:var(--text-muted); margin-bottom:12px;">Las citas duran 30 minutos. Usa horas en punto o y media (ej. 09:00, 13:30).</p>
+                <div style="display:flex; gap:10px; align-items:flex-end; flex-wrap:wrap; margin-bottom:15px;">
+                    <div class="input-group" style="margin:0;"><label>Día</label>
+                        <select id="hor-dia"><option value="1">Lunes</option><option value="2">Martes</option><option value="3">Miércoles</option><option value="4">Jueves</option><option value="5">Viernes</option><option value="6">Sábado</option><option value="7">Domingo</option></select></div>
+                    <div class="input-group" style="margin:0;"><label>Desde</label><input type="time" id="hor-ini" step="1800" value="09:00"></div>
+                    <div class="input-group" style="margin:0;"><label>Hasta</label><input type="time" id="hor-fin" step="1800" value="13:00"></div>
+                    <button class="btn-primary" style="padding:12px 18px;" onclick="agregarHorarioVet()"><i class="fa-solid fa-plus"></i> Agregar bloque</button>
+                </div>
+                <table class="admin-table"><thead><tr><th>Día</th><th>Desde</th><th>Hasta</th><th></th></tr></thead>
+                    <tbody id="hor-body"></tbody></table>
+            </div>
+        </div>
+    </main>
+</div>
+
+<script>
+(function () {
+    const DIAS = ['', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
+    const yo = () => JSON.parse(localStorage.getItem('usuarioLogueado') || '{}');
+    let __especialidades = [], __vetId = null;
+
+    async function init() {
+        const [ru, re] = await Promise.all([fetchUsuarios(), fetch(`${API_BASE}/especialidades`)]);
+        const usuarios = ru.ok ? await ru.json() : [];
+        __especialidades = re.ok ? await re.json() : [];
+        const vets = usuarios.filter(u => u.rol_id === 3 && u.activo !== false);
+        const sel = document.getElementById('hor-vet');
+        sel.innerHTML = vets.length ? '<option value="">— Elige un veterinario —</option>' + vets.map(v => `<option value="${v.id}">${esc(v.nombre)}</option>`).join('')
+                                    : '<option value="">No hay veterinarios registrados (créalos en Personal)</option>';
+        sel.addEventListener('change', () => cargarVet(Number(sel.value) || null));
+    }
+
+    async function cargarVet(id) {
+        __vetId = id;
+        const cont = document.getElementById('hor-contenido');
+        if (!id) { cont.style.display = 'none'; return; }
+        cont.style.display = 'flex';
+        const [re, rh] = await Promise.all([fetch(`${API_BASE}/veterinarios/${id}/especialidades`), fetch(`${API_BASE}/horarios?veterinario_id=${id}`)]);
+        const mias = re.ok ? await re.json() : [];
+        const horarios = rh.ok ? await rh.json() : [];
+        document.getElementById('hor-especialidades').innerHTML = __especialidades.length
+            ? __especialidades.map(e => `<label style="display:flex; align-items:center; gap:6px; background:#F3F4F6; padding:8px 14px; border-radius:20px; font-size:13px; font-weight:600; cursor:pointer;">
+                <input type="checkbox" class="hor-esp" value="${e.id}" ${mias.includes(e.id) ? 'checked' : ''}> ${esc(e.nombre)}</label>`).join('')
+            : '<span style="color:var(--text-muted); font-size:13px;">No hay especialidades creadas todavía (se crean en Servicios).</span>';
+        document.getElementById('hor-body').innerHTML = horarios.length
+            ? horarios.map(h => `<tr><td>${DIAS[h.dia_semana]}</td><td>${h.hora_inicio}</td><td>${h.hora_fin}</td>
+                <td><button style="background:none; border:none; color:#EF4444; cursor:pointer;" title="Quitar" onclick="quitarHorarioVet(${h.id})"><i class="fa-solid fa-trash"></i></button></td></tr>`).join('')
+            : '<tr><td colspan="4" style="text-align:center; color:var(--text-muted); padding:15px;">Sin horario: este veterinario no aparecerá al agendar citas.</td></tr>';
+    }
+
+    window.guardarEspecialidadesVet = async function () {
+        const ids = [...document.querySelectorAll('.hor-esp:checked')].map(c => Number(c.value));
+        const res = await fetch(`${API_BASE}/veterinarios/${__vetId}/especialidades`, {
+            method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ usuario_id: yo().id, especialidad_ids: ids })
+        });
+        const data = await res.json().catch(() => ({}));
+        alert(res.ok ? 'Especialidades guardadas.' : (data.error || 'No se pudo guardar.'));
+    };
+
+    window.agregarHorarioVet = async function () {
+        const res = await fetch(`${API_BASE}/horarios`, {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ usuario_id: yo().id, veterinario_id: __vetId, dia_semana: Number(document.getElementById('hor-dia').value),
+                hora_inicio: document.getElementById('hor-ini').value, hora_fin: document.getElementById('hor-fin').value })
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) { alert(data.error || 'No se pudo guardar el bloque.'); return; }
+        cargarVet(__vetId);
+    };
+
+    window.quitarHorarioVet = async function (id) {
+        if (!confirm('¿Quitar este bloque? Las citas ya agendadas no se borran.')) return;
+        await fetch(`${API_BASE}/horarios/${id}?usuarioId=${yo().id}`, { method: 'DELETE' });
+        cargarVet(__vetId);
+    };
+
+    init();
+})();
+</script>

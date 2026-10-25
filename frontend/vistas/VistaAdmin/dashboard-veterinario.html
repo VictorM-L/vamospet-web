@@ -1,0 +1,131 @@
+<div class="fade-in admin-layout">
+
+    <aside class="admin-sidebar">
+        <div style="color: white; font-size: 18px; font-weight: 800; padding: 10px 18px 20px 18px; border-bottom: 1px solid #374151; margin-bottom: 10px;">
+            <i class="fa-solid fa-stethoscope" style="color: var(--primary-green);"></i> Panel Veterinario
+        </div>
+
+        <button class="sidebar-item active" onclick="cargarVista('VistaAdmin/dashboard-veterinario')"><i class="fa-solid fa-chart-pie"></i> Dashboard</button>
+        <button class="sidebar-item" onclick="cargarVista('VistaAdmin/citas')"><i class="fa-solid fa-calendar-check"></i> Gestión de Citas</button>
+        <button class="sidebar-item" onclick="cargarVista('VistaAdmin/examenes')"><i class="fa-solid fa-flask-vial"></i> Exámenes y Cirugías</button>
+        <button class="sidebar-item" onclick="cargarVista('VistaAdmin/emergencias')"><i class="fa-solid fa-truck-medical"></i> Emergencias</button>
+        <button class="sidebar-item" onclick="cargarVista('VistaAdmin/clientes')"><i class="fa-solid fa-users"></i> Clientes y Mascotas</button>
+    </aside>
+
+    <main class="admin-content">
+
+        <div class="metrics-grid" id="dashboard-metrics-vet">
+            <div class="metric-card">
+                <div class="metric-icon"><i class="fa-solid fa-calendar-day"></i></div>
+                <div>
+                    <h4 style="color: var(--text-muted); font-size: 13px; font-weight: 600; margin-bottom: 5px;">Citas de Hoy</h4>
+                    <h2 style="font-size: 28px; font-weight: 800; color: var(--dark-text);" id="vet-metric-citas-hoy">—</h2>
+                </div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-icon" style="background: #FEF3C7; color: #D97706;"><i class="fa-solid fa-file-prescription"></i></div>
+                <div>
+                    <h4 style="color: var(--text-muted); font-size: 13px; font-weight: 600; margin-bottom: 5px;">Recetas Pendientes</h4>
+                    <h2 style="font-size: 28px; font-weight: 800; color: var(--dark-text);" id="vet-metric-recetas">—</h2>
+                </div>
+            </div>
+        </div>
+
+        <div class="admin-table-container">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                <h3 style="font-size: 18px; font-weight: 700;">Citas de Hoy</h3>
+                <button class="btn-outline" style="padding: 8px 15px; font-size: 13px;" onclick="cargarVista('VistaAdmin/citas')">Ver todas</button>
+            </div>
+            <table class="admin-table">
+                <thead>
+                    <tr><th>Mascota</th><th>Cliente</th><th>Hora</th><th>Estado</th></tr>
+                </thead>
+                <tbody id="vet-citas-hoy-body">
+                    <tr><td colspan="4" style="text-align:center; color: var(--text-muted); padding: 20px;"><i class="fa-solid fa-spinner fa-spin"></i> Cargando...</td></tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="admin-table-container">
+            <h3 style="font-size: 18px; font-weight: 700; margin-bottom: 10px;">Recetas Pendientes de Aprobar</h3>
+            <div id="vet-recetas-pendientes-lista"></div>
+        </div>
+
+    </main>
+</div>
+
+<script>
+(function () {
+    async function init() {
+        try {
+            const [resCitas, resMascotas, resUsuarios] = await Promise.all([
+                fetch(`${API_BASE}/citas`),
+                fetch(`${API_BASE}/mascotas`),
+                fetchUsuarios()
+            ]);
+
+            const citas = resCitas.ok ? await resCitas.json() : [];
+            const mascotas = resMascotas.ok ? await resMascotas.json() : [];
+            const usuarios = resUsuarios.ok ? await resUsuarios.json() : [];
+
+            const hoy = new Date().toDateString();
+            const citasHoy = citas.filter(c => c.fecha_hora && new Date(c.fecha_hora).toDateString() === hoy);
+            document.getElementById('vet-metric-citas-hoy').innerText = citasHoy.length;
+
+            const cuerpoCitas = document.getElementById('vet-citas-hoy-body');
+            if (citasHoy.length === 0) {
+                cuerpoCitas.innerHTML = `<tr><td colspan="4" style="text-align:center; color: var(--text-muted); padding: 20px;">No hay citas para hoy.</td></tr>`;
+            } else {
+                cuerpoCitas.innerHTML = citasHoy
+                    .sort((a, b) => new Date(a.fecha_hora) - new Date(b.fecha_hora))
+                    .map(c => {
+                        const mascota = mascotas.find(m => m.id === c.mascota_id);
+                        const cliente = mascota ? usuarios.find(u => u.id === mascota.usuario_id) : null;
+                        const hora = c.fecha_hora ? new Date(c.fecha_hora).toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit' }) : '—';
+                        return `
+                            <tr>
+                                <td><strong>${mascota ? mascota.nombre : 'N/D'}</strong></td>
+                                <td>${cliente ? cliente.nombre : 'N/D'}</td>
+                                <td>${hora}</td>
+                                <td><span class="status-badge ${claseEstadoCita(c.estado)}">${c.estado}</span></td>
+                            </tr>
+                        `;
+                    }).join('');
+            }
+
+            const todasLasRecetas = [];
+            for (const m of mascotas) {
+                const res = await fetch(`${API_BASE}/recetas/mascota/${m.id}`);
+                if (res.ok) {
+                    const recetas = await res.json();
+                    recetas.filter(r => r.estado === 'Pendiente').forEach(r => todasLasRecetas.push({ ...r, mascota: m }));
+                }
+            }
+
+            document.getElementById('vet-metric-recetas').innerText = todasLasRecetas.length;
+            const contRecetas = document.getElementById('vet-recetas-pendientes-lista');
+
+            if (todasLasRecetas.length === 0) {
+                contRecetas.innerHTML = `<p style="color: var(--text-muted); font-size: 13px;">No hay recetas pendientes de aprobar.</p>`;
+            } else {
+                contRecetas.innerHTML = todasLasRecetas.map(r => {
+                    const cliente = usuarios.find(u => u.id === r.mascota.usuario_id);
+                    return `
+                        <div style="display:flex; justify-content:space-between; align-items:center; padding: 10px 0; border-bottom: 1px solid #F3F4F6; cursor:pointer;" onclick="verHistorialMascota(${r.mascota.id})">
+                            <div>
+                                <strong style="font-size: 13px;">${esc(r.mascota.nombre)}</strong>
+                                <span style="font-size: 12px; color: var(--text-muted);"> — ${cliente ? cliente.nombre : 'N/D'}</span>
+                            </div>
+                            <span class="status-badge status-pendiente">Revisar</span>
+                        </div>
+                    `;
+                }).join('');
+            }
+        } catch (error) {
+            console.error('Error cargando dashboard del veterinario:', error);
+        }
+    }
+
+    init();
+})();
+</script>

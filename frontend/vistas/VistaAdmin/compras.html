@@ -1,0 +1,150 @@
+<div class="fade-in admin-layout">
+    <aside class="admin-sidebar">
+        <div style="color: white; font-size: 18px; font-weight: 800; padding: 10px 18px 20px 18px; border-bottom: 1px solid #374151; margin-bottom: 10px;">
+            <i class="fa-solid fa-shield-halved" style="color: var(--primary-green);"></i> Admin Panel
+        </div>
+        <button class="sidebar-item" onclick="cargarVista('VistaAdmin/dashboard-admin')"><i class="fa-solid fa-chart-pie"></i> Dashboard</button>
+        <button class="sidebar-item" onclick="cargarVista('VistaAdmin/citas')"><i class="fa-solid fa-calendar-check"></i> Gestión de Citas</button>
+        <button class="sidebar-item" onclick="cargarVista('VistaAdmin/examenes')"><i class="fa-solid fa-flask-vial"></i> Exámenes y Cirugías</button>
+        <button class="sidebar-item" onclick="cargarVista('VistaAdmin/emergencias')"><i class="fa-solid fa-truck-medical"></i> Emergencias</button>
+        <button class="sidebar-item" onclick="cargarVista('VistaAdmin/clientes')"><i class="fa-solid fa-users"></i> Clientes y Mascotas</button>
+        <button class="sidebar-item" onclick="cargarVista('VistaAdmin/servicios')"><i class="fa-solid fa-briefcase-medical"></i> Servicios</button>
+        <button class="sidebar-item" onclick="cargarVista('VistaAdmin/inventario')"><i class="fa-solid fa-box-open"></i> Inventario Tienda</button>
+        <button class="sidebar-item" onclick="cargarVista('VistaAdmin/proveedores')"><i class="fa-solid fa-truck-field"></i> Proveedores</button>
+        <button class="sidebar-item active" onclick="cargarVista('VistaAdmin/compras')"><i class="fa-solid fa-cart-flatbed"></i> Compras</button>
+        <button class="sidebar-item" onclick="cargarVista('VistaAdmin/devoluciones')"><i class="fa-solid fa-rotate-left"></i> Devoluciones</button>
+        <button class="sidebar-item" onclick="cargarVista('VistaAdmin/comprobantes')"><i class="fa-solid fa-receipt"></i> Comprobantes</button>
+        <button class="sidebar-item" onclick="cargarVista('VistaAdmin/finanzas')"><i class="fa-solid fa-file-invoice-dollar"></i> Finanzas</button>
+        <button class="sidebar-item" onclick="cargarVista('VistaAdmin/reportes')"><i class="fa-solid fa-chart-column"></i> Reportes</button>
+        <button class="sidebar-item" onclick="cargarVista('VistaAdmin/horarios')"><i class="fa-solid fa-clock"></i> Horarios Veterinarios</button>
+        <button class="sidebar-item" onclick="cargarVista('VistaAdmin/personal')"><i class="fa-solid fa-user-nurse"></i> Personal</button>
+        <button class="sidebar-item" onclick="cargarVista('VistaAdmin/configuracion')"><i class="fa-solid fa-gear"></i> Configuración</button>
+    </aside>
+    <main class="admin-content">
+        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+            <h2 style="font-size: 24px; font-weight: 800; color: var(--dark-text);">Compras a Proveedores</h2>
+            <button class="btn-primary" onclick="abrirModalCompra()"><i class="fa-solid fa-plus"></i> Registrar compra</button>
+        </div>
+
+        <div class="admin-table-container">
+            <table class="admin-table">
+                <thead><tr><th>N°</th><th>Fecha</th><th>Proveedor</th><th>Total</th><th>Observación</th><th></th></tr></thead>
+                <tbody id="compras-body"><tr><td colspan="6" style="text-align:center; padding:20px;">Cargando...</td></tr></tbody>
+            </table>
+        </div>
+    </main>
+</div>
+
+<div class="modal-overlay" id="modal-compra" style="display:none;">
+    <div class="modal-box" style="max-width:640px; width:95%; max-height:90vh; overflow:auto;">
+        <h3>Registrar compra</h3>
+        <form id="form-compra">
+            <div class="input-group"><label>Proveedor</label><select id="compra-proveedor" required></select></div>
+            <div class="input-group"><label>Observación (opcional)</label><input type="text" id="compra-obs" maxlength="300"></div>
+            <div style="display:flex; gap:8px; align-items:flex-end; flex-wrap:wrap; margin-bottom:10px;">
+                <div class="input-group" style="flex:2; min-width:160px; margin:0;"><label>Producto</label><select id="compra-producto"></select></div>
+                <div class="input-group" style="flex:1; min-width:70px; margin:0;"><label>Cantidad</label><input type="number" id="compra-cantidad" min="1" value="1"></div>
+                <div class="input-group" style="flex:1; min-width:90px; margin:0;"><label>Costo unit. (S/)</label><input type="number" id="compra-costo" min="0" step="0.01"></div>
+                <div class="input-group" style="flex:1; min-width:100px; margin:0;"><label>N° de lote</label><input type="text" id="compra-lote" maxlength="60" placeholder="Opcional"></div>
+                <div class="input-group" style="flex:1; min-width:130px; margin:0;"><label>Vence</label><input type="date" id="compra-vence"></div>
+                <button type="button" class="btn-outline" style="padding:10px 14px;" onclick="agregarItemCompra()">Agregar</button>
+            </div>
+            <table class="admin-table"><thead><tr><th>Producto</th><th>Cant.</th><th>Costo</th><th>Lote / Vence</th><th>Subtotal</th><th></th></tr></thead><tbody id="compra-items"></tbody></table>
+            <p style="text-align:right; font-weight:800; margin:10px 0;">Total: S/ <span id="compra-total">0.00</span></p>
+            <p style="font-size:12px; color:var(--text-muted);"><i class="fa-solid fa-circle-info"></i> Al guardar, el stock sube automáticamente (Entrada en el kardex) y el costo del producto se actualiza.</p>
+            <div style="display:flex; gap:10px; margin-top:15px;">
+                <button type="button" class="btn-outline" style="flex:1; padding:12px;" onclick="cerrarModalCompra()">Cancelar</button>
+                <button type="submit" class="btn-primary" style="flex:1; padding:12px;">Guardar compra</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="modal-overlay" id="modal-compra-detalle" style="display:none;">
+    <div class="modal-box">
+        <h3>Detalle de compra</h3>
+        <div id="compra-detalle-cuerpo"></div>
+        <button class="btn-outline" style="width:100%; padding:12px; margin-top:15px;" onclick="document.getElementById('modal-compra-detalle').style.display='none'">Cerrar</button>
+    </div>
+</div>
+
+<script>
+(function () {
+    let __proveedores = [], __productos = [], __compras = [], __items = [];
+    const yo = () => JSON.parse(localStorage.getItem('usuarioLogueado') || '{}');
+    const nombreProd = id => { const p = __productos.find(x => x.id === id); return p ? p.nombre : 'Producto #' + id; };
+
+    async function cargar() {
+        const [rp, rpr, rc] = await Promise.all([
+            fetch(`${API_BASE}/proveedores?incluirInactivos=true`), fetch(`${API_BASE}/productos`), fetch(`${API_BASE}/compras`)]);
+        __proveedores = rp.ok ? await rp.json() : [];
+        __productos = rpr.ok ? await rpr.json() : [];
+        __compras = rc.ok ? await rc.json() : [];
+        const cuerpo = document.getElementById('compras-body');
+        if (!__compras.length) { cuerpo.innerHTML = '<tr><td colspan="6" style="text-align:center; color:var(--text-muted); padding:20px;">Aún no hay compras registradas.</td></tr>'; return; }
+        cuerpo.innerHTML = __compras.map(c => {
+            const pv = __proveedores.find(p => p.id === c.proveedor_id);
+            return `<tr><td><strong>#${c.id}</strong></td>
+                <td>${c.fecha ? new Date(c.fecha).toLocaleString('es-PE', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—'}</td>
+                <td>${pv ? esc(pv.razon_social) : 'N/D'}</td><td>S/ ${Number(c.total).toFixed(2)}</td><td>${esc(c.observacion) || '—'}</td>
+                <td><button class="btn-outline" style="padding:5px 12px; font-size:11px;" onclick="verDetalleCompra(${c.id})">Ver detalle</button></td></tr>`;
+        }).join('');
+    }
+
+    window.abrirModalCompra = function () {
+        __items = [];
+        document.getElementById('form-compra').reset();
+        document.getElementById('compra-proveedor').innerHTML = '<option value="">— Elige —</option>' +
+            __proveedores.filter(p => p.activo !== false).map(p => `<option value="${p.id}">${esc(p.razon_social)}</option>`).join('');
+        document.getElementById('compra-producto').innerHTML = __productos.filter(p => p.activo !== false)
+            .map(p => `<option value="${p.id}">${esc(p.nombre)}</option>`).join('');
+        pintarItems();
+        document.getElementById('modal-compra').style.display = 'flex';
+    };
+    window.cerrarModalCompra = () => document.getElementById('modal-compra').style.display = 'none';
+
+    window.agregarItemCompra = function () {
+        const producto_id = Number(document.getElementById('compra-producto').value);
+        const cantidad = Number(document.getElementById('compra-cantidad').value);
+        const costo = Number(document.getElementById('compra-costo').value);
+        if (!producto_id || !(cantidad > 0) || document.getElementById('compra-costo').value === '' || costo < 0) { alert('Completa producto, cantidad y costo.'); return; }
+        const numero_lote = document.getElementById('compra-lote').value.trim() || null;
+        const fecha_vencimiento = document.getElementById('compra-vence').value || null;
+        if (fecha_vencimiento && fecha_vencimiento < new Date().toISOString().slice(0, 10)) { alert('No se puede comprar un lote ya vencido.'); return; }
+        const ya = __items.find(i => i.producto_id === producto_id && i.numero_lote === numero_lote);
+        if (ya) { ya.cantidad += cantidad; ya.costo_unitario = costo; ya.fecha_vencimiento = fecha_vencimiento; } else __items.push({ producto_id, cantidad, costo_unitario: costo, numero_lote, fecha_vencimiento });
+        document.getElementById('compra-lote').value = ''; document.getElementById('compra-vence').value = '';
+        pintarItems();
+    };
+    window.quitarItemCompra = i => { __items.splice(i, 1); pintarItems(); };
+    function pintarItems() {
+        document.getElementById('compra-items').innerHTML = __items.map((it, i) => `<tr><td>${esc(nombreProd(it.producto_id))}</td><td>${it.cantidad}</td><td>S/ ${it.costo_unitario.toFixed(2)}</td><td style="font-size:12px;">${esc(it.numero_lote || 'SIN-LOTE')}${it.fecha_vencimiento ? '<br>' + esc(it.fecha_vencimiento) : ''}</td><td>S/ ${(it.cantidad * it.costo_unitario).toFixed(2)}</td>
+            <td><button type="button" style="background:none; border:none; color:#EF4444; cursor:pointer;" onclick="quitarItemCompra(${i})"><i class="fa-solid fa-xmark"></i></button></td></tr>`).join('');
+        document.getElementById('compra-total').innerText = __items.reduce((s, i) => s + i.cantidad * i.costo_unitario, 0).toFixed(2);
+    }
+
+    document.getElementById('form-compra').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        if (!__items.length) { alert('Agrega al menos un producto.'); return; }
+        const res = await fetch(`${API_BASE}/compras`, {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ proveedor_id: Number(document.getElementById('compra-proveedor').value), usuario_id: yo().id,
+                observacion: document.getElementById('compra-obs').value, items: __items })
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) { alert(data.error || 'No se pudo registrar la compra.'); return; }
+        cerrarModalCompra();
+        alert('Compra registrada. El stock ya fue actualizado.');
+        cargar();
+    });
+
+    window.verDetalleCompra = async function (id) {
+        const res = await fetch(`${API_BASE}/compras/${id}/detalle`);
+        const det = res.ok ? await res.json() : [];
+        document.getElementById('compra-detalle-cuerpo').innerHTML = `<table class="admin-table"><thead><tr><th>Producto</th><th>Cant.</th><th>Costo</th><th>Lote / Vence</th></tr></thead><tbody>` +
+            det.map(d => `<tr><td>${esc(nombreProd(d.producto_id))}</td><td>${d.cantidad}</td><td>S/ ${Number(d.costo_unitario).toFixed(2)}</td><td style="font-size:12px;">${esc(d.numero_lote || 'SIN-LOTE')}${d.fecha_vencimiento ? ' · ' + esc(d.fecha_vencimiento) : ''}</td></tr>`).join('') + '</tbody></table>';
+        document.getElementById('modal-compra-detalle').style.display = 'flex';
+    };
+    cargar();
+})();
+</script>

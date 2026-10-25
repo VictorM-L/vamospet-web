@@ -1,0 +1,93 @@
+<div class="fade-in lab-hero">
+    <span style="background: rgba(255,255,255,0.1); padding: 8px 16px; border-radius: 20px; font-size: 12px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase;">Hotel Pet Friendly</span>
+    <h1 style="font-size: 42px; font-weight: 800; margin: 15px 0;">Su Segundo Hogar Mientras Viajas</h1>
+    <p style="color: #9CA3AF; font-size: 16px; max-width: 600px; margin: 0 auto;">Supervisión veterinaria 24/7, áreas de juego, camas ortopédicas y reportes diarios con fotos y videos.</p>
+</div>
+
+<div class="fade-in">
+
+    <div class="lab-section-modern">
+        <div style="flex: 1;">
+            <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 15px;">
+                <div style="width: 40px; height: 3px; background: var(--primary-green);"></div>
+                <span style="color: var(--primary-green); font-weight: 700; text-transform: uppercase; font-size: 13px;">Estadía Supervisada</span>
+            </div>
+            <h2 style="font-size: 36px; font-weight: 800; color: var(--dark-text); line-height: 1.2; margin-bottom: 20px;">Tranquilidad mientras<br>no estás en casa</h2>
+            <p style="color: var(--text-muted); font-size: 16px; line-height: 1.6; margin-bottom: 30px;">
+                Cada huésped de <strong>Vamos Pet</strong> se hospeda bajo supervisión veterinaria permanente, con un plan de alimentación y actividad adaptado a su edad, tamaño y estado de salud.
+            </p>
+            <button class="btn-primary" onclick="irAAgendar()" style="padding: 15px 30px;"><i class="fa-solid fa-hotel" style="margin-right: 8px;"></i> Reservar Estadía</button>
+        </div>
+
+        <div class="lab-tests-grid">
+            <div class="lab-test-card hover-card" onclick="mostrarInfoTest('Supervisión 24/7', 'Personal veterinario presente en todo momento, atento a cualquier necesidad médica durante la estadía.')">
+                <div class="lab-test-icon"><i class="fa-solid fa-stethoscope"></i></div>
+                Supervisión 24/7
+            </div>
+            <div class="lab-test-card hover-card" onclick="mostrarInfoTest('Camas Ortopédicas', 'Descanso cómodo y adecuado para articulaciones, ideal también para mascotas mayores o en recuperación.')">
+                <div class="lab-test-icon"><i class="fa-solid fa-bed"></i></div>
+                Camas Ortopédicas
+            </div>
+            <div class="lab-test-card hover-card" onclick="mostrarInfoTest('Áreas de Juego', 'Espacios seguros y supervisados para que tu mascota se mantenga activa y socialice durante su estadía.')">
+                <div class="lab-test-icon"><i class="fa-solid fa-ball-pile"></i></div>
+                Áreas de Juego
+            </div>
+            <div class="lab-test-card hover-card" onclick="mostrarInfoTest('Plan de Alimentación', 'Respetamos la dieta y horarios de tu mascota, o le ofrecemos un plan balanceado según su edad y tamaño.')">
+                <div class="lab-test-icon"><i class="fa-solid fa-bowl-food"></i></div>
+                Plan de Alimentación
+            </div>
+            <div class="lab-test-card hover-card" onclick="mostrarInfoTest('Reportes Diarios', 'Recibirás fotos y videos cada día para que sigas de cerca cómo la pasa tu mascota mientras no estás.')">
+                <div class="lab-test-icon"><i class="fa-solid fa-camera"></i></div>
+                Reportes Diarios
+            </div>
+            <div class="lab-test-card hover-card" onclick="mostrarInfoTest('Seguimiento por WhatsApp', 'Canal directo con el equipo del hotel para resolver dudas o solicitar información en cualquier momento.')">
+                <div class="lab-test-icon"><i class="fa-brands fa-whatsapp"></i></div>
+                Seguimiento por WhatsApp
+            </div>
+        </div>
+    </div>
+
+    <div class="lab-section-modern" style="background: #F9FAFB; padding: 60px 20px; border-radius: 40px; margin-bottom: 80px;">
+
+        <div class="lab-tests-grid">
+            <div class="lab-test-card hover-card" style="border: none;" onclick="mostrarInfoTest('Suite Individual', 'Espacio privado y tranquilo, pensado para mascotas que se sienten más cómodas sin compañía de otros animales.')">
+                <div class="lab-test-icon" style="background: #E0E7FF; color: #4F46E5;"><i class="fa-solid fa-house"></i></div>
+                Suite Individual
+            </div>
+            <div class="lab-test-card hover-card" style="border: none;" onclick="mostrarInfoTest('Habitación Compartida', 'Ideal para mascotas sociables que llegan en pareja o grupo familiar, con espacio para jugar juntas.')">
+                <div class="lab-test-icon" style="background: #E0E7FF; color: #4F46E5;"><i class="fa-solid fa-users"></i></div>
+                Habitación Compartida
+            </div>
+            <div class="lab-test-card hover-card" style="border: none;" onclick="mostrarInfoTest('Hospedaje Post-Operatorio', 'Observación médica constante para mascotas en recuperación de una cirugía, con control de signos vitales.')">
+                <div class="lab-test-icon" style="background: #E0E7FF; color: #4F46E5;"><i class="fa-solid fa-kit-medical"></i></div>
+                Hospedaje Post-Operatorio
+            </div>
+            <div class="lab-test-card hover-card" style="border: none;" onclick="mostrarInfoTest('Estadía por Horas', 'Perfecta para viajes cortos o trámites del día: dejas a tu mascota en buenas manos por unas horas.')">
+                <div class="lab-test-icon" style="background: #E0E7FF; color: #4F46E5;"><i class="fa-solid fa-clock"></i></div>
+                Estadía por Horas
+            </div>
+        </div>
+
+        <div style="flex: 1;">
+            <h2 style="font-size: 32px; font-weight: 800; color: var(--dark-text); margin-bottom: 20px;">Un espacio para cada necesidad</h2>
+            <p style="color: var(--text-muted); font-size: 16px; line-height: 1.6; margin-bottom: 20px;">
+                Ya sea un viaje de fin de semana o una recuperación post-quirúrgica que requiere observación constante, tenemos el espacio adecuado y personal capacitado para acompañar el proceso.
+            </p>
+            <p style="color: var(--text-muted); font-size: 16px; line-height: 1.6; margin-bottom: 30px;">
+                Recibirás fotos y videos diarios de tu mascota para que estés tranquilo desde donde estés.
+            </p>
+            <button class="btn-outline" onclick="irAAgendar()" style="padding: 12px 25px;"><i class="fa-regular fa-calendar-check"></i> Consultar Disponibilidad</button>
+        </div>
+    </div>
+
+    <div style="text-align: center; margin-bottom: 30px;">
+        <h2 style="font-size: 28px; font-weight: 800; color: var(--dark-text);">Nuestro Hotel</h2>
+    </div>
+    <div class="lab-premium-gallery">
+        <img src="https://images.unsplash.com/photo-1601758174114-e711c0cbaa69?q=80&w=400&auto=format&fit=crop" alt="Hotel para mascotas">
+        <img src="https://images.unsplash.com/photo-1601758228041-f3b2795255f1?q=80&w=400&auto=format&fit=crop" alt="Perro descansando">
+        <img src="https://images.unsplash.com/photo-1548199973-03cce0bbc87b?q=80&w=400&auto=format&fit=crop" alt="Área de juegos">
+        <img src="https://images.unsplash.com/photo-1583511655857-d19b40a7a54e?q=80&w=400&auto=format&fit=crop" alt="Mascota feliz">
+    </div>
+
+</div>

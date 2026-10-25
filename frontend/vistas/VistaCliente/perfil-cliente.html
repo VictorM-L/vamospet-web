@@ -1,0 +1,274 @@
+<div class="fade-in cliente-layout">
+
+    <div class="perfil-header">
+        <div class="perfil-info">
+            <div class="perfil-avatar">
+                <i class="fa-solid fa-user"></i>
+            </div>
+            <div>
+                <h2 style="font-size: 24px; font-weight: 800; color: var(--dark-text); margin-bottom: 5px;" id="perfil-nombre">¡Hola, Cliente!</h2>
+                <p style="color: var(--text-muted); font-size: 14px;" id="perfil-correo"><i class="fa-solid fa-envelope" style="color: var(--primary-green); margin-right: 5px;"></i> correo@gmail.com</p>
+            </div>
+        </div>
+        <div>
+            <button class="btn-primary" onclick="cargarVista('VistaCliente/agendar-cita')"><i class="fa-regular fa-calendar-plus"></i> Nueva Cita</button>
+        </div>
+    </div>
+
+    <div style="display: flex; gap: 30px; flex-wrap: wrap;">
+
+        <div style="flex: 2; min-width: 300px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h3 style="font-size: 20px; font-weight: 700;"><i class="fa-solid fa-paw" style="color: var(--primary-green); margin-right: 8px;"></i> Mis Mascotas</h3>
+                <button class="btn-outline" style="padding: 8px 14px; font-size: 13px;" onclick="vincularMascotaPorCodigo()"><i class="fa-solid fa-link"></i> Vincular mascota con código</button>
+            </div>
+
+            <div class="mascotas-grid" id="mascotas-grid">
+                <div class="mascota-card mascota-btn-add" onclick="abrirModalNuevaMascota()">
+                    <i class="fa-solid fa-circle-plus" style="font-size: 32px;"></i>
+                    <span style="font-weight: 600;">Agregar Mascota</span>
+                </div>
+            </div>
+        </div>
+
+        <div style="flex: 1; min-width: 300px; display: flex; flex-direction: column; gap: 30px;">
+            <div class="admin-table-container">
+                <h3 style="font-size: 18px; font-weight: 700; margin-bottom: 15px;"><i class="fa-regular fa-calendar-check" style="color: var(--primary-green); margin-right: 8px;"></i> Próximas Citas</h3>
+                <div id="citas-cliente-lista">
+                    <p style="color: var(--text-muted); font-size: 13px;">Aún no tienes citas programadas.</p>
+                </div>
+            </div>
+
+            <div class="admin-table-container">
+                <h3 style="font-size: 18px; font-weight: 700; margin-bottom: 15px;"><i class="fa-solid fa-bag-shopping" style="color: var(--primary-green); margin-right: 8px;"></i> Últimos Pedidos</h3>
+                <div id="pedidos-cliente-lista">
+                    <p style="color: var(--text-muted); font-size: 13px;">Aún no has realizado pedidos.</p>
+                </div>
+                <button class="btn-outline" style="width: 100%; margin-top: 15px; padding: 10px; font-size: 13px;" onclick="cargarVista('VistaCliente/mis-pedidos')">Ver todos mis pedidos</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal-overlay" id="modal-nueva-mascota" style="display: none;">
+    <div class="modal-box">
+        <h3><i class="fa-solid fa-paw" style="color: var(--primary-green);"></i> Registrar Mascota</h3>
+        <form id="form-nueva-mascota">
+            <div class="input-group">
+                <label>Nombre</label>
+                <input type="text" id="mascota-nombre" required>
+            </div>
+            <div class="input-group">
+                <label>Especie</label>
+                <select id="mascota-especie" required>
+                    <option value="Perro">🐶 Perro</option>
+                    <option value="Gato">🐱 Gato</option>
+                </select>
+            </div>
+            <div class="input-group">
+                <label>Raza</label>
+                <input type="text" id="mascota-raza" placeholder="Ej. Mestizo, Angora...">
+            </div>
+            <div class="input-group">
+                <label>Sexo</label>
+                <select id="mascota-sexo" required>
+                    <option value="Macho">Macho</option>
+                    <option value="Hembra">Hembra</option>
+                </select>
+            </div>
+            <div class="input-group">
+                <label>Fecha de nacimiento (aprox.)</label>
+                <input type="date" id="mascota-fecha-nacimiento">
+            </div>
+            <div style="display: flex; gap: 10px; margin-top: 20px;">
+                <button type="button" class="btn-outline" style="flex: 1; padding: 12px;" onclick="cerrarModalNuevaMascota()">Cancelar</button>
+                <button type="submit" class="btn-primary" style="flex: 1; padding: 12px;">Guardar</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+(function () {
+    const API_MASCOTAS_URL = 'http://localhost:8080/api/mascotas';
+    let usuarioActual = null;
+
+    const usuarioJSON = localStorage.getItem('usuarioLogueado');
+    if (usuarioJSON) {
+        usuarioActual = JSON.parse(usuarioJSON);
+        document.getElementById('perfil-nombre').innerText = `¡Hola, ${usuarioActual.nombre.split(' ')[0]}!`;
+        document.getElementById('perfil-correo').innerHTML = `<i class="fa-solid fa-envelope" style="color: var(--primary-green); margin-right: 5px;"></i> ${esc(usuarioActual.correo)}`;
+    }
+
+    function iconoPorEspecie(especie) {
+        if (!especie) return 'fa-paw';
+        const e = especie.toLowerCase();
+        if (e.includes('gato')) return 'fa-cat';
+        if (e.includes('perro')) return 'fa-dog';
+        return 'fa-paw';
+    }
+
+    async function loadMascotas() {
+        const grid = document.getElementById('mascotas-grid');
+        if (!usuarioActual) return;
+
+        try {
+            const res = await fetch(`${API_MASCOTAS_URL}/usuario/${usuarioActual.id}`);
+            if (!res.ok) throw new Error('No se pudieron cargar las mascotas');
+            const mascotas = await res.json();
+
+            const tarjetas = mascotas.map(m => `
+                <div class="mascota-card">
+                    <div class="mascota-card-header" style="position: relative;">
+                        <div id="foto-preview-${m.id}" style="width: 60px; height: 60px; border-radius: 15px; background: #F3F4F6; display: flex; justify-content: center; align-items: center; font-size: 24px; color: #9CA3AF; overflow: hidden;">
+                            ${m.foto ? `<img src="${m.foto}" style="width:100%; height:100%; object-fit:cover;">` : `<i class="fa-solid ${iconoPorEspecie(m.especie)}"></i>`}
+                        </div>
+                        <div>
+                            <h4 style="font-size: 18px; font-weight: 700;">${esc(m.nombre)}</h4>
+                            <span style="font-size: 12px; color: var(--text-muted); font-weight: 500;">${m.especie || ''}${m.raza ? ' • ' + m.raza : ''}</span>
+                        </div>
+                    </div>
+                    <div style="font-size: 13px; color: var(--text-muted); display: flex; flex-direction: column; gap: 8px;">
+                        <div><i class="fa-solid fa-venus-mars" style="color: #6B7280; width: 20px;"></i> ${m.sexo || 'No especificado'}</div>
+                        <div><i class="fa-regular fa-calendar" style="color: #6B7280; width: 20px;"></i> ${m.fecha_nacimiento ? 'Nació: ' + m.fecha_nacimiento : 'Fecha de nacimiento no registrada'}</div>
+                    </div>
+                    <button class="btn-outline" style="width: 100%; margin-top: 15px; padding: 8px; font-size: 13px;" onclick="verHistorialMascota(${m.id})">Ver Historial</button>
+                </div>
+            `).join('');
+
+            grid.innerHTML = tarjetas + `
+                <div class="mascota-card mascota-btn-add" onclick="abrirModalNuevaMascota()">
+                    <i class="fa-solid fa-circle-plus" style="font-size: 32px;"></i>
+                    <span style="font-weight: 600;">Agregar Mascota</span>
+                </div>
+            `;
+        } catch (error) {
+            console.error('Error cargando mascotas:', error);
+        }
+    }
+
+    window.vincularMascotaPorCodigo = async function () {
+        const codigo = prompt('Escribe el código de tu ticket de emergencia (ej. VET-PET-1045):');
+        if (!codigo) return;
+        const res = await fetch(`${API_BASE}/cliente/vincular-mascota`, {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ usuario_id: usuarioActual.id, codigo })
+        });
+        const d = await res.json().catch(() => ({}));
+        alert(res.ok ? d.mensaje : (d.error || 'No se pudo vincular la mascota.'));
+        if (res.ok) loadMascotas();
+    };
+
+    loadMascotas();
+    loadCitasCliente();
+    loadPedidosCliente();
+
+    async function loadCitasCliente() {
+        const contenedor = document.getElementById('citas-cliente-lista');
+        if (!usuarioActual) return;
+        try {
+            const [resCitas, resServicios] = await Promise.all([
+                fetch(`http://localhost:8080/api/citas/usuario/${usuarioActual.id}`),
+                fetch(`http://localhost:8080/api/servicios?incluirInactivos=true`)
+            ]);
+            if (!resCitas.ok) return;
+            const citas = await resCitas.json();
+            const servicios = resServicios.ok ? await resServicios.json() : [];
+
+            const proximas = citas.filter(c => c.estado !== 'Atendida' && c.estado !== 'Cancelada' && c.estado !== 'No asistió');
+            if (proximas.length === 0) return;
+
+            contenedor.innerHTML = proximas.map(c => {
+                const servicio = servicios.find(s => s.id === c.servicio_id);
+                const fecha = c.fecha_hora ? new Date(c.fecha_hora).toLocaleString('es-PE', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }) : '';
+                const claseEstado = claseEstadoCita(c.estado);
+                return `
+                    <div style="border: 1px solid #E4E7EC; border-radius: 12px; padding: 15px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                        <div>
+                            <h4 style="font-size: 14px; font-weight: 700;">${servicio ? servicio.nombre : 'Servicio'}</h4>
+                            <p style="font-size: 12px; color: var(--text-muted); margin-top: 3px;">${fecha}</p>
+                        </div>
+                        <span class="status-badge ${claseEstado}">${c.estado}</span>
+                    </div>
+                `;
+            }).join('');
+        } catch (error) {
+            console.error('Error cargando citas:', error);
+        }
+    }
+
+    async function loadPedidosCliente() {
+        const contenedor = document.getElementById('pedidos-cliente-lista');
+        if (!usuarioActual) return;
+        try {
+            const res = await fetch(`http://localhost:8080/api/pedidos/usuario/${usuarioActual.id}`);
+            if (!res.ok) return;
+            const pedidos = await res.json();
+            if (pedidos.length === 0) return;
+
+            contenedor.innerHTML = pedidos.slice(0, 3).map(p => {
+                const fecha = p.fecha ? new Date(p.fecha).toLocaleDateString('es-PE', { day: '2-digit', month: 'short' }) : '';
+                return `
+                    <div style="display: flex; align-items: center; gap: 15px; padding-bottom: 15px; border-bottom: 1px solid #E4E7EC; margin-bottom: 15px;">
+                        <div style="width: 40px; height: 40px; background: #F3F4F6; border-radius: 8px; display: flex; justify-content: center; align-items: center; color: var(--text-muted);">
+                            <i class="fa-solid fa-box"></i>
+                        </div>
+                        <div style="flex: 1;">
+                            <h4 style="font-size: 14px; font-weight: 600;">Pedido #${p.id}</h4>
+                            <p style="font-size: 12px; color: var(--text-muted);">${p.estado} · ${fecha}</p>
+                        </div>
+                        <div style="font-size: 14px; font-weight: 700;">S/ ${Number(p.total || 0).toFixed(2)}</div>
+                    </div>
+                `;
+            }).join('');
+        } catch (error) {
+            console.error('Error cargando pedidos:', error);
+        }
+    }
+
+    window.abrirModalNuevaMascota = function () {
+        document.getElementById('modal-nueva-mascota').style.display = 'flex';
+    }
+
+    window.cerrarModalNuevaMascota = function () {
+        document.getElementById('modal-nueva-mascota').style.display = 'none';
+    }
+
+    document.getElementById('form-nueva-mascota').addEventListener('submit', async (e) => {
+        e.preventDefault();
+
+        if (!usuarioActual) {
+            alert('Debes iniciar sesión para registrar una mascota.');
+            return;
+        }
+
+        const nuevaMascota = {
+            usuario_id: usuarioActual.id,
+            nombre: document.getElementById('mascota-nombre').value,
+            especie: document.getElementById('mascota-especie').value,
+            raza: document.getElementById('mascota-raza').value,
+            sexo: document.getElementById('mascota-sexo').value,
+            fecha_nacimiento: document.getElementById('mascota-fecha-nacimiento').value || null
+        };
+
+        try {
+            const res = await fetch(API_MASCOTAS_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(nuevaMascota)
+            });
+
+            if (res.ok) {
+                cerrarModalNuevaMascota();
+                document.getElementById('form-nueva-mascota').reset();
+                loadMascotas();
+            } else {
+                alert('No se pudo registrar la mascota. Intenta nuevamente.');
+            }
+        } catch (error) {
+            console.error('Error de conexión:', error);
+            alert('No pudimos conectar con el servidor (verifica que Spring Boot esté corriendo).');
+        }
+    });
+})();
+</script>

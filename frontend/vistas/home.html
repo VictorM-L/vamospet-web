@@ -1,0 +1,98 @@
+<div class="fade-in">
+    
+    <div class="home-hero">
+        <div class="home-hero-text">
+            <span class="home-badge"><i class="fa-solid fa-heart"></i> Más que una clínica, somos familia</span>
+            <h1 class="home-title">Cuidamos a tu mascota como parte de la nuestra</h1>
+            <p style="color: #4B5563; font-size: 16px; margin-bottom: 30px; line-height: 1.6; max-width: 90%;">
+                En Vamos Pet brindamos atención veterinaria integral con amor, tecnología y profesionales comprometidos con la salud y bienestar de tu engreído.
+            </p>
+            <div style="display: flex; gap: 15px; margin-bottom: 30px; flex-wrap: wrap;">
+                <button class="btn-primary" onclick="irAAgendar()" style="padding: 12px 24px; font-size: 16px;"><i class="fa-regular fa-calendar-check" style="margin-right: 8px;"></i> Agendar una cita</button>
+                <button class="btn-outline" onclick="cargarVista('servicios')" style="padding: 12px 24px; font-size: 16px; background: white; border: none; box-shadow: 0 4px 6px rgba(0,0,0,0.05);"><i class="fa-solid fa-paw" style="margin-right: 8px;"></i> Nuestros servicios</button>
+            </div>
+            <div style="display: flex; gap: 20px; font-size: 14px; font-weight: 700; color: #111827; flex-wrap: wrap;">
+                <span><i class="fa-solid fa-user-doctor" style="color: var(--primary-green);"></i> Veterinarios especializados</span>
+                <span><i class="fa-solid fa-hand-holding-heart" style="color: var(--primary-green);"></i> Atención personalizada</span>
+                <span><i class="fa-solid fa-microscope" style="color: var(--primary-green);"></i> Tecnología de punta</span>
+            </div>
+        </div>
+        
+        <div class="home-hero-img-box">
+            <img src="https://images.unsplash.com/photo-1543466835-00a7907e9de1?q=80&w=800&auto=format&fit=crop" style="width: 100%; border-radius: 30px; object-fit: cover;" alt="Perro Beagle feliz">
+            
+            <div style="position: absolute; right: -20px; top: 50%; transform: translateY(-50%); background: white; padding: 25px; border-radius: 20px; box-shadow: 0 15px 35px rgba(0,0,0,0.1); width: 240px; z-index: 5;">
+                <div style="display: flex; align-items: center; gap: 8px; color: var(--primary-green); font-weight: 800; font-size: 16px; margin-bottom: 8px;">
+                    <i class="fa-solid fa-truck-medical"></i> Emergencias 24/7
+                </div>
+                <p style="color: #6B7280; font-size: 13px; margin-bottom: 15px; line-height: 1.4;">Siempre listos para ayudar a tu mascota</p>
+                <div style="border: 1px solid #E5E7EB; padding: 10px; border-radius: 12px; font-weight: 700; color: #111827; font-size: 15px; display: flex; align-items: center; justify-content: center; gap: 10px;">
+                    <i class="fa-solid fa-phone" style="color: var(--primary-green);"></i> +51 912 345 678
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="floating-services-wrapper">
+        <div class="floating-services-bar">
+            <div class="service-icon-item" onclick="cargarVista('servicios')"><i class="fa-solid fa-stethoscope"></i><span>Consulta<br>Médica</span></div>
+            <div class="service-icon-item" onclick="cargarVista('servicios')"><i class="fa-solid fa-house-chimney-medical"></i><span>Consulta a<br>Domicilio</span></div>
+            <div class="service-icon-item" onclick="cargarVista('servicios')"><i class="fa-solid fa-laptop-medical"></i><span>Consulta<br>Virtual</span></div>
+            <div class="service-icon-item" onclick="cargarVista('servicios')"><i class="fa-solid fa-heart-pulse"></i><span>Especialidades</span></div>
+            <div class="service-icon-item" onclick="cargarVista('servicios')"><i class="fa-solid fa-syringe"></i><span>Cirugías</span></div>
+            <div class="service-icon-item" onclick="cargarVista('laboratorio')"><i class="fa-solid fa-flask"></i><span>Laboratorio</span></div>
+            <div class="service-icon-item" onclick="cargarVista('grooming')"><i class="fa-solid fa-scissors"></i><span>Grooming</span></div>
+            <div class="service-icon-item" onclick="cargarVista('hospedaje')"><i class="fa-solid fa-hotel"></i><span>Hospedaje</span></div>
+            <div class="service-icon-item" onclick="cargarVista('servicios')"><i class="fa-solid fa-shield-dog"></i><span>Medicina<br>Preventiva</span></div>
+            <div class="service-icon-item" onclick="cargarVista('viajes')"><i class="fa-solid fa-plane"></i><span>Viajes</span></div>
+            <div class="service-icon-item" onclick="cargarVista('farmacia')"><i class="fa-solid fa-pills"></i><span>Farmacia</span></div>
+            <div class="service-icon-item" onclick="cargarVista('accesorios')"><i class="fa-solid fa-bag-shopping"></i><span>Accesorios</span></div>
+        </div>
+    </div>
+
+    <div class="home-cards-container">
+        
+        <div class="home-card" style="background-color: #E8F5E9;">
+            <div class="home-card-content">
+                <h3 style="font-size: 20px; font-weight: 800; color: #166534; margin-bottom: 10px;">Agenda fácil y rápido</h3>
+                <p style="color: #374151; font-size: 13px; margin-bottom: 15px;">Reserva la cita ideal para tu mascota en pocos pasos.</p>
+                <ul>
+                    <li><i class="fa-solid fa-circle-check" style="color: #166534; margin-right: 5px;"></i> Elige el servicio</li>
+                    <li><i class="fa-solid fa-circle-check" style="color: #166534; margin-right: 5px;"></i> Selecciona fecha</li>
+                    <li><i class="fa-solid fa-circle-check" style="color: #166534; margin-right: 5px;"></i> Confirma y listo</li>
+                </ul>
+                <button class="btn-primary" onclick="irAAgendar()" style="padding: 10px 20px; font-size: 13px; background-color: #166534;"><i class="fa-regular fa-calendar-check" style="margin-right: 5px;"></i> Agendar ahora</button>
+            </div>
+            <img src="https://images.unsplash.com/photo-1591561582301-7ce6588cc286?q=80&w=400&auto=format&fit=crop" class="home-card-img" alt="Cachorro">
+        </div>
+
+        <div class="home-card" style="background-color: #EFF6FF;">
+            <div class="home-card-content">
+                <h3 style="font-size: 20px; font-weight: 800; color: #1E3A8A; margin-bottom: 10px;">Laboratorio clínico</h3>
+                <p style="color: #374151; font-size: 13px; margin-bottom: 15px;">Resultados rápidos y confiables para un diagnóstico certero.</p>
+                <ul>
+                    <li><i class="fa-solid fa-circle-check" style="color: #1E3A8A; margin-right: 5px;"></i> Análisis clínicos</li>
+                    <li><i class="fa-solid fa-circle-check" style="color: #1E3A8A; margin-right: 5px;"></i> Ecografías</li>
+                    <li><i class="fa-solid fa-circle-check" style="color: #1E3A8A; margin-right: 5px;"></i> Resultados el mismo día</li>
+                </ul>
+                <button class="btn-primary" onclick="cargarVista('laboratorio')" style="padding: 10px 20px; font-size: 13px; background-color: #1E3A8A;"><i class="fa-solid fa-flask" style="margin-right: 5px;"></i> Conoce más</button>
+            </div>
+            <img src="https://images.unsplash.com/photo-1579684385127-1ef15d508118?q=80&w=400&auto=format&fit=crop" class="home-card-img" alt="Laboratorio Veterinario">
+        </div>
+
+        <div class="home-card" style="background-color: #FFF7ED;">
+            <div class="home-card-content">
+                <h3 style="font-size: 20px; font-weight: 800; color: #C2410C; margin-bottom: 10px;">Tienda online</h3>
+                <p style="color: #374151; font-size: 13px; margin-bottom: 15px;">Todo lo que tu mascota necesita, sin salir de casa.</p>
+                <ul>
+                    <li><i class="fa-solid fa-circle-check" style="color: #C2410C; margin-right: 5px;"></i> Productos originales</li>
+                    <li><i class="fa-solid fa-circle-check" style="color: #C2410C; margin-right: 5px;"></i> Delivery seguro</li>
+                    <li><i class="fa-solid fa-circle-check" style="color: #C2410C; margin-right: 5px;"></i> Pagos seguros</li>
+                </ul>
+                <button class="btn-primary" onclick="cargarVista('farmacia')" style="padding: 10px 20px; font-size: 13px; background-color: #65A30D;"><i class="fa-solid fa-bag-shopping" style="margin-right: 5px;"></i> Comprar ahora</button>
+            </div>
+            <img src="https://images.unsplash.com/photo-1583337130417-3346a1be7dee?q=80&w=400&auto=format&fit=crop" class="home-card-img" alt="Perro en tienda">
+        </div>
+
+    </div>
+</div>

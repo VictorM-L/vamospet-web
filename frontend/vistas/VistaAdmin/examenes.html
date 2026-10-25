@@ -1,0 +1,212 @@
+<div class="fade-in admin-layout">
+    <aside class="admin-sidebar">
+        <div style="color: white; font-size: 18px; font-weight: 800; padding: 10px 18px 20px 18px; border-bottom: 1px solid #374151; margin-bottom: 10px;">
+            <i class="fa-solid fa-shield-halved" style="color: var(--primary-green);"></i> Admin Panel
+        </div>
+        <button class="sidebar-item" onclick="cargarVista('VistaAdmin/dashboard-admin')"><i class="fa-solid fa-chart-pie"></i> Dashboard</button>
+        <button class="sidebar-item" onclick="cargarVista('VistaAdmin/citas')"><i class="fa-solid fa-calendar-check"></i> Gestión de Citas</button>
+        <button class="sidebar-item active" onclick="cargarVista('VistaAdmin/examenes')"><i class="fa-solid fa-flask-vial"></i> Exámenes y Cirugías</button>
+        <button class="sidebar-item" onclick="cargarVista('VistaAdmin/emergencias')"><i class="fa-solid fa-truck-medical"></i> Emergencias</button>
+        <button class="sidebar-item" onclick="cargarVista('VistaAdmin/clientes')"><i class="fa-solid fa-users"></i> Clientes y Mascotas</button>
+        <button class="sidebar-item" onclick="cargarVista('VistaAdmin/inventario')"><i class="fa-solid fa-box-open"></i> Inventario Tienda</button>
+    </aside>
+
+    <main class="admin-content">
+        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:15px;">
+            <h2 style="font-size:24px; font-weight:800; color:var(--dark-text);">Exámenes prequirúrgicos y cirugías</h2>
+            <button class="btn-primary" id="btn-nuevo-examen" style="display:none; padding:10px 20px;" onclick="abrirSolicitudExamen()"><i class="fa-solid fa-plus"></i> Solicitar examen</button>
+        </div>
+
+        <div style="background:white; padding:16px 20px; border-radius:15px; border:1px solid #E4E7EC; display:flex; gap:12px; flex-wrap:wrap; align-items:center;">
+            <label style="font-size:13px; font-weight:600;">Estado:</label>
+            <select id="ex-filtro-estado" style="padding:10px 14px; border-radius:8px; border:1px solid #E4E7EC; font-family:'Poppins';" onchange="cargarExamenes()">
+                <option value="">Todos</option>
+                <option value="Pendiente">Pendiente (esperan resultado)</option>
+                <option value="Resultados_Subidos">Resultados subidos (por evaluar)</option>
+                <option value="Apto_Cirugia">Apto para cirugía</option>
+                <option value="Rechazado">Rechazado</option>
+            </select>
+        </div>
+
+        <div class="admin-table-container">
+            <table class="admin-table">
+                <thead><tr><th>Mascota / Cliente</th><th>Examen</th><th>Estado</th><th>Archivos</th><th>Acciones</th></tr></thead>
+                <tbody id="ex-body"><tr><td colspan="5" style="text-align:center; padding:20px;"><i class="fa-solid fa-spinner fa-spin"></i> Cargando...</td></tr></tbody>
+            </table>
+        </div>
+
+        <h3 style="font-size:18px; font-weight:700; margin-top:10px;">Cirugías programadas</h3>
+        <div class="admin-table-container">
+            <table class="admin-table">
+                <thead><tr><th>Fecha y hora</th><th>Mascota</th><th>Cirugía</th><th>Estado</th></tr></thead>
+                <tbody id="cir-body"><tr><td colspan="4" style="text-align:center; padding:20px;">Cargando...</td></tr></tbody>
+            </table>
+        </div>
+    </main>
+</div>
+
+<input type="file" id="ex-archivo" accept=".pdf,.jpg,.jpeg,application/pdf,image/jpeg" style="display:none;">
+
+<div class="modal-overlay" id="modal-solicitar-examen" style="display:none;">
+    <div class="modal-box">
+        <h3><i class="fa-solid fa-flask-vial" style="color:var(--primary-green);"></i> Solicitar examen</h3>
+        <form id="form-solicitar-examen">
+            <div class="input-group"><label>Mascota *</label><select id="sol-mascota" required></select></div>
+            <div class="input-group"><label>Examen *</label><input type="text" id="sol-tipo" maxlength="150" required placeholder="Ej. Hemograma completo, Perfil renal"></div>
+            <div class="input-group"><label>Cirugía prevista</label><input type="text" id="sol-cirugia" maxlength="150" placeholder="Ej. Esterilización"></div>
+            <div class="input-group"><label>Indicaciones</label><textarea id="sol-indic" rows="3" maxlength="2000" placeholder="Ayuno de 8 horas, etc."></textarea></div>
+            <button type="submit" class="btn-primary" style="width:100%; padding:12px;">Solicitar</button>
+        </form>
+        <button class="btn-outline" style="width:100%; padding:12px; margin-top:10px;" onclick="document.getElementById('modal-solicitar-examen').style.display='none'">Cancelar</button>
+    </div>
+</div>
+
+<div class="modal-overlay" id="modal-evaluar-examen" style="display:none;">
+    <div class="modal-box">
+        <h3><i class="fa-solid fa-clipboard-check" style="color:var(--primary-green);"></i> Evaluar resultados <span id="eval-num"></span></h3>
+        <p id="eval-detalle" style="font-size:13px; color:var(--text-muted); margin-bottom:10px;"></p>
+        <div class="input-group"><label>Observaciones (obligatorias si rechazas)</label><textarea id="eval-obs" rows="3" maxlength="2000"></textarea></div>
+        <div style="display:flex; gap:10px;">
+            <button class="btn-primary" style="flex:1; padding:12px;" onclick="enviarEvaluacion('Apto_Cirugia')"><i class="fa-solid fa-check"></i> Apto para cirugía</button>
+            <button class="btn-outline" style="flex:1; padding:12px; color:#DC2626; border-color:#DC2626;" onclick="enviarEvaluacion('Rechazado')"><i class="fa-solid fa-xmark"></i> Rechazar</button>
+        </div>
+        <button class="btn-outline" style="width:100%; padding:12px; margin-top:10px;" onclick="document.getElementById('modal-evaluar-examen').style.display='none'">Cerrar</button>
+    </div>
+</div>
+
+<div class="modal-overlay" id="modal-cirugia" style="display:none;">
+    <div class="modal-box">
+        <h3><i class="fa-solid fa-scalpel" style="color:var(--primary-green);"></i> Programar cirugía</h3>
+        <p id="cir-detalle" style="font-size:13px; color:var(--text-muted); margin-bottom:10px;"></p>
+        <form id="form-cirugia">
+            <div class="input-group"><label>Tipo de cirugía *</label><input type="text" id="cir-tipo" maxlength="150" required></div>
+            <div class="input-group"><label>Fecha y hora *</label><input type="datetime-local" id="cir-fecha" step="1800" required></div>
+            <p style="font-size:12px; color:var(--text-muted);">Debe estar dentro de la vigencia de la aprobación (30 días) y en una franja libre del veterinario.</p>
+            <button type="submit" class="btn-primary" style="width:100%; padding:12px; margin-top:8px;">Programar</button>
+        </form>
+        <button class="btn-outline" style="width:100%; padding:12px; margin-top:10px;" onclick="document.getElementById('modal-cirugia').style.display='none'">Cancelar</button>
+    </div>
+</div>
+
+<script>
+(function () {
+    const yo = () => JSON.parse(localStorage.getItem('usuarioLogueado') || '{}');
+    const esVetOAdmin = () => [1, 3].includes(yo().rol_id);
+    let ordenes = [], mascotas = [], ordenActiva = null, ordenSubir = null;
+    const fmtF = f => f ? new Date(f).toLocaleString('es-PE', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—';
+    const badge = e => {
+        const m = { 'Pendiente': ['status-pendiente', 'Pendiente'], 'Resultados_Subidos': ['status-confirmada', 'Por evaluar'],
+                    'Apto_Cirugia': ['status-completado', 'Apto para cirugía'], 'Rechazado': ['status-cancelada', 'Rechazado'] }[e] || ['status-pendiente', e];
+        return `<span class="status-badge ${m[0]}">${esc(m[1])}</span>`;
+    };
+
+    window.cargarExamenes = async function () {
+        const estado = document.getElementById('ex-filtro-estado').value;
+        const body = document.getElementById('ex-body');
+        try {
+            const res = await fetch(`${API_BASE}/examenes?usuarioId=${yo().id}${estado ? '&estados=' + estado : ''}`);
+            const data = await res.json().catch(() => []);
+            if (!res.ok) { body.innerHTML = `<tr><td colspan="5" style="padding:20px; text-align:center;">${esc(data.error || 'No se pudo cargar.')}</td></tr>`; return; }
+            ordenes = data;
+            if (!ordenes.length) { body.innerHTML = `<tr><td colspan="5" style="padding:20px; text-align:center; color:var(--text-muted);">No hay órdenes de examen${estado ? ' con ese estado' : ' registradas aún'}.</td></tr>`; return; }
+            body.innerHTML = ordenes.map(o => {
+                const archivos = o.archivos.length
+                    ? o.archivos.map(a => `<a href="${API_BASE}/examenes/archivo/${a.id}?usuarioId=${yo().id}" target="_blank" style="display:block; font-size:12px; color:var(--primary-green);"><i class="fa-solid fa-paperclip"></i> ${esc(a.nombre)}</a>`).join('')
+                    : '<span style="font-size:12px; color:var(--text-muted);">Sin archivos</span>';
+                let acc = '';
+                if (o.estado !== 'Apto_Cirugia') acc += `<button class="btn-outline" style="padding:5px 10px; font-size:12px; margin:2px;" onclick="elegirArchivo(${o.id})"><i class="fa-solid fa-upload"></i> Subir resultado</button>`;
+                if (esVetOAdmin() && o.estado === 'Resultados_Subidos') acc += `<button class="btn-primary" style="padding:5px 10px; font-size:12px; margin:2px;" onclick="abrirEvaluar(${o.id})"><i class="fa-solid fa-clipboard-check"></i> Evaluar</button>`;
+                if (esVetOAdmin() && o.estado === 'Apto_Cirugia' && o.vigente) acc += `<button class="btn-primary" style="padding:5px 10px; font-size:12px; margin:2px;" onclick="abrirCirugia(${o.id})"><i class="fa-solid fa-calendar-plus"></i> Programar cirugía</button>`;
+                const extra = o.estado === 'Apto_Cirugia' ? `<div style="font-size:11px; color:var(--text-muted);">${o.vigente ? 'Vigente hasta ' + esc(o.vigente_hasta) : 'Aprobación vencida: solicita un examen nuevo'}</div>` : '';
+                const obs = o.observaciones ? `<div style="font-size:11px; color:var(--text-muted);">${esc(o.observaciones)}</div>` : '';
+                return `<tr>
+                    <td><strong>${esc(o.mascota_nombre || 'N/D')}</strong><br><span style="font-size:12px; color:var(--text-muted);">${esc(o.cliente_nombre || 'Sin dueño registrado')}</span></td>
+                    <td>${esc(o.tipo_examen)}${o.cirugia_prevista ? `<br><span style="font-size:12px; color:var(--text-muted);">Previo a: ${esc(o.cirugia_prevista)}</span>` : ''}<br><span style="font-size:11px; color:var(--text-muted);">Dr(a). ${esc(o.veterinario_nombre || '')} · ${fmtF(o.fecha_solicitud)}</span></td>
+                    <td>${badge(o.estado)}${extra}${obs}</td><td>${archivos}</td><td>${acc}</td></tr>`;
+            }).join('');
+        } catch (e) { body.innerHTML = `<tr><td colspan="5" style="padding:20px; text-align:center;">No pudimos conectar con el servidor.</td></tr>`; }
+    };
+
+    async function cargarCirugias() {
+        const body = document.getElementById('cir-body');
+        try {
+            const res = await fetch(`${API_BASE}/cirugias?usuarioId=${yo().id}`);
+            const lista = res.ok ? await res.json() : [];
+            if (!lista.length) { body.innerHTML = `<tr><td colspan="4" style="padding:20px; text-align:center; color:var(--text-muted);">No hay cirugías programadas.</td></tr>`; return; }
+            body.innerHTML = lista.map(c => {
+                const m = mascotas.find(x => x.id === c.mascota_id);
+                return `<tr><td>${fmtF(c.fecha_hora)}</td><td>${esc(m ? m.nombre : 'N/D')}</td><td>${esc(c.tipo_cirugia)}</td><td>${esc(c.estado)}</td></tr>`;
+            }).join('');
+        } catch (e) { body.innerHTML = ''; }
+    }
+
+    window.abrirSolicitudExamen = function () {
+        document.getElementById('form-solicitar-examen').reset();
+        document.getElementById('sol-mascota').innerHTML = mascotas.map(m => `<option value="${m.id}">${esc(m.nombre)} (${esc(m.especie || '')})</option>`).join('');
+        document.getElementById('modal-solicitar-examen').style.display = 'flex';
+    };
+    document.getElementById('form-solicitar-examen').addEventListener('submit', async e => {
+        e.preventDefault();
+        const res = await fetch(`${API_BASE}/veterinario/examenes/solicitar`, { method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ usuario_id: yo().id, mascota_id: document.getElementById('sol-mascota').value, tipo_examen: document.getElementById('sol-tipo').value,
+                                   cirugia_prevista: document.getElementById('sol-cirugia').value, indicaciones: document.getElementById('sol-indic').value }) });
+        const d = await res.json().catch(() => ({}));
+        if (!res.ok) { alert(d.error || 'No se pudo solicitar.'); return; }
+        document.getElementById('modal-solicitar-examen').style.display = 'none';
+        cargarExamenes();
+    });
+
+    window.elegirArchivo = function (id) { ordenSubir = id; const i = document.getElementById('ex-archivo'); i.value = ''; i.click(); };
+    document.getElementById('ex-archivo').addEventListener('change', async e => {
+        const f = e.target.files[0];
+        if (!f) return;
+        if (f.size > 5 * 1024 * 1024) { alert('El archivo supera los 5 MB.'); return; }
+        const fd = new FormData();
+        fd.append('usuario_id', yo().id); fd.append('orden_id', ordenSubir); fd.append('archivo', f);
+        const res = await fetch(`${API_BASE}/auxiliar/examenes/subir`, { method: 'POST', body: fd });
+        const d = await res.json().catch(() => ({}));
+        alert(res.ok ? d.mensaje : (d.error || 'No se pudo subir el archivo.'));
+        cargarExamenes();
+    });
+
+    window.abrirEvaluar = function (id) {
+        ordenActiva = ordenes.find(o => o.id === id);
+        document.getElementById('eval-num').innerText = '#' + id;
+        document.getElementById('eval-detalle').innerText = `${ordenActiva.mascota_nombre} — ${ordenActiva.tipo_examen}. Abre los archivos de la tabla para revisarlos.`;
+        document.getElementById('eval-obs').value = '';
+        document.getElementById('modal-evaluar-examen').style.display = 'flex';
+    };
+    window.enviarEvaluacion = async function (decision) {
+        const res = await fetch(`${API_BASE}/veterinario/examenes/evaluar/${ordenActiva.id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ usuario_id: yo().id, decision, observaciones: document.getElementById('eval-obs').value }) });
+        const d = await res.json().catch(() => ({}));
+        if (!res.ok) { alert(d.error || 'No se pudo evaluar.'); return; }
+        document.getElementById('modal-evaluar-examen').style.display = 'none';
+        cargarExamenes();
+    };
+
+    window.abrirCirugia = function (id) {
+        ordenActiva = ordenes.find(o => o.id === id);
+        document.getElementById('cir-detalle').innerText = `${ordenActiva.mascota_nombre}. Aprobación vigente hasta ${ordenActiva.vigente_hasta}.`;
+        document.getElementById('cir-tipo').value = ordenActiva.cirugia_prevista || '';
+        document.getElementById('cir-fecha').value = '';
+        document.getElementById('modal-cirugia').style.display = 'flex';
+    };
+    document.getElementById('form-cirugia').addEventListener('submit', async e => {
+        e.preventDefault();
+        const res = await fetch(`${API_BASE}/veterinario/cirugias/agendar`, { method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ usuario_id: yo().id, orden_id: ordenActiva.id, tipo_cirugia: document.getElementById('cir-tipo').value, fecha_hora: document.getElementById('cir-fecha').value }) });
+        const d = await res.json().catch(() => ({}));
+        if (!res.ok) { alert(d.error || 'No se pudo programar la cirugía.'); return; }
+        document.getElementById('modal-cirugia').style.display = 'none';
+        alert('Cirugía programada. También aparece en Gestión de Citas.');
+        cargarExamenes(); cargarCirugias();
+    });
+
+    (async () => {
+        if (esVetOAdmin()) document.getElementById('btn-nuevo-examen').style.display = 'inline-block';
+        try { const r = await fetch(`${API_BASE}/mascotas`); mascotas = r.ok ? await r.json() : []; } catch (e) { mascotas = []; }
+        cargarExamenes(); cargarCirugias();
+    })();
+})();
+</script>

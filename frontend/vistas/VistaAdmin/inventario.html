@@ -1,0 +1,786 @@
+<div class="fade-in admin-layout">
+    <aside class="admin-sidebar">
+        <div style="color: white; font-size: 18px; font-weight: 800; padding: 10px 18px 20px 18px; border-bottom: 1px solid #374151; margin-bottom: 10px;">
+            <i class="fa-solid fa-shield-halved" style="color: var(--primary-green);"></i> Admin Panel
+        </div>
+
+        <button class="sidebar-item" onclick="cargarVista('VistaAdmin/dashboard-admin')"><i class="fa-solid fa-chart-pie"></i> Dashboard</button>
+        <button class="sidebar-item" onclick="cargarVista('VistaAdmin/citas')"><i class="fa-solid fa-calendar-check"></i> Gestión de Citas</button>
+        <button class="sidebar-item" onclick="cargarVista('VistaAdmin/examenes')"><i class="fa-solid fa-flask-vial"></i> Exámenes y Cirugías</button>
+        <button class="sidebar-item" onclick="cargarVista('VistaAdmin/emergencias')"><i class="fa-solid fa-truck-medical"></i> Emergencias</button>
+        <button class="sidebar-item" onclick="cargarVista('VistaAdmin/clientes')"><i class="fa-solid fa-users"></i> Clientes y Mascotas</button>
+        <button class="sidebar-item" onclick="cargarVista('VistaAdmin/servicios')"><i class="fa-solid fa-briefcase-medical"></i> Servicios</button>
+        <button class="sidebar-item active" onclick="cargarVista('VistaAdmin/inventario')"><i class="fa-solid fa-box-open"></i> Inventario Tienda</button>
+        <button class="sidebar-item" onclick="cargarVista('VistaAdmin/proveedores')"><i class="fa-solid fa-truck-field"></i> Proveedores</button>
+        <button class="sidebar-item" onclick="cargarVista('VistaAdmin/compras')"><i class="fa-solid fa-cart-flatbed"></i> Compras</button>
+        <button class="sidebar-item" onclick="cargarVista('VistaAdmin/devoluciones')"><i class="fa-solid fa-rotate-left"></i> Devoluciones</button>
+        <button class="sidebar-item" onclick="cargarVista('VistaAdmin/comprobantes')"><i class="fa-solid fa-receipt"></i> Comprobantes</button>
+        <button class="sidebar-item" onclick="cargarVista('VistaAdmin/finanzas')"><i class="fa-solid fa-file-invoice-dollar"></i> Finanzas</button>
+        <button class="sidebar-item" onclick="cargarVista('VistaAdmin/reportes')"><i class="fa-solid fa-chart-column"></i> Reportes</button>
+        <button class="sidebar-item" onclick="cargarVista('VistaAdmin/horarios')"><i class="fa-solid fa-clock"></i> Horarios Veterinarios</button>
+        <button class="sidebar-item" onclick="cargarVista('VistaAdmin/personal')"><i class="fa-solid fa-user-nurse"></i> Personal</button>
+        <button class="sidebar-item" onclick="cargarVista('VistaAdmin/configuracion')"><i class="fa-solid fa-gear"></i> Configuración</button>
+    </aside>
+
+    <main class="admin-content">
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px;">
+            <h2 style="font-size: 24px; font-weight: 800; color: var(--dark-text);">Inventario Tienda</h2>
+            <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                <button class="btn-outline" onclick="abrirModalCategorias()"><i class="fa-solid fa-tags"></i> Categorías</button>
+                <button class="btn-outline" onclick="abrirModalReportes()"><i class="fa-solid fa-chart-line"></i> Reportes</button>
+                <button class="btn-primary" onclick="abrirModalNuevoProducto()"><i class="fa-solid fa-plus"></i> Nuevo Producto</button>
+            </div>
+        </div>
+
+        <div id="alertas-inventario" style="display: none;"></div>
+
+        <div class="metrics-grid" id="resumen-valorizacion" style="display: none;">
+            <div class="metric-card">
+                <div class="metric-icon"><i class="fa-solid fa-boxes-stacked"></i></div>
+                <div>
+                    <h4 style="color: var(--text-muted); font-size: 13px; font-weight: 600; margin-bottom: 5px;">Unidades en stock</h4>
+                    <h2 style="font-size: 24px; font-weight: 800; color: var(--dark-text);" id="val-unidades">—</h2>
+                </div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-icon" style="background: #FEF3C7; color: #D97706;"><i class="fa-solid fa-sack-dollar"></i></div>
+                <div>
+                    <h4 style="color: var(--text-muted); font-size: 13px; font-weight: 600; margin-bottom: 5px;">Valor a costo</h4>
+                    <h2 style="font-size: 20px; font-weight: 800; color: var(--dark-text);" id="val-costo">—</h2>
+                </div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-icon" style="background: #E0E7FF; color: #4F46E5;"><i class="fa-solid fa-tags"></i></div>
+                <div>
+                    <h4 style="color: var(--text-muted); font-size: 13px; font-weight: 600; margin-bottom: 5px;">Valor a venta</h4>
+                    <h2 style="font-size: 20px; font-weight: 800; color: var(--dark-text);" id="val-venta">—</h2>
+                </div>
+            </div>
+        </div>
+
+        <div style="background: white; padding: 15px 20px; border-radius: 15px; box-shadow: var(--shadow-soft); border: 1px solid #E4E7EC; display: flex; gap: 15px; align-items: center; flex-wrap: wrap;">
+            <div style="display: flex; align-items: center; gap: 10px; flex: 2; min-width: 200px; border-right: 1px solid #E4E7EC; padding-right: 15px;">
+                <i class="fa-solid fa-magnifying-glass" style="color: var(--text-muted);"></i>
+                <input type="text" id="buscador-inventario" placeholder="Buscar por nombre o SKU..." style="border: none; outline: none; font-family: 'Poppins'; width: 100%; font-size: 14px;">
+            </div>
+            <select id="filtro-tipo-inventario" style="padding: 8px 10px; border-radius: 8px; border: 1px solid #E4E7EC; font-family: 'Poppins'; outline: none; color: var(--text-muted); flex: 1; min-width: 140px;">
+                <option value="">Todos los Tipos</option>
+                <option value="Farmacia">Farmacia</option>
+                <option value="Accesorio">Accesorios</option>
+            </select>
+            <select id="filtro-estado-inventario" style="padding: 8px 10px; border-radius: 8px; border: 1px solid #E4E7EC; font-family: 'Poppins'; outline: none; color: var(--text-muted); flex: 1; min-width: 140px;">
+                <option value="">Todos los Estados</option>
+                <option value="Activo">Activo</option>
+                <option value="Agotado">Agotado</option>
+                <option value="Descontinuado">Descontinuado</option>
+            </select>
+            <select id="orden-inventario" style="padding: 8px 10px; border-radius: 8px; border: 1px solid #E4E7EC; font-family: 'Poppins'; outline: none; color: var(--text-muted); flex: 1; min-width: 160px;">
+                <option value="">Ordenar por...</option>
+                <option value="stock-asc">Stock: menor a mayor</option>
+                <option value="stock-desc">Stock: mayor a menor</option>
+                <option value="nombre">Nombre (A-Z)</option>
+            </select>
+            <label style="display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--text-muted); white-space: nowrap; cursor: pointer;">
+                <input type="checkbox" id="filtro-inactivos-inventario"> Mostrar inactivos
+            </label>
+        </div>
+
+        <div class="admin-table-container">
+            <table class="admin-table">
+                <thead>
+                    <tr>
+                        <th>Producto</th>
+                        <th>SKU</th>
+                        <th>Categoría</th>
+                        <th>Stock</th>
+                        <th>Precio (S/)</th>
+                        <th>Estado</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody id="inventario-admin-body">
+                    <tr><td colspan="7" style="text-align:center; color: var(--text-muted); padding: 20px;"><i class="fa-solid fa-spinner fa-spin"></i> Cargando...</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </main>
+</div>
+
+<div class="modal-overlay" id="modal-nuevo-producto" style="display: none;">
+    <div class="modal-box" style="max-width: 480px; max-height: 88vh; overflow-y: auto;">
+        <h3 id="titulo-modal-producto"><i class="fa-solid fa-box-open" style="color: var(--primary-green);"></i> Nuevo Producto</h3>
+        <form id="form-nuevo-producto">
+            <div class="input-group" style="text-align: center;">
+                <label>Foto principal</label>
+                <img id="prod-imagen-preview" src="https://images.unsplash.com/photo-1628527304948-0615f2a7ed82?q=80&w=200&auto=format&fit=crop" style="width: 90px; height: 90px; object-fit: cover; border-radius: 14px; margin: 6px auto 10px auto; display: block; border: 1px solid #E4E7EC;">
+                <input type="file" id="prod-imagen-archivo" accept="image/png, image/jpeg, image/webp, image/gif" onchange="previsualizarImagen(this, 'prod-imagen-preview')">
+            </div>
+
+            <div class="input-group">
+                <label>Nombre</label>
+                <input type="text" id="prod-nombre" required>
+            </div>
+
+            <div class="input-group">
+                <label>Descripción</label>
+                <input type="text" id="prod-descripcion" placeholder="Breve descripción del producto">
+            </div>
+
+            <div style="display: flex; gap: 15px;">
+                <div class="input-group" style="flex: 1;">
+                    <label>SKU</label>
+                    <input type="text" id="prod-sku" placeholder="Ej. FAR-0012">
+                </div>
+                <div class="input-group" style="flex: 1;">
+                    <label>Marca</label>
+                    <input type="text" id="prod-marca">
+                </div>
+            </div>
+
+            <div style="display: flex; gap: 15px;">
+                <div class="input-group" style="flex: 1;">
+                    <label>Tipo</label>
+                    <select id="prod-tipo" required>
+                        <option value="Farmacia">Farmacia</option>
+                        <option value="Accesorio">Accesorio</option>
+                    </select>
+                </div>
+                <div class="input-group" style="flex: 1;">
+                    <label>Categoría</label>
+                    <select id="prod-categoria" required>
+                        <option value="">Selecciona...</option>
+                    </select>
+                </div>
+            </div>
+
+            <div style="display: flex; gap: 15px;">
+                <div class="input-group" style="flex: 1;">
+                    <label>Precio de venta (S/)</label>
+                    <input type="number" step="0.01" id="prod-precio" required>
+                </div>
+                <div class="input-group" style="flex: 1;">
+                    <label>Precio de costo (S/)</label>
+                    <input type="number" step="0.01" id="prod-precio-costo">
+                </div>
+            </div>
+
+            <div style="display: flex; gap: 15px;">
+                <div class="input-group" style="flex: 1;">
+                    <label>Unidad de presentación</label>
+                    <input type="text" id="prod-unidad" placeholder="Ej. Frasco 30 tab.">
+                </div>
+                <div class="input-group" style="flex: 1;">
+                    <label>Stock mínimo (alerta)</label>
+                    <input type="number" id="prod-stock-minimo" value="5">
+                </div>
+            </div>
+
+            <div class="input-group">
+                <label>Proveedor</label>
+                <input type="text" id="prod-proveedor" placeholder="Nombre del proveedor">
+            </div>
+
+            <div class="input-group" id="grupo-vencimiento" style="display: none;">
+                <label>Fecha de vencimiento</label>
+                <input type="date" id="prod-vencimiento">
+            </div>
+
+            <div class="input-group" id="grupo-receta" style="display: none;">
+                <label><input type="checkbox" id="prod-requiere-receta" style="accent-color: var(--primary-green);"> Requiere receta médica</label>
+            </div>
+
+            <div id="nota-stock-inicial" style="background: #F0FDF4; border-radius: 10px; padding: 10px 14px; font-size: 12px; color: var(--primary-green); margin-bottom: 15px;">
+                <i class="fa-solid fa-circle-info"></i> El stock se registra después de crear el producto, desde el botón "Kardex" en la tabla — así queda un movimiento de entrada inicial registrado.
+            </div>
+
+            <div style="display: flex; gap: 10px; margin-top: 10px;">
+                <button type="button" class="btn-outline" style="flex: 1; padding: 12px;" onclick="cerrarModalNuevoProducto()">Cancelar</button>
+                <button type="submit" class="btn-primary" style="flex: 1; padding: 12px;">Guardar</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="modal-overlay" id="modal-categorias" style="display: none;">
+    <div class="modal-box" style="max-width: 460px;">
+        <h3><i class="fa-solid fa-tags" style="color: var(--primary-green);"></i> Categorías</h3>
+        <form id="form-nueva-categoria" style="display: flex; gap: 8px; margin-bottom: 18px;">
+            <input type="text" id="cat-nombre" placeholder="Nombre de categoría" required style="flex: 2; padding: 10px 12px; border: 1px solid #E4E7EC; border-radius: 8px; font-family: 'Poppins'; font-size: 13px;">
+            <select id="cat-tipo" required style="flex: 1; padding: 10px 8px; border: 1px solid #E4E7EC; border-radius: 8px; font-family: 'Poppins'; font-size: 13px;">
+                <option value="Farmacia">Farmacia</option>
+                <option value="Accesorio">Accesorio</option>
+            </select>
+            <button type="submit" class="btn-primary" style="padding: 0 14px;"><i class="fa-solid fa-plus"></i></button>
+        </form>
+        <div id="lista-categorias" style="max-height: 320px; overflow-y: auto;"></div>
+        <button type="button" class="btn-outline" style="width: 100%; margin-top: 15px; padding: 10px;" onclick="cerrarModalCategorias()">Cerrar</button>
+    </div>
+</div>
+
+<div class="modal-overlay" id="modal-kardex" style="display: none;">
+    <div class="modal-box" style="max-width: 480px; max-height: 85vh; overflow-y: auto;">
+        <h3><i class="fa-solid fa-clock-rotate-left" style="color: var(--primary-green);"></i> Kardex — <span id="kardex-nombre-producto"></span></h3>
+        <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 15px;">Stock actual: <strong id="kardex-stock-actual" style="color: var(--dark-text);">—</strong></p>
+
+        <form id="form-nuevo-movimiento" style="background: #F9FAFB; border-radius: 12px; padding: 15px; margin-bottom: 18px;">
+            <div style="display: flex; gap: 10px; margin-bottom: 10px;">
+                <select id="mov-tipo" style="flex: 1; padding: 9px; border: 1px solid #E4E7EC; border-radius: 8px; font-family: 'Poppins'; font-size: 13px;">
+                    <option value="Entrada">Entrada (compra)</option>
+                    <option value="Ajuste">Ajuste (merma / conteo)</option>
+                </select>
+                <input type="number" id="mov-cantidad" placeholder="Cantidad" required style="flex: 1; padding: 9px; border: 1px solid #E4E7EC; border-radius: 8px; font-family: 'Poppins'; font-size: 13px;">
+            </div>
+            <input type="text" id="mov-motivo" placeholder="Motivo (ej. Compra a proveedor, Conteo físico...)" style="width: 100%; padding: 9px; border: 1px solid #E4E7EC; border-radius: 8px; font-family: 'Poppins'; font-size: 13px; margin-bottom: 10px;">
+            <div id="mov-lote-bloque" style="display: flex; gap: 10px; margin-bottom: 10px;">
+                <input type="text" id="mov-lote" maxlength="60" placeholder="N° de lote (opcional)" style="flex: 1; padding: 9px; border: 1px solid #E4E7EC; border-radius: 8px; font-family: 'Poppins'; font-size: 13px;">
+                <input type="date" id="mov-vence" title="Vencimiento del lote" style="flex: 1; padding: 9px; border: 1px solid #E4E7EC; border-radius: 8px; font-family: 'Poppins'; font-size: 13px;">
+            </div>
+            <p id="ayuda-mov-tipo" style="font-size: 11px; color: var(--text-muted); margin-bottom: 10px;">La cantidad se suma al stock actual.</p>
+            <button type="submit" class="btn-primary" style="width: 100%; padding: 10px;">Registrar Movimiento</button>
+        </form>
+
+        <h4 style="font-size: 13px; font-weight: 700; margin-bottom: 10px; color: var(--text-muted);">LOTES (sale primero el que vence antes)</h4>
+        <div id="lista-lotes-kardex" style="margin-bottom: 18px;"></div>
+
+        <h4 style="font-size: 13px; font-weight: 700; margin-bottom: 10px; color: var(--text-muted);">HISTORIAL</h4>
+        <div id="lista-movimientos-kardex"></div>
+
+        <button type="button" class="btn-outline" style="width: 100%; margin-top: 15px; padding: 10px;" onclick="cerrarModalKardex()">Cerrar</button>
+    </div>
+</div>
+
+<div class="modal-overlay" id="modal-reportes" style="display: none;">
+    <div class="modal-box" style="max-width: 480px; max-height: 85vh; overflow-y: auto;">
+        <h3><i class="fa-solid fa-chart-line" style="color: var(--primary-green);"></i> Más vendidos</h3>
+        <select id="reporte-filtro-tipo" style="width: 100%; padding: 9px; border: 1px solid #E4E7EC; border-radius: 8px; font-family: 'Poppins'; font-size: 13px; margin-bottom: 15px;">
+            <option value="">Todos</option>
+            <option value="Farmacia">Farmacia</option>
+            <option value="Accesorio">Accesorios</option>
+        </select>
+        <div id="lista-mas-vendidos"></div>
+        <button type="button" class="btn-outline" style="width: 100%; margin-top: 15px; padding: 10px;" onclick="cerrarModalReportes()">Cerrar</button>
+    </div>
+</div>
+
+<script>
+(function () {
+    let __productosInventario = [];
+    let __categoriasTodas = [];
+    let __productoEnEdicionId = null;
+    let __productoKardexId = null;
+
+    function nombreCategoria(categoriaId) {
+        const c = __categoriasTodas.find(x => x.id === categoriaId);
+        return c ? c.nombre : '—';
+    }
+
+    function iconoPorTipo(tipo) {
+        return tipo === 'Accesorio' ? 'fa-bag-shopping' : 'fa-pills';
+    }
+
+    function colorPorTipo(tipo) {
+        return tipo === 'Accesorio' ? '#4F46E5' : 'var(--primary-green)';
+    }
+
+    function badgeStock(p) {
+        const stock = p.stock || 0;
+        const minimo = p.stock_minimo || 5;
+        if (stock <= 0) return `<span class="status-badge" style="background: #FEE2E2; color: #DC2626;">${stock} u.</span>`;
+        if (stock <= minimo) return `<span class="status-badge status-pendiente">${stock} u. (Bajo)</span>`;
+        return `<span class="status-badge status-completado">${stock} u.</span>`;
+    }
+
+    function badgeEstadoProducto(estado) {
+        if (estado === 'Descontinuado') return `<span class="status-badge" style="background:#F3F4F6; color:#6B7280;">Descontinuado</span>`;
+        if (estado === 'Agotado') return `<span class="status-badge" style="background:#FEE2E2; color:#DC2626;">Agotado</span>`;
+        return `<span class="status-badge status-completado">Activo</span>`;
+    }
+
+    function pintarInventario(lista) {
+        const cuerpo = document.getElementById('inventario-admin-body');
+        if (lista.length === 0) {
+            cuerpo.innerHTML = `<tr><td colspan="7" style="text-align:center; color: var(--text-muted); padding: 20px;">No hay productos que coincidan.</td></tr>`;
+            return;
+        }
+
+        cuerpo.innerHTML = lista.map(p => `
+            <tr style="${p.activo === false ? 'opacity: .55;' : ''}">
+                <td>
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <div style="width: 40px; height: 40px; background: #F3F4F6; border-radius: 8px; display: flex; justify-content: center; align-items: center; overflow: hidden;">
+                            ${p.imagen ? `<img src="${p.imagen}" style="width:100%; height:100%; object-fit:cover;">` : `<i class="fa-solid ${iconoPorTipo(p.tipo)}" style="color: ${colorPorTipo(p.tipo)};"></i>`}
+                        </div>
+                        <strong>${esc(p.nombre)}</strong>
+                    </div>
+                </td>
+                <td style="font-size: 12px; color: var(--text-muted);">${esc(p.sku || '—')}</td>
+                <td>${nombreCategoria(p.categoria_id)}</td>
+                <td>${badgeStock(p)}</td>
+                <td>S/ ${Number(p.precio).toFixed(2)}</td>
+                <td>${badgeEstadoProducto(p.estado)}</td>
+                <td style="white-space: nowrap;">
+                    <button style="background:none; border:none; color:var(--primary-green); cursor:pointer; font-size:15px; margin-right: 8px;" title="Editar" onclick="abrirModalEditarProducto(${p.id})"><i class="fa-solid fa-pen"></i></button>
+                    <button style="background:none; border:none; color:#4F46E5; cursor:pointer; font-size:15px; margin-right: 8px;" title="Kardex / Stock" onclick="abrirModalKardex(${p.id})"><i class="fa-solid fa-clock-rotate-left"></i></button>
+                    ${p.activo === false
+                        ? `<button class="btn-outline" style="padding: 4px 10px; font-size: 11px;" onclick="reactivarProductoInventario(${p.id})">Reactivar</button>`
+                        : `<button style="background:none; border:none; color:#EF4444; cursor:pointer; font-size:15px;" title="Dar de baja" onclick="eliminarProductoInventario(${p.id})"><i class="fa-regular fa-trash-can"></i></button>`}
+                </td>
+            </tr>
+        `).join('');
+    }
+
+    function aplicarFiltrosInventario() {
+        const texto = document.getElementById('buscador-inventario').value.toLowerCase();
+        const tipo = document.getElementById('filtro-tipo-inventario').value;
+        const estado = document.getElementById('filtro-estado-inventario').value;
+        const orden = document.getElementById('orden-inventario').value;
+        const verInactivos = document.getElementById('filtro-inactivos-inventario').checked;
+
+        let filtrados = __productosInventario.filter(p => {
+            if (p.activo === false && !verInactivos) return false;
+            const coincideTexto = !texto || (p.nombre || '').toLowerCase().includes(texto) || (p.sku || '').toLowerCase().includes(texto);
+            const coincideTipo = !tipo || p.tipo === tipo;
+            const coincideEstado = !estado || p.estado === estado;
+            return coincideTexto && coincideTipo && coincideEstado;
+        });
+
+        if (orden === 'stock-asc') filtrados = [...filtrados].sort((a, b) => (a.stock || 0) - (b.stock || 0));
+        if (orden === 'stock-desc') filtrados = [...filtrados].sort((a, b) => (b.stock || 0) - (a.stock || 0));
+        if (orden === 'nombre') filtrados = [...filtrados].sort((a, b) => a.nombre.localeCompare(b.nombre));
+
+        pintarInventario(filtrados);
+    }
+
+    ['buscador-inventario', 'filtro-tipo-inventario', 'filtro-estado-inventario', 'orden-inventario', 'filtro-inactivos-inventario'].forEach(id => {
+        document.getElementById(id).addEventListener('input', aplicarFiltrosInventario);
+        document.getElementById(id).addEventListener('change', aplicarFiltrosInventario);
+    });
+
+    async function cargarAlertas() {
+        try {
+            const res = await fetch(`${API_BASE}/productos/alertas`);
+            if (!res.ok) return;
+            const data = await res.json();
+            const contenedor = document.getElementById('alertas-inventario');
+
+            const bloques = [];
+            if (data.stockBajo && data.stockBajo.length > 0) {
+                bloques.push(`
+                    <div style="background: #FEF3C7; border: 1px solid #FDE68A; border-radius: 14px; padding: 15px 20px; margin-bottom: 12px;">
+                        <strong style="color: #92400E; font-size: 13px;"><i class="fa-solid fa-triangle-exclamation"></i> Stock bajo (${data.stockBajo.length})</strong>
+                        <p style="font-size: 12px; color: #92400E; margin-top: 5px;">${data.stockBajo.map(p => p.nombre + ' (' + p.stock + ' u.)').join(' · ')}</p>
+                    </div>
+                `);
+            }
+            let lotesRiesgo = [];
+            try {
+                const u = JSON.parse(localStorage.getItem('usuarioLogueado') || '{}');
+                const rl = await fetch(`${API_BASE}/lotes/por-vencer?usuarioId=${u.id}&dias=30`);
+                lotesRiesgo = rl.ok ? await rl.json() : [];
+            } catch (e) {  }
+            if (lotesRiesgo.length > 0) {
+                bloques.push(`
+                    <div style="background: #FEE2E2; border: 1px solid #FECACA; border-radius: 14px; padding: 15px 20px; margin-bottom: 12px;">
+                        <strong style="color: #991B1B; font-size: 13px;"><i class="fa-solid fa-calendar-xmark"></i> Lotes vencidos o por vencer en 30 días (${lotesRiesgo.length})</strong>
+                        <p style="font-size: 12px; color: #991B1B; margin-top: 5px;">${lotesRiesgo.map(l => esc(l.producto_nombre) + ' · lote ' + esc(l.numero_lote) + ' (' + l.stock_actual + ' u., ' + (l.estado === 'Vencido' ? 'VENCIDO ' : 'vence ') + esc(l.fecha_vencimiento) + ')').join(' · ')}</p>
+                    </div>
+                `);
+            }
+
+            if (bloques.length > 0) {
+                contenedor.innerHTML = bloques.join('');
+                contenedor.style.display = 'block';
+            }
+        } catch (error) {
+            console.warn('No se pudieron cargar las alertas de inventario.');
+        }
+    }
+
+    async function cargarValorizacion() {
+        try {
+            const res = await fetch(`${API_BASE}/reportes/valorizacion`);
+            if (!res.ok) return;
+            const data = await res.json();
+            document.getElementById('val-unidades').innerText = data.totalUnidades;
+            document.getElementById('val-costo').innerText = `S/ ${Number(data.valorCosto).toFixed(2)}`;
+            document.getElementById('val-venta').innerText = `S/ ${Number(data.valorVenta).toFixed(2)}`;
+            document.getElementById('resumen-valorizacion').style.display = 'grid';
+        } catch (error) {
+            console.warn('No se pudo cargar la valorización.');
+        }
+    }
+
+    window.abrirModalCategorias = async function () {
+        document.getElementById('modal-categorias').style.display = 'flex';
+        await pintarCategorias();
+    };
+    window.cerrarModalCategorias = () => document.getElementById('modal-categorias').style.display = 'none';
+
+    async function pintarCategorias() {
+        const cont = document.getElementById('lista-categorias');
+        if (__categoriasTodas.length === 0) {
+            cont.innerHTML = `<p style="color: var(--text-muted); font-size: 13px; text-align:center;">Aún no hay categorías.</p>`;
+            return;
+        }
+        cont.innerHTML = __categoriasTodas.map(c => `
+            <div style="display:flex; justify-content:space-between; align-items:center; padding: 8px 0; border-bottom: 1px solid #F3F4F6; ${c.activo === false ? 'opacity: .55;' : ''}">
+                <span style="font-size: 13px;">${esc(c.nombre)} <span style="color: var(--text-muted); font-size: 11px;">(${c.tipo})${c.activo === false ? ' · inactiva' : ''}</span></span>
+                ${c.activo === false
+                    ? `<button class="btn-outline" style="padding: 4px 10px; font-size: 11px;" onclick="reactivarCategoria(${c.id})">Reactivar</button>`
+                    : `<button style="background:none; border:none; color:#EF4444; cursor:pointer;" title="Dar de baja" onclick="eliminarCategoria(${c.id})"><i class="fa-regular fa-trash-can"></i></button>`}
+            </div>
+        `).join('');
+    }
+
+    document.getElementById('form-nueva-categoria').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        try {
+            const res = await fetch(`${API_BASE}/categorias`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ nombre: document.getElementById('cat-nombre').value, tipo: document.getElementById('cat-tipo').value })
+            });
+            if (!res.ok) throw new Error();
+            __categoriasTodas.push(await res.json());
+            document.getElementById('form-nueva-categoria').reset();
+            await pintarCategorias();
+            llenarSelectCategorias();
+        } catch { alert('No se pudo crear la categoría.'); }
+    });
+
+    window.eliminarCategoria = async function (id) {
+        if (!confirm('¿Dar de baja esta categoría? Puedes reactivarla cuando quieras.')) return;
+        try {
+            const res = await fetch(`${API_BASE}/categorias/${id}`, { method: 'DELETE' });
+            const data = await res.json().catch(() => ({}));
+            if (!res.ok) { alert(data.error || 'No se pudo dar de baja.'); return; }
+            __categoriasTodas = __categoriasTodas.map(c => c.id === id ? { ...c, activo: false } : c);
+            await pintarCategorias();
+            llenarSelectCategorias();
+        } catch { alert('No se pudo dar de baja la categoría.'); }
+    };
+
+    window.reactivarCategoria = async function (id) {
+        try {
+            const res = await fetch(`${API_BASE}/categorias/${id}/reactivar`, { method: 'PATCH' });
+            if (!res.ok) throw new Error();
+            const data = await res.json();
+            __categoriasTodas = __categoriasTodas.map(c => c.id === id ? data : c);
+            await pintarCategorias();
+            llenarSelectCategorias();
+        } catch { alert('No se pudo reactivar la categoría.'); }
+    };
+
+    function llenarSelectCategorias() {
+        const tipo = document.getElementById('prod-tipo').value;
+        const select = document.getElementById('prod-categoria');
+        const disponibles = __categoriasTodas.filter(c => c.tipo === tipo && c.activo !== false);
+        select.innerHTML = `<option value="">Selecciona...</option>` + disponibles.map(c => `<option value="${c.id}">${esc(c.nombre)}</option>`).join('');
+    }
+
+    document.getElementById('prod-tipo').addEventListener('change', () => {
+        llenarSelectCategorias();
+        const esFarmacia = document.getElementById('prod-tipo').value === 'Farmacia';
+        document.getElementById('grupo-vencimiento').style.display = esFarmacia ? 'block' : 'none';
+        document.getElementById('grupo-receta').style.display = esFarmacia ? 'block' : 'none';
+    });
+
+    window.abrirModalNuevoProducto = function () {
+        __productoEnEdicionId = null;
+        document.getElementById('titulo-modal-producto').innerHTML = '<i class="fa-solid fa-box-open" style="color: var(--primary-green);"></i> Nuevo Producto';
+        document.getElementById('form-nuevo-producto').reset();
+        document.getElementById('prod-imagen-preview').src = 'https://images.unsplash.com/photo-1628527304948-0615f2a7ed82?q=80&w=200&auto=format&fit=crop';
+        document.getElementById('nota-stock-inicial').style.display = 'block';
+        llenarSelectCategorias();
+        document.getElementById('grupo-vencimiento').style.display = 'block';
+        document.getElementById('grupo-receta').style.display = 'block';
+        document.getElementById('modal-nuevo-producto').style.display = 'flex';
+    };
+
+    window.abrirModalEditarProducto = function (id) {
+        const p = __productosInventario.find(x => x.id === id);
+        if (!p) return;
+        __productoEnEdicionId = id;
+
+        document.getElementById('titulo-modal-producto').innerHTML = '<i class="fa-solid fa-pen" style="color: var(--primary-green);"></i> Editar Producto';
+        document.getElementById('prod-nombre').value = p.nombre || '';
+        document.getElementById('prod-descripcion').value = p.descripcion || '';
+        document.getElementById('prod-sku').value = p.sku || '';
+        document.getElementById('prod-marca').value = p.marca || '';
+        document.getElementById('prod-tipo').value = p.tipo || 'Farmacia';
+        document.getElementById('prod-precio').value = p.precio || '';
+        document.getElementById('prod-precio-costo').value = p.precio_costo || '';
+        document.getElementById('prod-unidad').value = p.unidad_presentacion || '';
+        document.getElementById('prod-stock-minimo').value = p.stock_minimo || 5;
+        document.getElementById('prod-proveedor').value = p.proveedor || '';
+        document.getElementById('prod-vencimiento').value = p.fecha_vencimiento || '';
+        document.getElementById('prod-requiere-receta').checked = !!p.requiere_receta;
+        document.getElementById('prod-imagen-preview').src = p.imagen || 'https://images.unsplash.com/photo-1628527304948-0615f2a7ed82?q=80&w=200&auto=format&fit=crop';
+        document.getElementById('nota-stock-inicial').style.display = 'none';
+
+        llenarSelectCategorias();
+        document.getElementById('prod-categoria').value = p.categoria_id || '';
+
+        const esFarmacia = p.tipo === 'Farmacia';
+        document.getElementById('grupo-vencimiento').style.display = esFarmacia ? 'block' : 'none';
+        document.getElementById('grupo-receta').style.display = esFarmacia ? 'block' : 'none';
+
+        document.getElementById('modal-nuevo-producto').style.display = 'flex';
+    };
+
+    window.cerrarModalNuevoProducto = function () {
+        document.getElementById('modal-nuevo-producto').style.display = 'none';
+    };
+
+    document.getElementById('form-nuevo-producto').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const botonGuardar = e.target.querySelector('button[type="submit"]');
+        botonGuardar.disabled = true;
+        botonGuardar.innerText = 'Guardando...';
+
+        try {
+            const urlImagenNueva = await subirImagen(document.getElementById('prod-imagen-archivo'));
+
+            const datosProducto = {
+                nombre: document.getElementById('prod-nombre').value,
+                descripcion: document.getElementById('prod-descripcion').value,
+                sku: document.getElementById('prod-sku').value,
+                marca: document.getElementById('prod-marca').value,
+                tipo: document.getElementById('prod-tipo').value,
+                categoria_id: document.getElementById('prod-categoria').value ? parseInt(document.getElementById('prod-categoria').value, 10) : null,
+                precio: parseFloat(document.getElementById('prod-precio').value),
+                precio_costo: document.getElementById('prod-precio-costo').value ? parseFloat(document.getElementById('prod-precio-costo').value) : null,
+                unidad_presentacion: document.getElementById('prod-unidad').value,
+                stock_minimo: parseInt(document.getElementById('prod-stock-minimo').value || '5', 10),
+                proveedor: document.getElementById('prod-proveedor').value,
+                fecha_vencimiento: document.getElementById('prod-vencimiento').value || null,
+                requiere_receta: document.getElementById('prod-requiere-receta').checked,
+                imagen: urlImagenNueva
+            };
+
+            if (__productoEnEdicionId) {
+                const res = await fetch(`${API_BASE}/productos/${__productoEnEdicionId}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(datosProducto)
+                });
+                if (!res.ok) throw new Error();
+                const actualizado = await res.json();
+                __productosInventario = __productosInventario.map(p => p.id === actualizado.id ? actualizado : p);
+            } else {
+                datosProducto.stock = 0;
+                const res = await fetch(`${API_BASE}/productos`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(datosProducto)
+                });
+                if (!res.ok) throw new Error();
+                __productosInventario.push(await res.json());
+            }
+
+            cerrarModalNuevoProducto();
+            aplicarFiltrosInventario();
+            cargarValorizacion();
+        } catch (error) {
+            console.error('Error guardando producto:', error);
+            alert('No se pudo guardar el producto.');
+        } finally {
+            botonGuardar.disabled = false;
+            botonGuardar.innerText = 'Guardar';
+        }
+    });
+
+    window.eliminarProductoInventario = async function (id) {
+        if (!confirm('¿Dar de baja este producto? Deja de venderse, pero su historial de ventas y kardex se conserva. Puedes reactivarlo cuando quieras.')) return;
+        try {
+            const res = await fetch(`${API_BASE}/productos/${id}`, { method: 'DELETE' });
+            const data = await res.json().catch(() => ({}));
+            if (!res.ok) throw new Error();
+
+            __productosInventario = __productosInventario.map(p =>
+                p.id === id ? { ...p, activo: false, estado: 'Descontinuado' } : p);
+            aplicarFiltrosInventario();
+            cargarAlertas();
+            cargarValorizacion();
+        } catch (error) {
+            console.error('Error dando de baja el producto:', error);
+            alert('No se pudo dar de baja el producto.');
+        }
+    };
+
+    window.reactivarProductoInventario = async function (id) {
+        try {
+            const res = await fetch(`${API_BASE}/productos/${id}/reactivar`, { method: 'PATCH' });
+            if (!res.ok) throw new Error();
+            const data = await res.json();
+            __productosInventario = __productosInventario.map(p => p.id === id ? data : p);
+            aplicarFiltrosInventario();
+            cargarAlertas();
+            cargarValorizacion();
+        } catch (error) {
+            console.error('Error reactivando producto:', error);
+            alert('No se pudo reactivar el producto.');
+        }
+    };
+
+    window.abrirModalKardex = async function (id) {
+        const p = __productosInventario.find(x => x.id === id);
+        if (!p) return;
+        __productoKardexId = id;
+
+        document.getElementById('kardex-nombre-producto').innerText = p.nombre;
+        document.getElementById('kardex-stock-actual').innerText = `${p.stock || 0} unidades`;
+        document.getElementById('form-nuevo-movimiento').reset();
+        document.getElementById('modal-kardex').style.display = 'flex';
+
+        await cargarMovimientosKardex(id);
+        await cargarLotesKardex(id);
+    };
+
+    async function cargarLotesKardex(productoId) {
+        const cont = document.getElementById('lista-lotes-kardex');
+        const usuario = JSON.parse(localStorage.getItem('usuarioLogueado') || '{}');
+        try {
+            const res = await fetch(`${API_BASE}/lotes/producto/${productoId}?usuarioId=${usuario.id}`);
+            const lotes = res.ok ? await res.json() : [];
+            const conStock = lotes.filter(l => l.stock_actual > 0);
+            if (!conStock.length) { cont.innerHTML = `<p style="font-size: 12px; color: var(--text-muted);">Sin lotes con stock.</p>`; return; }
+            const color = { 'Vencido': '#DC2626', 'Por vencer': '#D97706', 'Vigente': '#059669', 'Sin vencimiento': '#6B7280' };
+            cont.innerHTML = conStock.map(l => `
+                <div style="display:flex; justify-content:space-between; padding: 6px 0; border-bottom: 1px solid #F3F4F6; font-size: 12px;">
+                    <span><strong>${esc(l.numero_lote)}</strong> · ${l.stock_actual} u.</span>
+                    <span style="color: ${color[l.estado]}; font-weight: 600;">${l.fecha_vencimiento ? esc(l.fecha_vencimiento) + ' · ' : ''}${esc(l.estado)}</span>
+                </div>`).join('');
+        } catch (e) { cont.innerHTML = ''; }
+    }
+    window.cerrarModalKardex = () => document.getElementById('modal-kardex').style.display = 'none';
+
+    document.getElementById('mov-tipo').addEventListener('change', (e) => {
+        document.getElementById('ayuda-mov-tipo').innerText = e.target.value === 'Entrada'
+            ? 'La cantidad se suma al stock actual.'
+            : 'Usa un número positivo para corregir hacia arriba, o negativo para mermas/pérdidas.';
+    });
+
+    async function cargarMovimientosKardex(productoId) {
+        const cont = document.getElementById('lista-movimientos-kardex');
+        cont.innerHTML = `<p style="text-align:center; color: var(--text-muted); font-size: 13px;"><i class="fa-solid fa-spinner fa-spin"></i></p>`;
+        try {
+            const res = await fetch(`${API_BASE}/movimientos-stock/producto/${productoId}`);
+            const movimientos = res.ok ? await res.json() : [];
+
+            if (movimientos.length === 0) {
+                cont.innerHTML = `<p style="text-align:center; color: var(--text-muted); font-size: 13px;">Sin movimientos registrados aún.</p>`;
+                return;
+            }
+
+            cont.innerHTML = movimientos.map(m => {
+                const colorTipo = m.tipo === 'Entrada' ? '#059669' : (m.tipo === 'Salida' ? '#DC2626' : '#D97706');
+                const signo = m.tipo === 'Entrada' ? '+' : (m.tipo === 'Salida' ? '-' : '±');
+                return `
+                    <div style="display:flex; justify-content:space-between; align-items:center; padding: 8px 0; border-bottom: 1px solid #F3F4F6;">
+                        <div>
+                            <span style="font-weight: 700; font-size: 13px; color: ${colorTipo};">${signo}${m.cantidad} · ${m.tipo}</span>
+                            <p style="font-size: 11px; color: var(--text-muted);">${esc(m.motivo || '')} — ${new Date(m.fecha).toLocaleString('es-PE', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}</p>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        } catch (error) {
+            cont.innerHTML = `<p style="text-align:center; color: var(--text-muted); font-size: 13px;">No se pudo cargar el historial.</p>`;
+        }
+    }
+
+    document.getElementById('form-nuevo-movimiento').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const usuarioJSON = localStorage.getItem('usuarioLogueado');
+        const usuario = usuarioJSON ? JSON.parse(usuarioJSON) : null;
+
+        try {
+            const res = await fetch(`${API_BASE}/movimientos-stock`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    producto_id: __productoKardexId,
+                    tipo: document.getElementById('mov-tipo').value,
+                    cantidad: parseInt(document.getElementById('mov-cantidad').value, 10),
+                    motivo: document.getElementById('mov-motivo').value,
+                    usuario_id: usuario ? usuario.id : null,
+                    numero_lote: document.getElementById('mov-lote').value || null,
+                    fecha_vencimiento: document.getElementById('mov-vence').value || null
+                })
+            });
+            if (!res.ok) {
+                const err = await res.json().catch(() => ({}));
+                alert(err.error || 'No se pudo registrar el movimiento.');
+                return;
+            }
+
+            document.getElementById('form-nuevo-movimiento').reset();
+            await cargarMovimientosKardex(__productoKardexId);
+
+            const resProd = await fetch(`${API_BASE}/productos/${__productoKardexId}`);
+            if (resProd.ok) {
+                const actualizado = await resProd.json();
+                __productosInventario = __productosInventario.map(p => p.id === actualizado.id ? actualizado : p);
+                document.getElementById('kardex-stock-actual').innerText = `${actualizado.stock || 0} unidades`;
+                aplicarFiltrosInventario();
+                cargarValorizacion();
+                cargarAlertas();
+                cargarLotesKardex(__productoKardexId);
+            }
+        } catch (error) {
+            alert('No se pudo registrar el movimiento.');
+        }
+    });
+
+    window.abrirModalReportes = async function () {
+        document.getElementById('modal-reportes').style.display = 'flex';
+        await cargarMasVendidos();
+    };
+    window.cerrarModalReportes = () => document.getElementById('modal-reportes').style.display = 'none';
+
+    document.getElementById('reporte-filtro-tipo').addEventListener('change', cargarMasVendidos);
+
+    async function cargarMasVendidos() {
+        const cont = document.getElementById('lista-mas-vendidos');
+        const tipo = document.getElementById('reporte-filtro-tipo').value;
+        cont.innerHTML = `<p style="text-align:center; color: var(--text-muted); font-size: 13px;"><i class="fa-solid fa-spinner fa-spin"></i></p>`;
+        try {
+            const res = await fetch(`${API_BASE}/reportes/mas-vendidos${tipo ? '?tipo=' + tipo : ''}`);
+            const datos = res.ok ? await res.json() : [];
+
+            if (datos.length === 0) {
+                cont.innerHTML = `<p style="text-align:center; color: var(--text-muted); font-size: 13px;">Aún no hay ventas registradas.</p>`;
+                return;
+            }
+
+            cont.innerHTML = datos.map((d, i) => `
+                <div style="display:flex; justify-content:space-between; align-items:center; padding: 9px 0; border-bottom: 1px solid #F3F4F6;">
+                    <span style="font-size: 13px;"><strong>#${i + 1}</strong> ${esc(d.nombre)}</span>
+                    <span style="font-size: 13px; font-weight: 700; color: var(--primary-green);">${d.unidadesVendidas} u.</span>
+                </div>
+            `).join('');
+        } catch (error) {
+            cont.innerHTML = `<p style="text-align:center; color: var(--text-muted); font-size: 13px;">No se pudo cargar el reporte.</p>`;
+        }
+    }
+
+    (async () => {
+        try {
+            const [resProductos, resCategorias] = await Promise.all([
+                fetch(`${API_BASE}/productos?incluirInactivos=true`),
+                fetch(`${API_BASE}/categorias?incluirInactivos=true`)
+            ]);
+            __productosInventario = resProductos.ok ? await resProductos.json() : [];
+            __categoriasTodas = resCategorias.ok ? await resCategorias.json() : [];
+
+            aplicarFiltrosInventario();
+            cargarAlertas();
+            cargarValorizacion();
+        } catch (error) {
+            console.error('Error cargando inventario:', error);
+            document.getElementById('inventario-admin-body').innerHTML = `<tr><td colspan="7" style="text-align:center; color: var(--text-muted); padding: 20px;"><i class="fa-solid fa-plug-circle-xmark"></i> No pudimos conectar con el servidor.</td></tr>`;
+        }
+    })();
+})();
+</script>

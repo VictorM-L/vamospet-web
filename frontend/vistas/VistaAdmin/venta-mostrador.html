@@ -1,0 +1,292 @@
+<div class="fade-in admin-layout">
+
+    <aside class="admin-sidebar">
+        <div style="color: white; font-size: 18px; font-weight: 800; padding: 10px 18px 20px 18px; border-bottom: 1px solid #374151; margin-bottom: 10px;">
+            <i class="fa-solid fa-user-nurse" style="color: var(--primary-green);"></i> Panel Auxiliar
+        </div>
+
+        <button class="sidebar-item" onclick="cargarVista('VistaAdmin/dashboard-auxiliar')"><i class="fa-solid fa-chart-pie"></i> Dashboard</button>
+        <button class="sidebar-item active" onclick="cargarVista('VistaAdmin/venta-mostrador')"><i class="fa-solid fa-cash-register"></i> Venta en Mostrador</button>
+        <button class="sidebar-item" onclick="cargarVista('VistaAdmin/inventario')"><i class="fa-solid fa-box-open"></i> Inventario Tienda</button>
+        <button class="sidebar-item" onclick="cargarVista('VistaAdmin/servicios')"><i class="fa-solid fa-briefcase-medical"></i> Servicios</button>
+        <button class="sidebar-item" onclick="cargarVista('VistaAdmin/citas')"><i class="fa-solid fa-calendar-check"></i> Ver Citas</button>
+        <button class="sidebar-item" onclick="cargarVista('VistaAdmin/examenes')"><i class="fa-solid fa-flask-vial"></i> Exámenes y Cirugías</button>
+        <button class="sidebar-item" onclick="cargarVista('VistaAdmin/emergencias')"><i class="fa-solid fa-truck-medical"></i> Emergencias</button>
+        <button class="sidebar-item" onclick="cargarVista('VistaAdmin/comprobantes')"><i class="fa-solid fa-receipt"></i> Comprobantes</button>
+        <button class="sidebar-item" onclick="cargarVista('VistaAdmin/finanzas')"><i class="fa-solid fa-file-invoice-dollar"></i> Finanzas</button>
+    </aside>
+
+    <main class="admin-content">
+        <h2 style="font-size: 24px; font-weight: 800; color: var(--dark-text);">Venta en Mostrador</h2>
+
+        <div class="admin-table-container" id="bloque-cliente">
+            <h3 style="font-size: 16px; font-weight: 700; margin-bottom: 12px;">1. Cliente</h3>
+            <div style="display: flex; gap: 10px; flex-wrap: wrap; align-items: center;">
+                <input type="text" id="mostrador-dni" placeholder="Buscar por DNI..." maxlength="8" style="flex: 1; min-width: 200px; padding: 10px 12px; border: 1px solid #E4E7EC; border-radius: 8px; font-family: 'Poppins'; font-size: 13px;">
+                <button class="btn-primary" onclick="buscarClientePorDni()" style="padding: 10px 18px;"><i class="fa-solid fa-magnifying-glass"></i> Buscar</button>
+                <button class="btn-outline" onclick="abrirModalClienteRapido()" style="padding: 10px 18px;"><i class="fa-solid fa-user-plus"></i> Cliente Nuevo</button>
+            </div>
+            <div id="mostrador-cliente-info" style="margin-top: 15px;"></div>
+        </div>
+
+        <div class="admin-table-container" id="bloque-productos" style="display: none;">
+            <h3 style="font-size: 16px; font-weight: 700; margin-bottom: 12px;">2. Productos</h3>
+            <input type="text" id="mostrador-buscar-producto" placeholder="Buscar producto por nombre o SKU..." style="width: 100%; padding: 10px 12px; border: 1px solid #E4E7EC; border-radius: 8px; font-family: 'Poppins'; font-size: 13px; margin-bottom: 12px;">
+            <div id="mostrador-resultados-productos" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 10px; max-height: 260px; overflow-y: auto;"></div>
+        </div>
+
+        <div class="admin-table-container" id="bloque-carrito" style="display: none;">
+            <h3 style="font-size: 16px; font-weight: 700; margin-bottom: 12px;">3. Resumen y Cobro</h3>
+            <div id="mostrador-carrito-lista"></div>
+            <div style="display: flex; justify-content: space-between; align-items: center; padding-top: 12px; border-top: 1px solid #E4E7EC; margin-top: 10px;">
+                <strong style="font-size: 16px;">Total</strong>
+                <strong style="font-size: 20px; color: var(--primary-green);" id="mostrador-total">S/ 0.00</strong>
+            </div>
+
+            <div style="display: flex; gap: 15px; margin-top: 15px; align-items: center; flex-wrap: wrap;">
+                <select id="mostrador-metodo-pago" style="flex: 1; min-width: 160px; padding: 10px; border: 1px solid #E4E7EC; border-radius: 8px; font-family: 'Poppins'; font-size: 13px;">
+                    <option value="Efectivo">Efectivo</option>
+                    <option value="Tarjeta">Tarjeta</option>
+                    <option value="Yape">Yape / Plin</option>
+                </select>
+                <button class="btn-primary" style="flex: 2; padding: 12px;" onclick="cobrarVentaMostrador()"><i class="fa-solid fa-cash-register"></i> Cobrar Venta</button>
+            </div>
+        </div>
+    </main>
+</div>
+
+<div class="modal-overlay" id="modal-cliente-rapido" style="display: none;">
+    <div class="modal-box">
+        <h3><i class="fa-solid fa-user-plus" style="color: var(--primary-green);"></i> Registrar Cliente</h3>
+        <form id="form-cliente-rapido">
+            <div class="input-group"><label>Nombre completo</label><input type="text" id="cr-nombre" required></div>
+            <div class="input-group"><label>DNI</label><input type="text" id="cr-dni" maxlength="8" required></div>
+            <div class="input-group"><label>Teléfono</label><input type="tel" id="cr-telefono"></div>
+            <div class="input-group"><label>Correo de contacto (opcional)</label><input type="email" id="cr-correo" placeholder="Para verificar su cuenta web después"></div>
+            <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 15px;"><i class="fa-solid fa-circle-info"></i> Este cliente queda registrado sin cuenta web. Podrá crear su cuenta después con el mismo DNI.</p>
+            <div style="display: flex; gap: 10px;">
+                <button type="button" class="btn-outline" style="flex: 1; padding: 12px;" onclick="cerrarModalClienteRapido()">Cancelar</button>
+                <button type="submit" class="btn-primary" style="flex: 1; padding: 12px;">Registrar</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+(function () {
+    let __clienteMostrador = null;
+    let __productosDisponibles = [];
+    let __carritoMostrador = [];
+
+    window.buscarClientePorDni = async function () {
+        const dni = document.getElementById('mostrador-dni').value.trim();
+        const info = document.getElementById('mostrador-cliente-info');
+        if (!dni) { alert('Ingresa un DNI para buscar.'); return; }
+
+        try {
+            const res = await fetch(`${API_BASE}/usuarios/buscar-dni/${encodeURIComponent(dni)}?usuarioId=${usuarioActualId()}`);
+            if (!res.ok) {
+                info.innerHTML = `<p style="color: var(--text-muted); font-size: 13px;">No se encontró ningún cliente con ese DNI. Usa "Cliente Nuevo" para registrarlo.</p>`;
+                __clienteMostrador = null;
+                document.getElementById('bloque-productos').style.display = 'none';
+                document.getElementById('bloque-carrito').style.display = 'none';
+                return;
+            }
+            const cliente = await res.json();
+            seleccionarClienteMostrador(cliente);
+        } catch (error) {
+            info.innerHTML = `<p style="color: var(--text-muted); font-size: 13px;"><i class="fa-solid fa-plug-circle-xmark"></i> No pudimos conectar con el servidor.</p>`;
+        }
+    };
+
+    function seleccionarClienteMostrador(cliente) {
+        __clienteMostrador = cliente;
+        document.getElementById('mostrador-cliente-info').innerHTML = `
+            <div style="background: var(--light-green); border-radius: 10px; padding: 12px 16px; display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                    <strong style="color: var(--dark-text); font-size: 14px;">${esc(cliente.nombre)}</strong>
+                    <p style="font-size: 12px; color: var(--text-muted);">DNI: ${enmascararDni(cliente.dni)}${cliente.correo ? ' · Tiene cuenta web' : ' · Sin cuenta web'}</p>
+                </div>
+                <i class="fa-solid fa-circle-check" style="color: var(--primary-green); font-size: 18px;"></i>
+            </div>
+        `;
+        document.getElementById('bloque-productos').style.display = 'block';
+        cargarProductosDisponibles();
+    }
+
+    window.abrirModalClienteRapido = function () {
+        document.getElementById('cr-dni').value = document.getElementById('mostrador-dni').value.trim();
+        document.getElementById('modal-cliente-rapido').style.display = 'flex';
+    };
+    window.cerrarModalClienteRapido = () => document.getElementById('modal-cliente-rapido').style.display = 'none';
+
+    document.getElementById('form-cliente-rapido').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        try {
+            const res = await fetch(`${API_BASE}/usuarios/cliente-sin-cuenta`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    nombre: document.getElementById('cr-nombre').value,
+                    dni: document.getElementById('cr-dni').value,
+                    telefono: document.getElementById('cr-telefono').value,
+                    correo_contacto: document.getElementById('cr-correo').value
+                })
+            });
+            const data = await res.json();
+            if (!res.ok) { alert(data.error || 'No se pudo registrar el cliente.'); return; }
+
+            cerrarModalClienteRapido();
+            document.getElementById('form-cliente-rapido').reset();
+            seleccionarClienteMostrador(data);
+        } catch (error) {
+            alert('No se pudo registrar el cliente.');
+        }
+    });
+
+    async function cargarProductosDisponibles() {
+        try {
+            const res = await fetch(`${API_BASE}/productos`);
+            const todos = res.ok ? await res.json() : [];
+            __productosDisponibles = todos.filter(p => p.estado !== 'Descontinuado' && (p.stock || 0) > 0);
+            renderResultadosProductos('');
+        } catch (error) {
+            console.error('Error cargando productos:', error);
+        }
+    }
+
+    function renderResultadosProductos(texto) {
+        const cont = document.getElementById('mostrador-resultados-productos');
+        const filtrados = __productosDisponibles.filter(p =>
+            !texto || (p.nombre || '').toLowerCase().includes(texto.toLowerCase()) || (p.sku || '').toLowerCase().includes(texto.toLowerCase())
+        ).slice(0, 30);
+
+        if (filtrados.length === 0) {
+            cont.innerHTML = `<p style="color: var(--text-muted); font-size: 13px; grid-column: 1/-1;">Sin resultados.</p>`;
+            return;
+        }
+
+        cont.innerHTML = filtrados.map(p => `
+            <div onclick="agregarAlCarritoMostrador(${p.id})" style="cursor: pointer; border: 1px solid #E4E7EC; border-radius: 10px; padding: 10px; text-align: center; transition: var(--transition-smooth);" class="hover-card">
+                <div style="font-size: 12px; font-weight: 700; color: var(--dark-text); margin-bottom: 4px;">${esc(p.nombre)}</div>
+                <div style="font-size: 11px; color: var(--text-muted); margin-bottom: 4px;">Stock: ${p.stock}</div>
+                <div style="font-size: 13px; font-weight: 800; color: var(--primary-green);">S/ ${Number(p.precio).toFixed(2)}</div>
+            </div>
+        `).join('');
+    }
+
+    document.getElementById('mostrador-buscar-producto').addEventListener('input', (e) => renderResultadosProductos(e.target.value));
+
+    window.agregarAlCarritoMostrador = function (productoId) {
+        const p = __productosDisponibles.find(x => x.id === productoId);
+        if (!p) return;
+
+        const existente = __carritoMostrador.find(x => x.producto_id === productoId);
+        if (existente) {
+            if (existente.cantidad >= p.stock) { alert('No hay más stock disponible de este producto.'); return; }
+            existente.cantidad++;
+        } else {
+            __carritoMostrador.push({ producto_id: p.id, nombre: p.nombre, precio: Number(p.precio), cantidad: 1, stock: p.stock });
+        }
+        renderCarritoMostrador();
+    };
+
+    window.cambiarCantidadMostrador = function (index, delta) {
+        __carritoMostrador[index].cantidad += delta;
+        if (__carritoMostrador[index].cantidad <= 0) __carritoMostrador.splice(index, 1);
+        renderCarritoMostrador();
+    };
+
+    function renderCarritoMostrador() {
+        const bloque = document.getElementById('bloque-carrito');
+        const lista = document.getElementById('mostrador-carrito-lista');
+
+        if (__carritoMostrador.length === 0) {
+            bloque.style.display = 'none';
+            return;
+        }
+        bloque.style.display = 'block';
+
+        lista.innerHTML = __carritoMostrador.map((item, i) => `
+            <div style="display:flex; justify-content:space-between; align-items:center; padding: 8px 0; border-bottom: 1px solid #F3F4F6;">
+                <div>
+                    <strong style="font-size: 13px;">${esc(item.nombre)}</strong>
+                    <p style="font-size: 11px; color: var(--text-muted);">S/ ${item.precio.toFixed(2)} c/u</p>
+                </div>
+                <div style="display:flex; align-items:center; gap: 10px;">
+                    <button onclick="cambiarCantidadMostrador(${i}, -1)" style="background:#F3F4F6; border:none; width:26px; height:26px; border-radius:6px; cursor:pointer;">-</button>
+                    <span style="font-size: 13px; font-weight: 700;">${item.cantidad}</span>
+                    <button onclick="cambiarCantidadMostrador(${i}, 1)" style="background:#F3F4F6; border:none; width:26px; height:26px; border-radius:6px; cursor:pointer;">+</button>
+                    <strong style="font-size: 13px; min-width: 70px; text-align:right;">S/ ${(item.precio * item.cantidad).toFixed(2)}</strong>
+                </div>
+            </div>
+        `).join('');
+
+        const total = __carritoMostrador.reduce((sum, i) => sum + (i.precio * i.cantidad), 0);
+        document.getElementById('mostrador-total').innerText = `S/ ${total.toFixed(2)}`;
+    }
+
+    window.cobrarVentaMostrador = async function () {
+        if (!__clienteMostrador) { alert('Selecciona un cliente primero.'); return; }
+        if (__carritoMostrador.length === 0) return;
+
+        const total = __carritoMostrador.reduce((sum, i) => sum + (i.precio * i.cantidad), 0);
+        const metodo = document.getElementById('mostrador-metodo-pago').value;
+
+        try {
+            const chk = await fetch(`${API_BASE}/pedido-detalle/validar-stock`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(__carritoMostrador.map(i => ({ producto_id: i.producto_id, cantidad: i.cantidad })))
+            });
+            if (!chk.ok) {
+                const d = await chk.json().catch(() => ({}));
+                alert(d.error || 'No hay stock suficiente.');
+                return;
+            }
+
+            const resPedido = await fetch(`${API_BASE}/pedidos`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ usuario_id: __clienteMostrador.id, estado: 'Entregado', metodo_entrega: 'Recojo en tienda', total: total, canal: 'Mostrador' })
+            });
+            if (!resPedido.ok) throw new Error();
+            const pedido = await resPedido.json();
+
+            for (const item of __carritoMostrador) {
+                await fetch(`${API_BASE}/pedido-detalle`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ pedido_id: pedido.id, producto_id: item.producto_id, cantidad: item.cantidad, precio_unitario: item.precio })
+                });
+            }
+
+            const resPago = await fetch(`${API_BASE}/pagos`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ usuario_id: __clienteMostrador.id, pedido_id: pedido.id, monto: total, metodo: metodo, id_registrado_por: (JSON.parse(localStorage.getItem('usuarioLogueado') || '{}')).id || null })
+            });
+            if (resPago.ok) {
+                const pago = await resPago.json();
+                await fetch(`${API_BASE}/comprobantes`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ pago_id: pago.id, tipo: 'Boleta', numero: `B001-${pedido.id}` })
+                });
+            }
+
+            alert(`Venta registrada con éxito. Total cobrado: S/ ${total.toFixed(2)}`);
+
+            __clienteMostrador = null;
+            __carritoMostrador = [];
+            document.getElementById('mostrador-dni').value = '';
+            document.getElementById('mostrador-cliente-info').innerHTML = '';
+            document.getElementById('bloque-productos').style.display = 'none';
+            document.getElementById('bloque-carrito').style.display = 'none';
+        } catch (error) {
+            console.error('Error en venta de mostrador:', error);
+            alert('No se pudo registrar la venta. Verifica que el servidor esté corriendo.');
+        }
+    };
+})();
+</script>

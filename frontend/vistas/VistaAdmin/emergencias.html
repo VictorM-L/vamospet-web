@@ -1,0 +1,85 @@
+<div class="fade-in admin-layout">
+    <aside class="admin-sidebar">
+        <div style="color: white; font-size: 18px; font-weight: 800; padding: 10px 18px 20px 18px; border-bottom: 1px solid #374151; margin-bottom: 10px;">
+            <i class="fa-solid fa-shield-halved" style="color: var(--primary-green);"></i> Admin Panel
+        </div>
+        <button class="sidebar-item" onclick="cargarVista('VistaAdmin/dashboard-admin')"><i class="fa-solid fa-chart-pie"></i> Dashboard</button>
+        <button class="sidebar-item" onclick="cargarVista('VistaAdmin/citas')"><i class="fa-solid fa-calendar-check"></i> Gestión de Citas</button>
+        <button class="sidebar-item" onclick="cargarVista('VistaAdmin/examenes')"><i class="fa-solid fa-flask-vial"></i> Exámenes y Cirugías</button>
+        <button class="sidebar-item active" onclick="cargarVista('VistaAdmin/emergencias')"><i class="fa-solid fa-truck-medical"></i> Emergencias</button>
+        <button class="sidebar-item" onclick="cargarVista('VistaAdmin/clientes')"><i class="fa-solid fa-users"></i> Clientes y Mascotas</button>
+        <button class="sidebar-item" onclick="cargarVista('VistaAdmin/inventario')"><i class="fa-solid fa-box-open"></i> Inventario Tienda</button>
+    </aside>
+
+    <main class="admin-content">
+        <h2 style="font-size:24px; font-weight:800; color:var(--dark-text);"><i class="fa-solid fa-truck-medical" style="color:#DC2626;"></i> Ingreso por Emergencia</h2>
+        <p style="font-size:13px; color:var(--text-muted);">Atención inmediata: no se pide DNI ni correo. Solo el acompañante y los datos de la mascota. Se genera un código temporal para que el dueño vincule después a su mascota.</p>
+
+        <div style="background:white; padding:22px; border-radius:15px; border:1px solid #E4E7EC; max-width:640px;">
+            <form id="form-emergencia">
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px;">
+                    <div class="input-group"><label>Nombre del acompañante *</label><input type="text" id="em-acomp" maxlength="120" required></div>
+                    <div class="input-group"><label>Teléfono *</label><input type="tel" id="em-tel" maxlength="16" required placeholder="987654321"></div>
+                    <div class="input-group"><label>Nombre de la mascota *</label><input type="text" id="em-nombre" maxlength="100" required placeholder="O un nombre provisional"></div>
+                    <div class="input-group"><label>Especie *</label>
+                        <select id="em-especie"><option>Perro</option><option>Gato</option><option>Ave</option><option>Conejo</option><option>Otro</option></select></div>
+                    <div class="input-group"><label>Raza</label><input type="text" id="em-raza" maxlength="50"></div>
+                    <div class="input-group"><label>Sexo</label>
+                        <select id="em-sexo"><option value="">No indicado</option><option>Macho</option><option>Hembra</option></select></div>
+                </div>
+                <div class="input-group"><label>Motivo de la emergencia</label><input type="text" id="em-motivo" maxlength="300" placeholder="Ej. Atropello, intoxicación"></div>
+                <button type="submit" class="btn-primary" style="padding:12px 24px;"><i class="fa-solid fa-ticket"></i> Registrar ingreso y generar ticket</button>
+            </form>
+            <div id="em-resultado" style="display:none; margin-top:16px; padding:14px; background:var(--light-green); border-radius:12px;"></div>
+        </div>
+
+        <h3 style="font-size:18px; font-weight:700; margin-top:10px;">Ingresos sin dueño vinculado</h3>
+        <div class="admin-table-container">
+            <table class="admin-table">
+                <thead><tr><th>Código</th><th>Mascota</th><th>Acompañante</th><th>Ingreso</th><th>Ticket</th></tr></thead>
+                <tbody id="em-body"><tr><td colspan="5" style="text-align:center; padding:20px;">Cargando...</td></tr></tbody>
+            </table>
+        </div>
+    </main>
+</div>
+
+<script>
+(function () {
+    const yo = () => JSON.parse(localStorage.getItem('usuarioLogueado') || '{}');
+    const abrirTicket = id => window.open(`${API_BASE}/auxiliar/emergencia/ticket/${id}?usuarioId=${yo().id}`, '_blank');
+    window.verTicketEmergencia = abrirTicket;
+
+    async function cargar() {
+        const body = document.getElementById('em-body');
+        try {
+            const res = await fetch(`${API_BASE}/auxiliar/emergencia/pendientes?usuarioId=${yo().id}`);
+            const lista = res.ok ? await res.json() : [];
+            if (!lista.length) { body.innerHTML = `<tr><td colspan="5" style="text-align:center; padding:20px; color:var(--text-muted);">No hay ingresos de emergencia pendientes de vincular.</td></tr>`; return; }
+            body.innerHTML = lista.map(e => `<tr>
+                <td><strong>${esc(e.codigo)}</strong></td>
+                <td>${esc(e.mascota_nombre)} <span style="font-size:12px; color:var(--text-muted);">(${esc(e.especie)})</span><br><span style="font-size:12px; color:var(--text-muted);">${esc(e.motivo || '')}</span></td>
+                <td>${esc(e.acompanante || '—')}<br><span style="font-size:12px; color:var(--text-muted);">${esc(e.telefono || '')}</span></td>
+                <td>${e.fecha_ingreso ? new Date(e.fecha_ingreso).toLocaleString('es-PE', { dateStyle: 'medium', timeStyle: 'short' }) : '—'}</td>
+                <td><button class="btn-outline" style="padding:5px 10px; font-size:12px;" onclick="verTicketEmergencia(${e.mascota_id})"><i class="fa-solid fa-print"></i> Reimprimir</button></td></tr>`).join('');
+        } catch (e) { body.innerHTML = `<tr><td colspan="5" style="text-align:center; padding:20px;">No pudimos conectar con el servidor.</td></tr>`; }
+    }
+
+    document.getElementById('form-emergencia').addEventListener('submit', async e => {
+        e.preventDefault();
+        const res = await fetch(`${API_BASE}/auxiliar/emergencia/registrar`, { method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ usuario_id: yo().id, nombre_acompanante: document.getElementById('em-acomp').value, telefono: document.getElementById('em-tel').value,
+                mascota_nombre: document.getElementById('em-nombre').value, especie: document.getElementById('em-especie').value, raza: document.getElementById('em-raza').value,
+                sexo: document.getElementById('em-sexo').value, motivo: document.getElementById('em-motivo').value }) });
+        const d = await res.json().catch(() => ({}));
+        if (!res.ok) { alert(d.error || 'No se pudo registrar el ingreso.'); return; }
+        const r = document.getElementById('em-resultado');
+        r.style.display = 'block';
+        r.innerHTML = `<strong>Ingreso registrado.</strong> Código temporal: <span style="font-size:20px; font-weight:800;">${esc(d.codigo)}</span><br>
+            <button class="btn-primary" style="margin-top:10px; padding:8px 16px;" onclick="verTicketEmergencia(${d.mascota_id})"><i class="fa-solid fa-print"></i> Imprimir ticket (PDF)</button>`;
+        document.getElementById('form-emergencia').reset();
+        abrirTicket(d.mascota_id);
+        cargar();
+    });
+    cargar();
+})();
+</script>

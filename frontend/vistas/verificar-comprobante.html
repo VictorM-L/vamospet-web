@@ -1,0 +1,39 @@
+<div class="fade-in" style="max-width: 520px; margin: 60px auto 90px auto; padding: 0 20px;">
+    <div style="background:white; border:1px solid #E4E7EC; border-radius:24px; padding:40px 30px; box-shadow:var(--shadow-soft); text-align:center;">
+        <div id="verif-icono" style="font-size:48px; margin-bottom:12px;"><i class="fa-solid fa-spinner fa-spin" style="color:var(--text-muted);"></i></div>
+        <h2 id="verif-titulo" style="font-size:22px; font-weight:800; margin-bottom:8px;">Verificando comprobante...</h2>
+        <div id="verif-detalle" style="margin-top:18px; text-align:left;"></div>
+        <button class="btn-outline" style="margin-top:25px; padding:12px 24px;" onclick="history.replaceState(null, '', location.pathname); cargarVista('home')">Ir al inicio</button>
+    </div>
+</div>
+
+<script>
+(function () {
+    const codigo = new URLSearchParams(window.location.search).get('verificar');
+    const icono = document.getElementById('verif-icono'), titulo = document.getElementById('verif-titulo'), detalle = document.getElementById('verif-detalle');
+
+    function invalido(msg) {
+        icono.innerHTML = '<i class="fa-solid fa-circle-xmark" style="color:#DC2626;"></i>';
+        titulo.innerText = 'Comprobante no válido';
+        detalle.innerHTML = `<p style="color:var(--text-muted); font-size:14px; text-align:center;">${esc(msg)}</p>`;
+    }
+
+    async function verificar() {
+        if (!codigo) { invalido('No se recibió ningún código de verificación.'); return; }
+        try {
+            const res = await fetch(`${API_BASE}/comprobantes/verificar/${encodeURIComponent(codigo)}`);
+            if (res.status === 404) { invalido('Este código no corresponde a ningún comprobante emitido por Vamos Pet.'); return; }
+            const d = await res.json();
+            icono.innerHTML = '<i class="fa-solid fa-circle-check" style="color:var(--primary-green);"></i>';
+            titulo.innerText = 'Comprobante auténtico';
+            const fila = (k, v) => `<div style="display:flex; justify-content:space-between; padding:9px 0; border-bottom:1px solid #F3F4F6; font-size:14px;"><span style="color:var(--text-muted);">${k}</span><strong>${esc(v)}</strong></div>`;
+            detalle.innerHTML = fila('Emisor', d.emisor) + fila('Tipo', d.tipo || 'Boleta') + fila('N°', d.numero) +
+                fila('Fecha', d.fecha || '—') + fila('Monto', d.monto != null ? 'S/ ' + Number(d.monto).toFixed(2) : '—') +
+                '<p style="font-size:11px; color:var(--text-muted); margin-top:12px; text-align:center;">Comprobante interno de Vamos Pet. No es un comprobante electrónico SUNAT.</p>';
+        } catch (e) {
+            invalido('No pudimos conectar con el servidor para verificar el comprobante.');
+        }
+    }
+    verificar();
+})();
+</script>

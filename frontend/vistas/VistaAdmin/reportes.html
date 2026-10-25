@@ -1,0 +1,104 @@
+<div class="fade-in admin-layout">
+    <aside class="admin-sidebar">
+        <div style="color: white; font-size: 18px; font-weight: 800; padding: 10px 18px 20px 18px; border-bottom: 1px solid #374151; margin-bottom: 10px;">
+            <i class="fa-solid fa-shield-halved" style="color: var(--primary-green);"></i> Admin Panel
+        </div>
+        <button class="sidebar-item" onclick="cargarVista('VistaAdmin/dashboard-admin')"><i class="fa-solid fa-chart-pie"></i> Dashboard</button>
+        <button class="sidebar-item" onclick="cargarVista('VistaAdmin/citas')"><i class="fa-solid fa-calendar-check"></i> Gestión de Citas</button>
+        <button class="sidebar-item" onclick="cargarVista('VistaAdmin/examenes')"><i class="fa-solid fa-flask-vial"></i> Exámenes y Cirugías</button>
+        <button class="sidebar-item" onclick="cargarVista('VistaAdmin/emergencias')"><i class="fa-solid fa-truck-medical"></i> Emergencias</button>
+        <button class="sidebar-item" onclick="cargarVista('VistaAdmin/clientes')"><i class="fa-solid fa-users"></i> Clientes y Mascotas</button>
+        <button class="sidebar-item" onclick="cargarVista('VistaAdmin/servicios')"><i class="fa-solid fa-briefcase-medical"></i> Servicios</button>
+        <button class="sidebar-item" onclick="cargarVista('VistaAdmin/inventario')"><i class="fa-solid fa-box-open"></i> Inventario Tienda</button>
+        <button class="sidebar-item" onclick="cargarVista('VistaAdmin/proveedores')"><i class="fa-solid fa-truck-field"></i> Proveedores</button>
+        <button class="sidebar-item" onclick="cargarVista('VistaAdmin/compras')"><i class="fa-solid fa-cart-flatbed"></i> Compras</button>
+        <button class="sidebar-item" onclick="cargarVista('VistaAdmin/devoluciones')"><i class="fa-solid fa-rotate-left"></i> Devoluciones</button>
+        <button class="sidebar-item" onclick="cargarVista('VistaAdmin/comprobantes')"><i class="fa-solid fa-receipt"></i> Comprobantes</button>
+        <button class="sidebar-item" onclick="cargarVista('VistaAdmin/finanzas')"><i class="fa-solid fa-file-invoice-dollar"></i> Finanzas</button>
+        <button class="sidebar-item active" onclick="cargarVista('VistaAdmin/reportes')"><i class="fa-solid fa-chart-column"></i> Reportes</button>
+        <button class="sidebar-item" onclick="cargarVista('VistaAdmin/horarios')"><i class="fa-solid fa-clock"></i> Horarios Veterinarios</button>
+        <button class="sidebar-item" onclick="cargarVista('VistaAdmin/personal')"><i class="fa-solid fa-user-nurse"></i> Personal</button>
+        <button class="sidebar-item" onclick="cargarVista('VistaAdmin/configuracion')"><i class="fa-solid fa-gear"></i> Configuración</button>
+    </aside>
+
+    <main class="admin-content">
+        <h2 style="font-size: 24px; font-weight: 800; color: var(--dark-text);">Reportes</h2>
+
+        <div style="background:white; padding:18px 20px; border-radius:15px; border:1px solid #E4E7EC; box-shadow:var(--shadow-soft); display:flex; gap:12px; align-items:flex-end; flex-wrap:wrap;">
+            <div class="input-group" style="margin:0; min-width:260px;"><label>Reporte</label>
+                <select id="rep-tipo">
+                    <option value="ingresos">Ingresos por periodo</option>
+                    <option value="veterinarios">Citas y atenciones por veterinario</option>
+                    <option value="asistencia">Asistencia e inasistencia</option>
+                    <option value="inventario">Inventario con semáforo</option>
+                    <option value="comprobantes">Comprobantes emitidos</option>
+                </select></div>
+            <div class="input-group rep-fechas" style="margin:0;"><label>Desde</label><input type="date" id="rep-desde"></div>
+            <div class="input-group rep-fechas" style="margin:0;"><label>Hasta</label><input type="date" id="rep-hasta"></div>
+            <button class="btn-primary" style="padding:12px 20px;" onclick="generarReporte()"><i class="fa-solid fa-magnifying-glass-chart"></i> Generar</button>
+            <button class="btn-outline" style="padding:12px 20px;" onclick="exportarReportePdf()"><i class="fa-solid fa-file-pdf"></i> Exportar PDF</button>
+            <button class="btn-outline" style="padding:12px 20px;" onclick="exportarReporteExcel()"><i class="fa-solid fa-file-excel"></i> Exportar Excel</button>
+        </div>
+
+        <div id="rep-resultado" style="background:white; padding:20px; border-radius:15px; border:1px solid #E4E7EC; box-shadow:var(--shadow-soft);">
+            <p style="color:var(--text-muted);">Elige un reporte y pulsa <strong>Generar</strong>.</p>
+        </div>
+    </main>
+</div>
+
+<script>
+(function () {
+    const yo = () => JSON.parse(localStorage.getItem('usuarioLogueado') || '{}');
+    const COLORES = { rojo: '#FECACA', amarillo: '#FDE68A', verde: '#BBF7D0' };
+
+    const hoy = new Date();
+    const hace30 = new Date(hoy.getTime() - 30 * 86400000);
+    const iso = d => new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
+    document.getElementById('rep-hasta').value = iso(hoy);
+    document.getElementById('rep-desde').value = iso(hace30);
+
+    document.getElementById('rep-tipo').addEventListener('change', () => {
+        const sinFechas = document.getElementById('rep-tipo').value === 'inventario';
+        document.querySelectorAll('.rep-fechas').forEach(e => e.style.display = sinFechas ? 'none' : 'block');
+    });
+
+    function parametros() {
+        const tipo = document.getElementById('rep-tipo').value;
+        return { tipo, query: `usuarioId=${yo().id}&desde=${document.getElementById('rep-desde').value}&hasta=${document.getElementById('rep-hasta').value}` };
+    }
+
+    window.generarReporte = async function () {
+        const { tipo, query } = parametros();
+        const cont = document.getElementById('rep-resultado');
+        cont.innerHTML = '<p><i class="fa-solid fa-spinner fa-spin"></i> Generando...</p>';
+        try {
+            const res = await fetch(`${API_BASE}/reportes/formal/${tipo}?${query}`);
+            const t = await res.json();
+            if (!res.ok) { cont.innerHTML = `<p style="color:#DC2626;">${esc(t.error || 'No se pudo generar el reporte.')}</p>`; return; }
+            const resumen = t.resumen.length ? `<div style="display:flex; gap:12px; flex-wrap:wrap; margin:14px 0;">` +
+                t.resumen.map(r => `<div style="background:#F0FDF4; border:1px solid #BBF7D0; border-radius:12px; padding:10px 16px;">
+                    <div style="font-size:11px; color:var(--text-muted);">${esc(r[0])}</div><div style="font-size:18px; font-weight:800;">${esc(r[1])}</div></div>`).join('') + '</div>' : '';
+            const filas = t.filas.length ? t.filas.map((f, i) => '<tr>' + f.map((c, j) => {
+                const fondo = (j === f.length - 1 && t.colores[i]) ? ` style="background:${COLORES[t.colores[i]]}; font-weight:700;"` : '';
+                return `<td${fondo}>${esc(c)}</td>`;
+            }).join('') + '</tr>').join('')
+                : `<tr><td colspan="${t.columnas.length}" style="text-align:center; color:var(--text-muted); padding:20px;">No hay datos para el periodo seleccionado.</td></tr>`;
+            cont.innerHTML = `<h3 style="font-size:18px; font-weight:800;">${esc(t.titulo)}</h3>
+                <p style="font-size:13px; color:var(--text-muted);">${esc(t.subtitulo)}</p>${resumen}
+                <div style="overflow-x:auto;"><table class="admin-table"><thead><tr>${t.columnas.map(c => `<th>${esc(c)}</th>`).join('')}</tr></thead><tbody>${filas}</tbody></table></div>`;
+        } catch (e) {
+            cont.innerHTML = '<p style="color:#DC2626;">No pudimos conectar con el servidor.</p>';
+        }
+    };
+
+    window.exportarReportePdf = function () {
+        const { tipo, query } = parametros();
+        window.open(`${API_BASE}/reportes/formal/${tipo}/pdf?${query}`, '_blank');
+    };
+
+    window.exportarReporteExcel = function () {
+        const { tipo, query } = parametros();
+        window.open(`${API_BASE}/reportes/formal/${tipo}/xlsx?${query}`, '_blank');
+    };
+})();
+</script>

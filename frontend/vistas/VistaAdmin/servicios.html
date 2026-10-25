@@ -1,0 +1,240 @@
+<div class="fade-in admin-layout">
+    <aside class="admin-sidebar">
+        <div style="color: white; font-size: 18px; font-weight: 800; padding: 10px 18px 20px 18px; border-bottom: 1px solid #374151; margin-bottom: 10px;">
+            <i class="fa-solid fa-shield-halved" style="color: var(--primary-green);"></i> Admin Panel
+        </div>
+        <button class="sidebar-item" onclick="cargarVista('VistaAdmin/dashboard-admin')"><i class="fa-solid fa-chart-pie"></i> Dashboard</button>
+        <button class="sidebar-item" onclick="cargarVista('VistaAdmin/citas')"><i class="fa-solid fa-calendar-check"></i> Gestión de Citas</button>
+        <button class="sidebar-item" onclick="cargarVista('VistaAdmin/examenes')"><i class="fa-solid fa-flask-vial"></i> Exámenes y Cirugías</button>
+        <button class="sidebar-item" onclick="cargarVista('VistaAdmin/emergencias')"><i class="fa-solid fa-truck-medical"></i> Emergencias</button>
+        <button class="sidebar-item" onclick="cargarVista('VistaAdmin/clientes')"><i class="fa-solid fa-users"></i> Clientes y Mascotas</button>
+        <button class="sidebar-item active" onclick="cargarVista('VistaAdmin/servicios')"><i class="fa-solid fa-briefcase-medical"></i> Servicios</button>
+        <button class="sidebar-item" onclick="cargarVista('VistaAdmin/inventario')"><i class="fa-solid fa-box-open"></i> Inventario Tienda</button>
+        <button class="sidebar-item" onclick="cargarVista('VistaAdmin/proveedores')"><i class="fa-solid fa-truck-field"></i> Proveedores</button>
+        <button class="sidebar-item" onclick="cargarVista('VistaAdmin/compras')"><i class="fa-solid fa-cart-flatbed"></i> Compras</button>
+        <button class="sidebar-item" onclick="cargarVista('VistaAdmin/devoluciones')"><i class="fa-solid fa-rotate-left"></i> Devoluciones</button>
+        <button class="sidebar-item" onclick="cargarVista('VistaAdmin/comprobantes')"><i class="fa-solid fa-receipt"></i> Comprobantes</button>
+        <button class="sidebar-item" onclick="cargarVista('VistaAdmin/finanzas')"><i class="fa-solid fa-file-invoice-dollar"></i> Finanzas</button>
+        <button class="sidebar-item" onclick="cargarVista('VistaAdmin/reportes')"><i class="fa-solid fa-chart-column"></i> Reportes</button>
+        <button class="sidebar-item" onclick="cargarVista('VistaAdmin/horarios')"><i class="fa-solid fa-clock"></i> Horarios Veterinarios</button>
+        <button class="sidebar-item" onclick="cargarVista('VistaAdmin/personal')"><i class="fa-solid fa-user-nurse"></i> Personal</button>
+        <button class="sidebar-item" onclick="cargarVista('VistaAdmin/configuracion')"><i class="fa-solid fa-gear"></i> Configuración</button>
+    </aside>
+
+    <main class="admin-content">
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px;">
+            <h2 style="font-size: 24px; font-weight: 800; color: var(--dark-text);">Servicios y Especialidades</h2>
+            <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+                <label style="display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--text-muted); cursor: pointer;">
+                    <input type="checkbox" id="chk-inactivos-serv"> Mostrar inactivos
+                </label>
+                <button class="btn-outline" onclick="abrirModalNuevaEspecialidad()"><i class="fa-solid fa-plus"></i> Especialidad</button>
+                <button class="btn-primary" onclick="abrirModalNuevoServicio()"><i class="fa-solid fa-plus"></i> Nuevo Servicio</button>
+            </div>
+        </div>
+
+        <div class="admin-table-container">
+            <h3 style="font-size: 18px; font-weight: 700; margin-bottom: 15px;">Catálogo de Servicios</h3>
+            <table class="admin-table">
+                <thead>
+                    <tr><th>Servicio</th><th>Descripción</th><th>Precio Base</th><th>Pago Previo</th><th>Acciones</th></tr>
+                </thead>
+                <tbody id="servicios-admin-body">
+                    <tr><td colspan="5" style="text-align:center; color: var(--text-muted); padding: 20px;"><i class="fa-solid fa-spinner fa-spin"></i> Cargando...</td></tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="admin-table-container">
+            <h3 style="font-size: 18px; font-weight: 700; margin-bottom: 15px;">Especialidades Médicas</h3>
+            <table class="admin-table">
+                <thead>
+                    <tr><th>Especialidad</th><th>Descripción</th><th>Acciones</th></tr>
+                </thead>
+                <tbody id="especialidades-admin-body">
+                    <tr><td colspan="3" style="text-align:center; color: var(--text-muted); padding: 20px;"><i class="fa-solid fa-spinner fa-spin"></i> Cargando...</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </main>
+</div>
+
+<div class="modal-overlay" id="modal-nuevo-servicio" style="display: none;">
+    <div class="modal-box">
+        <h3><i class="fa-solid fa-briefcase-medical" style="color: var(--primary-green);"></i> Nuevo Servicio</h3>
+        <form id="form-nuevo-servicio">
+            <div class="input-group"><label>Nombre</label><input type="text" id="serv-nombre" required></div>
+            <div class="input-group"><label>Descripción</label><input type="text" id="serv-descripcion"></div>
+            <div class="input-group"><label>Precio Base (S/)</label><input type="number" step="0.01" id="serv-precio" required></div>
+            <div class="input-group"><label><input type="checkbox" id="serv-pago-previo" style="accent-color: var(--primary-green);"> Requiere pago previo</label></div>
+            <div style="display: flex; gap: 10px; margin-top: 20px;">
+                <button type="button" class="btn-outline" style="flex: 1; padding: 12px;" onclick="cerrarModalNuevoServicio()">Cancelar</button>
+                <button type="submit" class="btn-primary" style="flex: 1; padding: 12px;">Guardar</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="modal-overlay" id="modal-nueva-especialidad" style="display: none;">
+    <div class="modal-box">
+        <h3><i class="fa-solid fa-heart-pulse" style="color: var(--primary-green);"></i> Nueva Especialidad</h3>
+        <form id="form-nueva-especialidad">
+            <div class="input-group"><label>Nombre</label><input type="text" id="esp-nombre" required></div>
+            <div class="input-group"><label>Descripción</label><input type="text" id="esp-descripcion"></div>
+            <div style="display: flex; gap: 10px; margin-top: 20px;">
+                <button type="button" class="btn-outline" style="flex: 1; padding: 12px;" onclick="cerrarModalNuevaEspecialidad()">Cancelar</button>
+                <button type="submit" class="btn-primary" style="flex: 1; padding: 12px;">Guardar</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+(function () {
+    let __servicios = [], __especialidades = [];
+
+    const verInactivos = () => document.getElementById('chk-inactivos-serv').checked;
+    const botonAccion = (inactivo, fnBaja, fnReactivar, id) => inactivo
+        ? `<button class="btn-outline" style="padding: 5px 12px; font-size: 11px;" onclick="${fnReactivar}(${id})">Reactivar</button>`
+        : `<button style="background:none; border:none; color:#EF4444; cursor:pointer; font-size:16px;" title="Dar de baja" onclick="${fnBaja}(${id})"><i class="fa-regular fa-trash-can"></i></button>`;
+
+    function pintarServicios() {
+        const cuerpo = document.getElementById('servicios-admin-body');
+        const lista = __servicios.filter(s => s.activo !== false || verInactivos());
+        if (lista.length === 0) {
+            cuerpo.innerHTML = `<tr><td colspan="5" style="text-align:center; color: var(--text-muted); padding: 20px;">Aún no hay servicios registrados.</td></tr>`;
+            return;
+        }
+        cuerpo.innerHTML = lista.map(s => `
+            <tr style="${s.activo === false ? 'opacity: .55;' : ''}">
+                <td><strong>${esc(s.nombre)}</strong>${s.activo === false ? ' <span class="status-badge" style="background:#F3F4F6; color:#6B7280;">Inactivo</span>' : ''}</td>
+                <td style="color: var(--text-muted); font-size: 13px;">${esc(s.descripcion || '—')}</td>
+                <td>S/ ${Number(s.precio_base || 0).toFixed(2)}</td>
+                <td>${s.requiere_pago_previo ? '<span class="status-badge status-pendiente">Sí</span>' : '<span class="status-badge status-completado">No</span>'}</td>
+                <td>${botonAccion(s.activo === false, 'eliminarServicioAdmin', 'reactivarServicioAdmin', s.id)}</td>
+            </tr>
+        `).join('');
+    }
+
+    function pintarEspecialidades() {
+        const cuerpo = document.getElementById('especialidades-admin-body');
+        const lista = __especialidades.filter(e => e.activo !== false || verInactivos());
+        if (lista.length === 0) {
+            cuerpo.innerHTML = `<tr><td colspan="3" style="text-align:center; color: var(--text-muted); padding: 20px;">Aún no hay especialidades registradas.</td></tr>`;
+            return;
+        }
+        cuerpo.innerHTML = lista.map(e => `
+            <tr style="${e.activo === false ? 'opacity: .55;' : ''}">
+                <td><strong>${esc(e.nombre)}</strong>${e.activo === false ? ' <span class="status-badge" style="background:#F3F4F6; color:#6B7280;">Inactiva</span>' : ''}</td>
+                <td style="color: var(--text-muted); font-size: 13px;">${esc(e.descripcion || '—')}</td>
+                <td>${botonAccion(e.activo === false, 'eliminarEspecialidadAdmin', 'reactivarEspecialidadAdmin', e.id)}</td>
+            </tr>
+        `).join('');
+    }
+
+    window.abrirModalNuevoServicio = () => document.getElementById('modal-nuevo-servicio').style.display = 'flex';
+    window.cerrarModalNuevoServicio = () => document.getElementById('modal-nuevo-servicio').style.display = 'none';
+    window.abrirModalNuevaEspecialidad = () => document.getElementById('modal-nueva-especialidad').style.display = 'flex';
+    window.cerrarModalNuevaEspecialidad = () => document.getElementById('modal-nueva-especialidad').style.display = 'none';
+
+    document.getElementById('form-nuevo-servicio').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        try {
+            const res = await fetch(`${API_BASE}/servicios`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    nombre: document.getElementById('serv-nombre').value,
+                    descripcion: document.getElementById('serv-descripcion').value,
+                    precio_base: parseFloat(document.getElementById('serv-precio').value),
+                    requiere_pago_previo: document.getElementById('serv-pago-previo').checked
+                })
+            });
+            if (!res.ok) throw new Error();
+            __servicios.push(await res.json());
+            cerrarModalNuevoServicio();
+            document.getElementById('form-nuevo-servicio').reset();
+            pintarServicios();
+        } catch { alert('No se pudo guardar el servicio.'); }
+    });
+
+    document.getElementById('form-nueva-especialidad').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        try {
+            const res = await fetch(`${API_BASE}/especialidades`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    nombre: document.getElementById('esp-nombre').value,
+                    descripcion: document.getElementById('esp-descripcion').value
+                })
+            });
+            if (!res.ok) throw new Error();
+            __especialidades.push(await res.json());
+            cerrarModalNuevaEspecialidad();
+            document.getElementById('form-nueva-especialidad').reset();
+            pintarEspecialidades();
+        } catch { alert('No se pudo guardar la especialidad.'); }
+    });
+
+    window.eliminarServicioAdmin = async (id) => {
+        if (!confirm('¿Dar de baja este servicio? Deja de ofrecerse, pero las citas anteriores conservan su historial. Puedes reactivarlo cuando quieras.')) return;
+        try {
+            const res = await fetch(`${API_BASE}/servicios/${id}`, { method: 'DELETE' });
+            if (!res.ok) throw new Error();
+            __servicios = __servicios.map(s => s.id === id ? { ...s, activo: false } : s);
+            pintarServicios();
+        } catch { alert('No se pudo dar de baja el servicio.'); }
+    };
+
+    window.reactivarServicioAdmin = async (id) => {
+        try {
+            const res = await fetch(`${API_BASE}/servicios/${id}/reactivar`, { method: 'PATCH' });
+            if (!res.ok) throw new Error();
+            const data = await res.json();
+            __servicios = __servicios.map(s => s.id === id ? data : s);
+            pintarServicios();
+        } catch { alert('No se pudo reactivar el servicio.'); }
+    };
+
+    window.eliminarEspecialidadAdmin = async (id) => {
+        if (!confirm('¿Dar de baja esta especialidad? Puedes reactivarla cuando quieras.')) return;
+        try {
+            const res = await fetch(`${API_BASE}/especialidades/${id}`, { method: 'DELETE' });
+            if (!res.ok) throw new Error();
+            __especialidades = __especialidades.map(e => e.id === id ? { ...e, activo: false } : e);
+            pintarEspecialidades();
+        } catch { alert('No se pudo dar de baja la especialidad.'); }
+    };
+
+    window.reactivarEspecialidadAdmin = async (id) => {
+        try {
+            const res = await fetch(`${API_BASE}/especialidades/${id}/reactivar`, { method: 'PATCH' });
+            if (!res.ok) throw new Error();
+            const data = await res.json();
+            __especialidades = __especialidades.map(e => e.id === id ? data : e);
+            pintarEspecialidades();
+        } catch { alert('No se pudo reactivar la especialidad.'); }
+    };
+
+    document.getElementById('chk-inactivos-serv').addEventListener('change', () => {
+        pintarServicios();
+        pintarEspecialidades();
+    });
+
+    (async () => {
+        try {
+            const [resServ, resEsp] = await Promise.all([
+                fetch(`${API_BASE}/servicios?incluirInactivos=true`),
+                fetch(`${API_BASE}/especialidades?incluirInactivos=true`)
+            ]);
+            __servicios = resServ.ok ? await resServ.json() : [];
+            __especialidades = resEsp.ok ? await resEsp.json() : [];
+            pintarServicios();
+            pintarEspecialidades();
+        } catch (error) {
+            console.error('Error cargando servicios:', error);
+        }
+    })();
+})();
+</script>

@@ -1,0 +1,93 @@
+<div class="fade-in lab-hero">
+    <span style="background: rgba(255,255,255,0.1); padding: 8px 16px; border-radius: 20px; font-size: 12px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase;">Spa &amp; Grooming</span>
+    <h1 style="font-size: 42px; font-weight: 800; margin: 15px 0;">Estética y Relajación para tu Mascota</h1>
+    <p style="color: #9CA3AF; font-size: 16px; max-width: 600px; margin: 0 auto;">Baños medicados, cortes de raza, limpieza dental y mucho más en un ambiente relajado y sin estrés.</p>
+</div>
+
+<div class="fade-in">
+
+    <div class="lab-section-modern">
+        <div style="flex: 1;">
+            <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 15px;">
+                <div style="width: 40px; height: 3px; background: var(--primary-green);"></div>
+                <span style="color: var(--primary-green); font-weight: 700; text-transform: uppercase; font-size: 13px;">Cuidado Integral</span>
+            </div>
+            <h2 style="font-size: 36px; font-weight: 800; color: var(--dark-text); line-height: 1.2; margin-bottom: 20px;">Un spa pensado<br>para su bienestar</h2>
+            <p style="color: var(--text-muted); font-size: 16px; line-height: 1.6; margin-bottom: 30px;">
+                Cada sesión de grooming en <strong>Vamos Pet</strong> es supervisada por personal capacitado, con productos hipoalergénicos y técnicas que reducen el estrés de tu engreído durante todo el proceso.
+            </p>
+            <button class="btn-primary" onclick="irAAgendar()" style="padding: 15px 30px;"><i class="fa-solid fa-calendar-check" style="margin-right: 8px;"></i> Agendar Baño / Corte</button>
+        </div>
+
+        <div class="lab-tests-grid">
+            <div class="lab-test-card hover-card" onclick="mostrarInfoTest('Baño Medicado', 'Shampoo especializado según el tipo de piel de tu mascota (dermatológico, antipulgas o hipoalergénico), aplicado por personal capacitado.')">
+                <div class="lab-test-icon"><i class="fa-solid fa-shower"></i></div>
+                Baño Medicado
+            </div>
+            <div class="lab-test-card hover-card" onclick="mostrarInfoTest('Corte de Raza', 'Corte de pelo según el estándar de la raza de tu mascota o al estilo que prefieras, con tijera y máquina profesional.')">
+                <div class="lab-test-icon"><i class="fa-solid fa-scissors"></i></div>
+                Corte de Raza
+            </div>
+            <div class="lab-test-card hover-card" onclick="mostrarInfoTest('Limpieza Dental', 'Remoción de sarro y placa bacteriana para prevenir mal aliento y enfermedad periodontal en perros y gatos.')">
+                <div class="lab-test-icon"><i class="fa-solid fa-tooth"></i></div>
+                Limpieza Dental
+            </div>
+            <div class="lab-test-card hover-card" onclick="mostrarInfoTest('Corte de Uñas', 'Corte seguro y sin dolor, evitando el crecimiento excesivo que puede causar molestias al caminar.')">
+                <div class="lab-test-icon"><i class="fa-solid fa-hand-sparkles"></i></div>
+                Corte de Uñas
+            </div>
+            <div class="lab-test-card hover-card" onclick="mostrarInfoTest('Limpieza de Oídos', 'Higiene del canal auditivo para prevenir infecciones, especialmente importante en razas de orejas caídas.')">
+                <div class="lab-test-icon"><i class="fa-solid fa-ear-listen"></i></div>
+                Limpieza de Oídos
+            </div>
+            <div class="lab-test-card hover-card" onclick="mostrarInfoTest('Perfumado Hipoalergénico', 'Colonia suave formulada especialmente para mascotas, sin alcohol ni químicos irritantes para su piel.')">
+                <div class="lab-test-icon"><i class="fa-solid fa-spray-can-sparkles"></i></div>
+                Perfumado Hipoalergénico
+            </div>
+        </div>
+    </div>
+
+    <div class="lab-section-modern" style="background: #F9FAFB; padding: 60px 20px; border-radius: 40px; margin-bottom: 80px;">
+
+        <div class="lab-tests-grid">
+            <div class="lab-test-card hover-card" style="border: none;" onclick="mostrarInfoTest('Baño Básico', 'Baño con shampoo neutro, secado y cepillado. La opción ideal para el mantenimiento regular de tu mascota.')">
+                <div class="lab-test-icon" style="background: #E0E7FF; color: #4F46E5;"><i class="fa-solid fa-droplet"></i></div>
+                Baño Básico
+            </div>
+            <div class="lab-test-card hover-card" style="border: none;" onclick="mostrarInfoTest('Paquete Premium', 'Baño, corte, spa de patas, hidratación profunda y perfumado. La experiencia completa de bienestar.')">
+                <div class="lab-test-icon" style="background: #E0E7FF; color: #4F46E5;"><i class="fa-solid fa-crown"></i></div>
+                Paquete Premium
+            </div>
+            <div class="lab-test-card hover-card" style="border: none;" onclick="mostrarInfoTest('Corte por Raza', 'Corte especializado según el estándar estético de cada raza, realizado por groomers con experiencia.')">
+                <div class="lab-test-icon" style="background: #E0E7FF; color: #4F46E5;"><i class="fa-solid fa-dog"></i></div>
+                Corte por Raza
+            </div>
+            <div class="lab-test-card hover-card" style="border: none;" onclick="mostrarInfoTest('Desenredado Felino', 'Técnica delicada para retirar nudos en el pelaje de gatos, minimizando el estrés durante el proceso.')">
+                <div class="lab-test-icon" style="background: #E0E7FF; color: #4F46E5;"><i class="fa-solid fa-cat"></i></div>
+                Desenredado Felino
+            </div>
+        </div>
+
+        <div style="flex: 1;">
+            <h2 style="font-size: 32px; font-weight: 800; color: var(--dark-text); margin-bottom: 20px;">Elige el paquete ideal</h2>
+            <p style="color: var(--text-muted); font-size: 16px; line-height: 1.6; margin-bottom: 20px;">
+                Desde un baño rápido antes del fin de semana hasta un paquete premium con corte, spa de patas e hidratación profunda: adaptamos el servicio a la raza, el pelaje y la edad de tu mascota.
+            </p>
+            <p style="color: var(--text-muted); font-size: 16px; line-height: 1.6; margin-bottom: 30px;">
+                Si tu mascota tiene piel sensible o alguna condición dermatológica, nuestro equipo coordina el producto adecuado junto al área médica.
+            </p>
+            <button class="btn-outline" onclick="irAAgendar()" style="padding: 12px 25px;"><i class="fa-regular fa-calendar-check"></i> Reservar Paquete</button>
+        </div>
+    </div>
+
+    <div style="text-align: center; margin-bottom: 30px;">
+        <h2 style="font-size: 28px; font-weight: 800; color: var(--dark-text);">Nuestro Spa</h2>
+    </div>
+    <div class="lab-premium-gallery">
+        <img src="https://images.unsplash.com/photo-1516734212186-a967f81ad0d7?q=80&w=400&auto=format&fit=crop" alt="Baño de mascota">
+        <img src="https://images.unsplash.com/photo-1591946614720-90a587da4a36?q=80&w=400&auto=format&fit=crop" alt="Corte de pelo">
+        <img src="https://images.unsplash.com/photo-1591160690555-5debfba289f0?q=80&w=400&auto=format&fit=crop" alt="Cuidado de mascota">
+        <img src="https://images.unsplash.com/photo-1601758228041-f3b2795255f1?q=80&w=400&auto=format&fit=crop" alt="Perro relajado">
+    </div>
+
+</div>
