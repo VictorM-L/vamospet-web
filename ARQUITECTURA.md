@@ -129,3 +129,8 @@ Los nombres de tabla van en singular, como el resto del esquema (`orden_examen`,
 - Varias consultas usan `findAll()` y filtran en memoria; con muchos datos conviene consultas con filtros en BD.
 - Los reportes exportados a Excel guardan los valores como texto (igual que el PDF).
 - La verificación de prefijos de RUC (10, 15, 17, 20) debe contrastarse con la normativa vigente de SUNAT.
+
+
+
+
+*Nota: Documentación en proceso de actualización.*
