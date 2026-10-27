@@ -53,6 +53,11 @@ public class ExamenController {
         }
     }
 
+    @PatchMapping("/veterinario/cirugias/{id}/estado")
+    public ResponseEntity<?> estadoCirugia(@PathVariable Integer id, @RequestBody Map<String, Object> b) {
+        return ResponseEntity.ok(servicio.cambiarEstadoCirugia(entero(b, "usuario_id"), id, texto(b, "estado"), texto(b, "resultado"), texto(b, "medicamentos")));
+    }
+
     @PostMapping("/auxiliar/examenes/subir")
     public ResponseEntity<?> subirPersonal(@RequestParam("usuario_id") Integer usuarioId, @RequestParam("orden_id") Integer ordenId,
                                            @RequestParam("archivo") MultipartFile archivo) {

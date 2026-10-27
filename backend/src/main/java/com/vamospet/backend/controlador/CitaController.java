@@ -106,6 +106,7 @@ public class CitaController {
 
         citaExistente.setEstado(datos.getEstado());
         Cita guardada = repositorio.save(citaExistente);
+        examenService.sincronizarConCita(guardada.getId(), guardada.getEstado());
 
         Mascota mascota = mascotaRepositorio.findById(guardada.getMascota_id()).orElse(null);
         if (mascota != null && mascota.getUsuario_id() != null) {

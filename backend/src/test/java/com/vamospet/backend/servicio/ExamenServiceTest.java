@@ -28,6 +28,7 @@ class ExamenServiceTest {
     @Mock private CitaRepository citaRepositorio;
     @Mock private ServicioRepository servicioRepositorio;
     @Mock private HistorialEventoRepository historialRepositorio;
+    @Mock private RecetaRepository recetaRepositorio;
     @Mock private AutorizacionService autorizacion;
     @Mock private AgendaService agendaService;
     @Mock private NotificacionService notificacionService;
@@ -177,5 +178,139 @@ class ExamenServiceTest {
         byte[] pdf = "%PDF-1.4 x".getBytes();
         assertEquals(403, assertThrows(NegocioException.class, () -> servicio.subirArchivo(2, 1, "a.pdf", pdf)).getEstado());
         verify(archivoRepositorio, never()).save(any());
+    }
+
+    private CirugiaProgramada cirugia(String estado, LocalDateTime fecha) {
+        CirugiaProgramada c = new CirugiaProgramada();
+        c.setId(5);
+        c.setOrden_id(1);
+        c.setCita_id(30);
+        c.setMascota_id(7);
+        c.setVeterinario_id(4);
+        c.setTipo_cirugia("Esterilización");
+        c.setFecha_hora(fecha);
+        c.setEstado(estado);
+        return c;
+    }
+
+    private Cita cita(String estado) {
+        Cita c = new Cita();
+        c.setId(30);
+        c.setEstado(estado);
+        return c;
+    }
+
+    @Test
+    @DisplayName("Marcar una cirugía como realizada también atiende su cita")
+    void marcarRealizada() {
+        when(autorizacion.conRol(4, 1, 3)).thenReturn(vet(4));
+        when(cirugiaRepositorio.findById(5)).thenReturn(Optional.of(cirugia("Programada", LocalDateTime.now().minusHours(1))));
+        when(citaRepositorio.findById(30)).thenReturn(Optional.of(cita("Confirmada")));
+        when(cirugiaRepositorio.save(any(CirugiaProgramada.class))).thenAnswer(i -> i.getArgument(0));
+        CirugiaProgramada r = servicio.cambiarEstadoCirugia(4, 5, "Realizada", "Sin complicaciones", null);
+        assertEquals("Realizada", r.getEstado());
+        verify(citaRepositorio).save(argThat(c -> "Atendida".equals(c.getEstado())));
+        verify(historialRepositorio).save(argThat(e -> "Cirugía realizada".equals(e.getTipo_evento()) && e.getDescripcion().contains("Sin complicaciones")));
+        verify(recetaRepositorio, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("No se marca como realizada una cirugía que todavía no llega a su fecha")
+    void noRealizadaFutura() {
+        when(autorizacion.conRol(4, 1, 3)).thenReturn(vet(4));
+        when(cirugiaRepositorio.findById(5)).thenReturn(Optional.of(cirugia("Programada", LocalDateTime.now().plusDays(1))));
+        assertEquals(409, assertThrows(NegocioException.class, () -> servicio.cambiarEstadoCirugia(4, 5, "Realizada", "ok", null)).getEstado());
+        verify(cirugiaRepositorio, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("Cancelar una cirugía cancela su cita y libera la aprobación")
+    void cancelarCirugia() {
+        when(autorizacion.conRol(4, 1, 3)).thenReturn(vet(4));
+        when(cirugiaRepositorio.findById(5)).thenReturn(Optional.of(cirugia("Programada", LocalDateTime.now().plusDays(1))));
+        when(citaRepositorio.findById(30)).thenReturn(Optional.of(cita("Confirmada")));
+        when(cirugiaRepositorio.save(any(CirugiaProgramada.class))).thenAnswer(i -> i.getArgument(0));
+        assertEquals("Cancelada", servicio.cambiarEstadoCirugia(4, 5, "Cancelada", null, null).getEstado());
+        verify(citaRepositorio).save(argThat(c -> "Cancelada".equals(c.getEstado())));
+    }
+
+    @Test
+    @DisplayName("Solo se cambia el estado de una cirugía Programada y con un estado válido")
+    void estadoInvalido() {
+        when(autorizacion.conRol(4, 1, 3)).thenReturn(vet(4));
+        when(cirugiaRepositorio.findById(5)).thenReturn(Optional.of(cirugia("Realizada", LocalDateTime.now().minusDays(1))));
+        assertEquals(409, assertThrows(NegocioException.class, () -> servicio.cambiarEstadoCirugia(4, 5, "Cancelada", null, null)).getEstado());
+        assertEquals(400, assertThrows(NegocioException.class, () -> servicio.cambiarEstadoCirugia(4, 5, "Programada", null, null)).getEstado());
+    }
+
+    @Test
+    @DisplayName("Otro veterinario o un cliente no pueden cambiar la cirugía")
+    void sinPermisoCirugia() {
+        when(autorizacion.conRol(9, 1, 3)).thenReturn(vet(9));
+        when(cirugiaRepositorio.findById(5)).thenReturn(Optional.of(cirugia("Programada", LocalDateTime.now().minusHours(1))));
+        assertEquals(403, assertThrows(NegocioException.class, () -> servicio.cambiarEstadoCirugia(9, 5, "Realizada", "ok", null)).getEstado());
+        when(autorizacion.conRol(2, 1, 3)).thenReturn(null);
+        assertEquals(403, assertThrows(NegocioException.class, () -> servicio.cambiarEstadoCirugia(2, 5, "Realizada", "ok", null)).getEstado());
+    }
+
+    @Test
+    @DisplayName("El estado de la cita arrastra a la cirugía: atendida la realiza, cancelada o inasistencia la cancelan")
+    void sincronizaConCita() {
+        when(cirugiaRepositorio.save(any(CirugiaProgramada.class))).thenAnswer(i -> i.getArgument(0));
+        CirugiaProgramada a = cirugia("Programada", LocalDateTime.now());
+        when(cirugiaRepositorio.findAll()).thenReturn(List.of(a));
+        servicio.sincronizarConCita(30, "Atendida");
+        assertEquals("Realizada", a.getEstado());
+
+        CirugiaProgramada b = cirugia("Programada", LocalDateTime.now());
+        when(cirugiaRepositorio.findAll()).thenReturn(List.of(b));
+        servicio.sincronizarConCita(30, "No asistió");
+        assertEquals("Cancelada", b.getEstado());
+
+        servicio.sincronizarConCita(30, "Confirmada");
+        verify(cirugiaRepositorio, times(2)).save(any(CirugiaProgramada.class));
+    }
+
+    @Test
+    @DisplayName("Una cirugía ya cancelada vuelve a permitir usar la misma aprobación")
+    void aprobacionLiberada() {
+        CirugiaProgramada cancelada = cirugia("Cancelada", LocalDateTime.now().plusDays(1));
+        OrdenExamen o = orden("Apto_Cirugia", LocalDateTime.now().minusDays(1));
+        when(ordenRepositorio.findAll()).thenReturn(List.of(o));
+        when(cirugiaRepositorio.findAll()).thenReturn(List.of(cancelada));
+        assertTrue(servicio.aprobacionVigente(7, LocalDateTime.now().plusDays(2)).isPresent());
+    }
+
+    @Test
+    @DisplayName("Realizar una cirugía exige el resultado")
+    void resultadoObligatorio() {
+        when(autorizacion.conRol(4, 1, 3)).thenReturn(vet(4));
+        when(cirugiaRepositorio.findById(5)).thenReturn(Optional.of(cirugia("Programada", LocalDateTime.now().minusHours(1))));
+        assertEquals(400, assertThrows(NegocioException.class, () -> servicio.cambiarEstadoCirugia(4, 5, "Realizada", "  ", null)).getEstado());
+        verify(cirugiaRepositorio, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("Con medicamentos se crea una receta aprobada y el resultado queda en el historial")
+    void recetaPostoperatoria() {
+        when(autorizacion.conRol(4, 1, 3)).thenReturn(vet(4));
+        when(cirugiaRepositorio.findById(5)).thenReturn(Optional.of(cirugia("Programada", LocalDateTime.now().minusHours(1))));
+        when(citaRepositorio.findById(30)).thenReturn(Optional.of(cita("Confirmada")));
+        when(cirugiaRepositorio.save(any(CirugiaProgramada.class))).thenAnswer(i -> i.getArgument(0));
+        servicio.cambiarEstadoCirugia(4, 5, "Realizada", "Todo bien", "Amoxicilina cada 12 h por 7 días");
+        verify(recetaRepositorio).save(argThat(r -> r.getMascota_id() == 7 && r.getVeterinario_id() == 4
+                && "Aprobada".equals(r.getEstado()) && r.getContenido().contains("Amoxicilina")));
+        verify(historialRepositorio).save(argThat(e -> e.getDescripcion().contains("Todo bien") && e.getDescripcion().contains("Amoxicilina")));
+    }
+
+    @Test
+    @DisplayName("Al cancelar se ignoran resultado y medicamentos y no se crea receta")
+    void cancelarSinReceta() {
+        when(autorizacion.conRol(4, 1, 3)).thenReturn(vet(4));
+        when(cirugiaRepositorio.findById(5)).thenReturn(Optional.of(cirugia("Programada", LocalDateTime.now().plusDays(1))));
+        when(citaRepositorio.findById(30)).thenReturn(Optional.of(cita("Confirmada")));
+        when(cirugiaRepositorio.save(any(CirugiaProgramada.class))).thenAnswer(i -> i.getArgument(0));
+        servicio.cambiarEstadoCirugia(4, 5, "Cancelada", "x", "y");
+        verify(recetaRepositorio, never()).save(any());
     }
 }

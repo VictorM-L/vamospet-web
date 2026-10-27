@@ -31,6 +31,7 @@ public class ExamenService {
     @Autowired private CitaRepository citaRepositorio;
     @Autowired private ServicioRepository servicioRepositorio;
     @Autowired private HistorialEventoRepository historialRepositorio;
+    @Autowired private RecetaRepository recetaRepositorio;
     @Autowired private AutorizacionService autorizacion;
     @Autowired private AgendaService agendaService;
     @Autowired private NotificacionService notificacionService;
@@ -284,6 +285,88 @@ public class ExamenService {
                 .filter(c -> interno || misMascotas.contains(c.getMascota_id()))
                 .sorted(Comparator.comparing(CirugiaProgramada::getFecha_hora))
                 .toList();
+    }
+
+    @Transactional
+    public CirugiaProgramada cambiarEstadoCirugia(Integer usuarioId, Integer cirugiaId, String estado, String resultado, String medicamentos) {
+        Usuario quien = autorizacion.conRol(usuarioId, AutorizacionService.ADMIN, AutorizacionService.VETERINARIO);
+        if (quien == null) throw new NegocioException(403, "Solo un veterinario o el administrador pueden cambiar el estado de una cirugía.");
+        CirugiaProgramada c = cirugiaId == null ? null : cirugiaRepositorio.findById(cirugiaId).orElse(null);
+        if (c == null) throw new NegocioException(404, "La cirugía no existe.");
+        if (quien.getRol_id() == AutorizacionService.VETERINARIO && !quien.getId().equals(c.getVeterinario_id())) {
+            throw new NegocioException(403, "Esta cirugía está asignada a otro veterinario.");
+        }
+        if (!"Realizada".equals(estado) && !"Cancelada".equals(estado)) {
+            throw new NegocioException(400, "El estado debe ser Realizada o Cancelada.");
+        }
+        if (!"Programada".equals(c.getEstado())) {
+            throw new NegocioException(409, "Solo se puede cambiar una cirugía Programada (estado actual: " + c.getEstado() + ").");
+        }
+        if ("Realizada".equals(estado) && c.getFecha_hora() != null && c.getFecha_hora().isAfter(LocalDateTime.now())) {
+            throw new NegocioException(409, "La cirugía aún no llega a su fecha y hora, no se puede marcar como realizada.");
+        }
+        String res = limpiar(resultado);
+        String med = limpiar(medicamentos);
+        if ("Realizada".equals(estado)) {
+            if (res == null) throw new NegocioException(400, "Escribe el resultado de la cirugía.");
+            if (res.length() > 2000 || (med != null && med.length() > 2000)) {
+                throw new NegocioException(400, "El resultado y los medicamentos admiten hasta 2000 caracteres.");
+            }
+        } else {
+            res = null;
+            med = null;
+        }
+        Cita cita = c.getCita_id() == null ? null : citaRepositorio.findById(c.getCita_id()).orElse(null);
+        if (cita != null && !"Atendida".equals(cita.getEstado()) && !"Cancelada".equals(cita.getEstado()) && !"No asistió".equals(cita.getEstado())) {
+            cita.setEstado("Realizada".equals(estado) ? "Atendida" : "Cancelada");
+            citaRepositorio.save(cita);
+            notificacionService.cancelarProgramadas("cita:" + cita.getId());
+        }
+        return aplicarEstadoCirugia(c, estado, quien.getId(), res, med);
+    }
+
+    @Transactional
+    public void sincronizarConCita(Integer citaId, String estadoCita) {
+        if (citaId == null || estadoCita == null) return;
+        String estado;
+        switch (estadoCita) {
+            case "Atendida" -> estado = "Realizada";
+            case "Cancelada", "No asistió" -> estado = "Cancelada";
+            default -> { return; }
+        }
+        cirugiaRepositorio.findAll().stream()
+                .filter(c -> citaId.equals(c.getCita_id()) && "Programada".equals(c.getEstado()))
+                .findFirst()
+                .ifPresent(c -> aplicarEstadoCirugia(c, estado, c.getVeterinario_id(), null, null));
+    }
+
+    private CirugiaProgramada aplicarEstadoCirugia(CirugiaProgramada c, String estado, Integer vetId, String resultado, String medicamentos) {
+        c.setEstado(estado);
+        c = cirugiaRepositorio.save(c);
+        boolean realizada = "Realizada".equals(estado);
+        StringBuilder texto = new StringBuilder(c.getTipo_cirugia())
+                .append(realizada ? " realizada el " : " cancelada. Estaba programada para el ")
+                .append(c.getFecha_hora().toLocalDate()).append(' ')
+                .append(c.getFecha_hora().toLocalTime().withSecond(0).withNano(0)).append('.');
+        if (resultado != null) texto.append("\nResultado: ").append(resultado);
+        if (medicamentos != null) texto.append("\nMedicamentos e indicaciones: ").append(medicamentos);
+        evento(c.getMascota_id(), realizada ? "Cirugía realizada" : "Cirugía cancelada", texto.toString(), vetId);
+        if (medicamentos != null) {
+            Receta r = new Receta();
+            r.setMascota_id(c.getMascota_id());
+            r.setVeterinario_id(vetId);
+            r.setContenido(medicamentos);
+            r.setEstado("Aprobada");
+            recetaRepositorio.save(r);
+        }
+        Mascota mascota = mascotaRepositorio.findById(c.getMascota_id()).orElse(null);
+        if (mascota != null) {
+            avisarDueno(mascota, realizada ? "Cirugía realizada" : "Cirugía cancelada",
+                    realizada ? "La cirugía (" + c.getTipo_cirugia() + ") de " + mascota.getNombre() + " se realizó. Revisa su historial médico"
+                                    + (medicamentos != null ? " y la receta con los medicamentos indicados." : ".")
+                              : "La cirugía (" + c.getTipo_cirugia() + ") de " + mascota.getNombre() + " fue cancelada. Si fue un error, contáctanos.");
+        }
+        return c;
     }
 
     public record Descarga(ArchivoExamen archivo, byte[] contenido) {}

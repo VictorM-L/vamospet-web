@@ -30,6 +30,7 @@ class AtencionMedicaServiceTest {
     @Mock private UsuarioRepository usuarioRepositorio;
     @Mock private AutorizacionService autorizacion;
     @Mock private NotificacionService notificacionService;
+    @Mock private ExamenService examenService;
     @InjectMocks private AtencionMedicaService servicio;
 
     private Usuario vet;
@@ -79,6 +80,7 @@ class AtencionMedicaServiceTest {
         assertTrue(ev.getValue().getDescripcion().contains("Dr. Clark"));
         verify(vacunaRepositorio, never()).save(any());
         verify(notificacionService).notificar(eq2(2), anyS(), anyS(), eq2("Cita"));
+        verify(examenService).sincronizarConCita(10, "Atendida");
     }
 
     @Test

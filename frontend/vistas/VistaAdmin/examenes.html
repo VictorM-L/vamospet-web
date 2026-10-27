@@ -38,8 +38,8 @@
         <h3 style="font-size:18px; font-weight:700; margin-top:10px;">Cirugías programadas</h3>
         <div class="admin-table-container">
             <table class="admin-table">
-                <thead><tr><th>Fecha y hora</th><th>Mascota</th><th>Cirugía</th><th>Estado</th></tr></thead>
-                <tbody id="cir-body"><tr><td colspan="4" style="text-align:center; padding:20px;">Cargando...</td></tr></tbody>
+                <thead><tr><th>Fecha y hora</th><th>Mascota</th><th>Cirugía</th><th>Estado</th><th>Acciones</th></tr></thead>
+                <tbody id="cir-body"><tr><td colspan="5" style="text-align:center; padding:20px;">Cargando...</td></tr></tbody>
             </table>
         </div>
     </main>
@@ -71,6 +71,19 @@
             <button class="btn-outline" style="flex:1; padding:12px; color:#DC2626; border-color:#DC2626;" onclick="enviarEvaluacion('Rechazado')"><i class="fa-solid fa-xmark"></i> Rechazar</button>
         </div>
         <button class="btn-outline" style="width:100%; padding:12px; margin-top:10px;" onclick="document.getElementById('modal-evaluar-examen').style.display='none'">Cerrar</button>
+    </div>
+</div>
+
+<div class="modal-overlay" id="modal-resultado" style="display:none;">
+    <div class="modal-box">
+        <h3><i class="fa-solid fa-clipboard-check" style="color:var(--primary-green);"></i> Resultado de la cirugía</h3>
+        <p id="res-resumen" style="font-size:13px; color:var(--text-muted); margin-bottom:10px;"></p>
+        <form id="form-resultado">
+            <div class="input-group"><label>Resultado de la cirugía *</label><textarea id="res-texto" rows="4" maxlength="2000" required placeholder="Qué se hizo, cómo salió y si hubo complicaciones"></textarea></div>
+            <div class="input-group"><label>Medicamentos e indicaciones postoperatorias (opcional)</label><textarea id="res-medicamentos" rows="4" maxlength="2000" placeholder="Si lo llenas, se crea una receta para la mascota"></textarea></div>
+            <button type="submit" class="btn-primary" style="width:100%; padding:12px;"><i class="fa-solid fa-floppy-disk"></i> Guardar y marcar como realizada</button>
+        </form>
+        <button class="btn-outline" style="width:100%; padding:12px; margin-top:10px;" onclick="document.getElementById('modal-resultado').style.display='none'">Cancelar</button>
     </div>
 </div>
 
@@ -127,15 +140,55 @@
         } catch (e) { body.innerHTML = `<tr><td colspan="5" style="padding:20px; text-align:center;">No pudimos conectar con el servidor.</td></tr>`; }
     };
 
+    let cirugiaActiva = null;
+
+    async function enviarEstadoCirugia(id, cuerpo) {
+        const res = await fetch(`${API_BASE}/veterinario/cirugias/${id}/estado`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ usuario_id: yo().id, ...cuerpo }) });
+        const d = await res.json().catch(() => ({}));
+        if (!res.ok) { alert(d.error || 'No se pudo actualizar la cirugía.'); return false; }
+        return true;
+    }
+
+    window.estadoCirugia = async function (id, estado, tipo, mascota) {
+        if (estado === 'Realizada') {
+            cirugiaActiva = id;
+            document.getElementById('form-resultado').reset();
+            document.getElementById('res-resumen').innerText = (tipo || '') + (mascota ? ' · ' + mascota : '');
+            document.getElementById('modal-resultado').style.display = 'flex';
+            return;
+        }
+        if (!confirm('¿Cancelar esta cirugía? La cita asociada también se cancelará.')) return;
+        if (await enviarEstadoCirugia(id, { estado })) cargarCirugias();
+    };
+
+    document.getElementById('form-resultado').addEventListener('submit', async e => {
+        e.preventDefault();
+        const ok = await enviarEstadoCirugia(cirugiaActiva, {
+            estado: 'Realizada',
+            resultado: document.getElementById('res-texto').value,
+            medicamentos: document.getElementById('res-medicamentos').value
+        });
+        if (!ok) return;
+        document.getElementById('modal-resultado').style.display = 'none';
+        cargarCirugias();
+    });
+
     async function cargarCirugias() {
         const body = document.getElementById('cir-body');
         try {
             const res = await fetch(`${API_BASE}/cirugias?usuarioId=${yo().id}`);
             const lista = res.ok ? await res.json() : [];
-            if (!lista.length) { body.innerHTML = `<tr><td colspan="4" style="padding:20px; text-align:center; color:var(--text-muted);">No hay cirugías programadas.</td></tr>`; return; }
+            if (!lista.length) { body.innerHTML = `<tr><td colspan="5" style="padding:20px; text-align:center; color:var(--text-muted);">No hay cirugías programadas.</td></tr>`; return; }
             body.innerHTML = lista.map(c => {
                 const m = mascotas.find(x => x.id === c.mascota_id);
-                return `<tr><td>${fmtF(c.fecha_hora)}</td><td>${esc(m ? m.nombre : 'N/D')}</td><td>${esc(c.tipo_cirugia)}</td><td>${esc(c.estado)}</td></tr>`;
+                const clase = { 'Programada': 'status-confirmada', 'Realizada': 'status-completado', 'Cancelada': 'status-cancelada' }[c.estado] || 'status-pendiente';
+                let acc = '';
+                if (esVetOAdmin() && c.estado === 'Programada') {
+                    if (new Date(c.fecha_hora) <= new Date()) acc += `<button class="btn-primary" style="padding:5px 10px; font-size:12px; margin:2px;" onclick="estadoCirugia(${c.id}, 'Realizada', '${esc(c.tipo_cirugia).replace(/'/g, '')}', '${esc(m ? m.nombre : '').replace(/'/g, '')}')"><i class="fa-solid fa-check"></i> Marcar realizada</button>`;
+                    acc += `<button class="btn-outline" style="padding:5px 10px; font-size:12px; margin:2px;" onclick="estadoCirugia(${c.id}, 'Cancelada')"><i class="fa-solid fa-xmark"></i> Cancelar</button>`;
+                }
+                return `<tr><td>${fmtF(c.fecha_hora)}</td><td>${esc(m ? m.nombre : 'N/D')}</td><td>${esc(c.tipo_cirugia)}</td><td><span class="status-badge ${clase}">${esc(c.estado)}</span></td><td>${acc || '—'}</td></tr>`;
             }).join('');
         } catch (e) { body.innerHTML = ''; }
     }
