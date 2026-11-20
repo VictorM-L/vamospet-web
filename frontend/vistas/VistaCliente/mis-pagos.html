@@ -1,0 +1,88 @@
+<div class="fade-in lab-hero" style="padding: 60px 20px;">
+    <span style="background: rgba(255,255,255,0.1); padding: 8px 16px; border-radius: 20px; font-size: 12px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase;">Pagos y comprobantes</span>
+    <h1 style="font-size: 32px; font-weight: 800; margin: 15px 0;">Mis pagos</h1>
+</div>
+
+<div class="fade-in" style="max-width: 800px; margin: 0 auto 80px auto; padding: 0 20px;">
+    <h2 style="font-size: 18px; font-weight: 800; margin-bottom: 12px;">Por pagar</h2>
+    <div id="mp-pendientes"><p style="color: var(--text-muted);"><i class="fa-solid fa-spinner fa-spin"></i> Cargando...</p></div>
+    <h2 style="font-size: 18px; font-weight: 800; margin: 30px 0 12px;">Historial de pagos</h2>
+    <div id="mp-historial"></div>
+</div>
+
+<script>
+(function () {
+    const usuarioJSON = localStorage.getItem('usuarioLogueado');
+    if (!usuarioJSON) { cargarVista('login'); return; }
+    const usuario = JSON.parse(usuarioJSON);
+
+    window.pagarPendiente = function (tipo, id, monto, concepto) {
+        pagarReferencia(tipo, id, monto, 'Pagar ' + concepto, concepto, cargar);
+    };
+
+    window.verComprobantePago = function (id) {
+        abrirArchivoApi(`${API_BASE}/comprobantes/${id}/pdf?usuarioId=${usuario.id}`);
+    };
+
+    function fmtFecha(f) {
+        return f ? new Date(f).toLocaleString('es-PE', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '';
+    }
+
+    function badge(estado) {
+        const mapa = { 'Pagado': 'status-completado', 'Por_confirmar': 'status-pendiente', 'Rechazado': 'status-cancelada' };
+        return `<span class="status-badge ${mapa[estado] || 'status-pendiente'}">${esc((estado || '').replace('_', ' '))}</span>`;
+    }
+
+    async function cargar() {
+        const pend = document.getElementById('mp-pendientes');
+        const hist = document.getElementById('mp-historial');
+        try {
+            const [rp, rh, rc] = await Promise.all([
+                fetch(`${API_BASE}/pagos/pendientes?usuarioId=${usuario.id}`),
+                fetch(`${API_BASE}/pagos/usuario/${usuario.id}`),
+                fetch(`${API_BASE}/comprobantes`)
+            ]);
+            const pendientes = rp.ok ? await rp.json() : [];
+            const pagos = rh.ok ? await rh.json() : [];
+            const comprobantes = rc.ok ? await rc.json() : [];
+
+            pend.innerHTML = pendientes.length === 0
+                ? '<p style="color: var(--text-muted);">No tienes pagos pendientes.</p>'
+                : pendientes.map(p => `
+                    <div class="admin-table-container" style="margin-bottom: 12px; display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap;">
+                        <div>
+                            <h3 style="font-size:15px; font-weight:700;">${esc(p.concepto)}</h3>
+                            <p style="font-size:12px; color:var(--text-muted);">${esc(p.mascota || '')} · ${fmtFecha(p.fecha)}</p>
+                        </div>
+                        <div style="text-align:right;">
+                            <p style="font-size:18px; font-weight:800;">S/ ${Number(p.total).toFixed(2)}</p>
+                            <button class="btn-primary" style="padding:8px 16px; font-size:13px;" onclick="pagarPendiente('${esc(p.tipo)}', ${Number(p.referencia_id)}, ${Number(p.total)}, '${esc(p.concepto)}')">Pagar</button>
+                        </div>
+                    </div>`).join('');
+
+            const ordenados = [...pagos].sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
+            hist.innerHTML = ordenados.length === 0
+                ? '<p style="color: var(--text-muted);">Aún no tienes pagos registrados.</p>'
+                : ordenados.map(p => {
+                    const c = comprobantes.find(x => x.pago_id === p.id);
+                    return `
+                    <div class="admin-table-container" style="margin-bottom: 12px; display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap;">
+                        <div>
+                            <h3 style="font-size:15px; font-weight:700;">Pago #${p.id} · ${esc(p.metodo || '')}</h3>
+                            <p style="font-size:12px; color:var(--text-muted);">${fmtFecha(p.fecha)}</p>
+                        </div>
+                        <div style="text-align:right;">
+                            <p style="font-size:16px; font-weight:800;">S/ ${Number(p.monto).toFixed(2)}</p>
+                            ${badge(p.estado)}
+                            ${c ? `<button class="btn-outline" style="padding:6px 12px; font-size:12px; margin-left:6px;" onclick="verComprobantePago(${c.id})"><i class="fa-solid fa-file-pdf"></i> Comprobante</button>` : ''}
+                        </div>
+                    </div>`;
+                }).join('');
+        } catch (e) {
+            pend.innerHTML = '<p style="color:#DC2626;">No se pudieron cargar tus pagos.</p>';
+        }
+    }
+
+    cargar();
+})();
+</script>

@@ -1,44 +1,63 @@
 <div class="fade-in" style="padding-bottom: 40px;">
     <div class="login-container hover-card">
         
-        <div class="login-image" style="background: url('https://images.unsplash.com/photo-1548199973-03cce0bbc87b?q=80&w=600&auto=format&fit=crop') center/cover;"></div>
+        <div class="login-image" style="background: var(--light-green) url('img/fotos/registro.jpg') center/cover;"></div>
         
         <div class="login-form-wrapper">
             <h2 style="font-size: 28px; font-weight: 800; margin-bottom: 10px;">Únete a la familia <i class="fa-solid fa-heart" style="color: var(--primary-green);"></i></h2>
             <p style="font-size: 14px; color: var(--text-muted); margin-bottom: 30px; line-height: 1.5;">Crea una cuenta para agendar citas, ver historiales y comprar en nuestra tienda.</p>
 
-            <form id="form-registro">
+            <form id="form-registro" novalidate>
                 <div class="input-group">
-                    <label>Nombre Completo</label>
-                    <input type="text" id="registro-nombre" placeholder="Ej. Juan Pérez" required>
+                    <label for="registro-nombre">Nombre completo</label>
+                    <input type="text" id="registro-nombre" data-regla="nombre" placeholder="Ej. Juan Pérez" maxlength="100" autocomplete="name" required>
+                    <small class="mensaje-campo" data-mensaje-para="registro-nombre" aria-live="polite"></small>
+                </div>
+
+                <div style="display: flex; gap: 15px; flex-wrap: wrap;">
+                    <div class="input-group" style="flex: 1; min-width: 160px;">
+                        <label for="registro-dni">DNI</label>
+                        <input type="text" id="registro-dni" data-regla="dni" data-verificar-duplicado="dni" placeholder="Ej. 12345678" maxlength="8" inputmode="numeric" autocomplete="off" required>
+                        <small class="mensaje-campo" data-mensaje-para="registro-dni" aria-live="polite"></small>
+                    </div>
+                    <div class="input-group" style="flex: 1; min-width: 160px;">
+                        <label for="registro-telefono">Teléfono celular</label>
+                        <input type="tel" id="registro-telefono" data-regla="telefono" placeholder="Ej. 987654321" maxlength="9" inputmode="numeric" autocomplete="tel-national" required>
+                        <small class="mensaje-campo" data-mensaje-para="registro-telefono" aria-live="polite"></small>
+                    </div>
                 </div>
 
                 <div class="input-group">
-                    <label>DNI</label>
-                    <input type="text" id="registro-dni" placeholder="Ej. 12345678" maxlength="8" required>
+                    <label for="registro-email">Correo electrónico</label>
+                    <input type="email" id="registro-email" data-regla="correo" data-verificar-duplicado="correo" placeholder="ejemplo@correo.com" maxlength="100" autocomplete="email" required>
+                    <small class="mensaje-campo" data-mensaje-para="registro-email" aria-live="polite"></small>
                 </div>
 
                 <div class="input-group">
-                    <label>Correo Electrónico</label>
-                    <input type="email" id="registro-email" placeholder="ejemplo@correo.com" required>
-                </div>
-                
-                <div style="display: flex; gap: 15px;">
-                    <div class="input-group" style="flex: 1;">
-                        <label>Contraseña</label>
-                        <input type="password" id="registro-password" placeholder="Mínimo 8 caracteres" minlength="8" required>
+                    <label for="registro-password">Contraseña</label>
+                    <div class="campo-clave">
+                        <input type="password" id="registro-password" placeholder="Crea una contraseña segura" maxlength="64" autocomplete="new-password" required>
+                        <button type="button" class="boton-ojito" data-ojito="registro-password" aria-label="Mostrar contraseña" aria-pressed="false"><i class="fa-regular fa-eye"></i></button>
                     </div>
-                    <div class="input-group" style="flex: 1;">
-                        <label>Confirmar</label>
-                        <input type="password" id="registro-confirm" placeholder="••••••••" required>
-                    </div>
+                    <small class="mensaje-campo" data-mensaje-para="registro-password" aria-live="polite"></small>
+                    <ul class="requisitos-clave" data-requisitos-para="registro-password" aria-live="polite"></ul>
                 </div>
-                
+
+                <div class="input-group">
+                    <label for="registro-confirm">Confirmar contraseña</label>
+                    <div class="campo-clave">
+                        <input type="password" id="registro-confirm" data-confirma="registro-password" placeholder="Repite la contraseña" maxlength="64" autocomplete="new-password" required>
+                        <button type="button" class="boton-ojito" data-ojito="registro-confirm" aria-label="Mostrar contraseña" aria-pressed="false"><i class="fa-regular fa-eye"></i></button>
+                    </div>
+                    <small class="mensaje-campo" data-mensaje-para="registro-confirm" aria-live="polite"></small>
+                </div>
+
                 <div id="registro-paso-codigo" style="display: none; background: #F0FDF4; border: 1px solid #BBF7D0; border-radius: 12px; padding: 15px; margin-bottom: 20px;">
                     <p id="registro-codigo-msg" style="font-size: 13px; margin-bottom: 10px;"></p>
                     <div class="input-group" style="margin-bottom: 8px;">
                         <label>Código de 6 dígitos</label>
-                        <input type="text" id="registro-codigo" maxlength="6" inputmode="numeric" placeholder="123456">
+                        <input type="text" id="registro-codigo" data-regla="codigo" maxlength="6" inputmode="numeric" autocomplete="one-time-code" placeholder="123456">
+                        <small class="mensaje-campo" data-mensaje-para="registro-codigo" aria-live="polite"></small>
                     </div>
                     <p style="font-size: 12px; color: var(--text-muted);">¿No llegó? <a href="#" onclick="reenviarCodigoRegistro(); return false;" style="color: var(--primary-green); font-weight: 600;">Reenviar código</a> (máx. 1 por minuto)</p>
                 </div>

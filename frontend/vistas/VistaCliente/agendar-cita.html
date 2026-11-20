@@ -1,7 +1,7 @@
 <div class="fade-in lab-hero" style="padding: 70px 20px;">
     <span style="background: rgba(255,255,255,0.1); padding: 8px 16px; border-radius: 20px; font-size: 12px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase;">Agenda tu Cita</span>
     <h1 style="font-size: 38px; font-weight: 800; margin: 15px 0;">¿A quién atendemos hoy?</h1>
-    <p style="color: #9CA3AF; font-size: 15px; max-width: 550px; margin: 0 auto;">Elige a tu mascota, el servicio y el horario que mejor te acomode.</p>
+    <p style="color: #9CA3AF; font-size: 15px; max-width: 550px; margin: 0 auto;">Elige a tu mascota, el servicio y el horario que mejor te acomode. ¿Buscas baño o corte? <a href="#" onclick="event.preventDefault(); irAAgendarGrooming()" style="color: white; font-weight: 700;">Agenda grooming aquí</a>.</p>
 </div>
 
 <div class="fade-in" style="max-width: 720px; margin: 0 auto 80px auto; padding: 0 20px;">
@@ -47,7 +47,7 @@
             <input type="date" id="agenda-fecha" required disabled>
         </div>
         <div class="input-group">
-            <label>Horario disponible <span style="font-weight:400; color:var(--text-muted);">(citas de 30 minutos)</span></label>
+            <label>Horario disponible <span id="agenda-duracion" style="font-weight:400; color:var(--text-muted);"></span></label>
             <div id="agenda-franjas" style="display:flex; flex-wrap:wrap; gap:8px; margin-top:6px;">
                 <span style="color:var(--text-muted); font-size:13px;">Elige veterinario y fecha para ver los horarios.</span>
             </div>
@@ -102,7 +102,7 @@
             try {
                 const [resMascotas, resServicios] = await Promise.all([
                     fetch(`${API_BASE}/mascotas/usuario/${usuario.id}`),
-                    fetch(`${API_BASE}/servicios`)
+                    fetch(`${API_BASE}/servicios?tipo=Cita`)
                 ]);
 
                 const mascotas = resMascotas.ok ? await resMascotas.json() : [];
@@ -198,8 +198,10 @@
             const fecha = fechaInput.value;
             if (!vetId || !fecha) { limpiarFranjas('Elige veterinario y fecha para ver los horarios.'); return; }
             limpiarFranjas('Buscando horarios...');
-            const res = await fetch(`${API_BASE}/agenda/disponibilidad?veterinario_id=${vetId}&fecha=${fecha}`);
+            const servicioId = document.getElementById('agenda-servicio-id').value;
+            const res = await fetch(`${API_BASE}/agenda/disponibilidad?veterinario_id=${vetId}&fecha=${fecha}${servicioId ? '&servicio_id=' + servicioId : ''}`);
             const data = res.ok ? await res.json() : { franjas: [] };
+            document.getElementById('agenda-duracion').innerText = data.duracion_minutos ? `(el servicio dura ${data.duracion_minutos} minutos)` : '';
             if (!data.franjas.length) { limpiarFranjas('No hay horarios libres ese día. Prueba con otra fecha.'); return; }
             document.getElementById('agenda-franjas').innerHTML = data.franjas.map(h =>
                 `<button type="button" class="agenda-franja" data-hora="${h}" onclick="seleccionarFranjaAgenda('${h}', this)">${h}</button>`).join('');

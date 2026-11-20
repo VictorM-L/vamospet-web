@@ -1,0 +1,13 @@
+Recursos de terceros incluidos en frontend/vendor
+
+Font Awesome Free 6.4.0 (fontawesome/)
+  Íconos: CC BY 4.0. Fuentes: SIL OFL 1.1. Código: MIT. Copyright 2023 Fonticons, Inc.
+  Atribución: íconos de Font Awesome (https://fontawesome.com). El aviso de licencia va al inicio de css/all.min.css y en LICENSE.txt.
+
+Poppins (fuentes/poppins/)
+  SIL Open Font License 1.1. Copyright 2020 The Poppins Project Authors (https://github.com/itfoundry/Poppins).
+
+Fraunces (fuentes/fraunces/)
+  SIL Open Font License 1.1. Copyright 2020 The Fraunces Project Authors (https://github.com/undercasetype/Fraunces).
+
+Archivos tomados de los paquetes npm @fortawesome/fontawesome-free 6.4.0, @fontsource/poppins 5.3.0 y @fontsource/fraunces 5.3.0, sin modificar.

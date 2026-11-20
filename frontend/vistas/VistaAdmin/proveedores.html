@@ -13,6 +13,7 @@
         <button class="sidebar-item active" onclick="cargarVista('VistaAdmin/proveedores')"><i class="fa-solid fa-truck-field"></i> Proveedores</button>
         <button class="sidebar-item" onclick="cargarVista('VistaAdmin/compras')"><i class="fa-solid fa-cart-flatbed"></i> Compras</button>
         <button class="sidebar-item" onclick="cargarVista('VistaAdmin/devoluciones')"><i class="fa-solid fa-rotate-left"></i> Devoluciones</button>
+        <button class="sidebar-item" onclick="cargarVista('VistaAdmin/reservas')"><i class="fa-solid fa-hotel"></i> Reservas y viajes</button>
         <button class="sidebar-item" onclick="cargarVista('VistaAdmin/comprobantes')"><i class="fa-solid fa-receipt"></i> Comprobantes</button>
         <button class="sidebar-item" onclick="cargarVista('VistaAdmin/finanzas')"><i class="fa-solid fa-file-invoice-dollar"></i> Finanzas</button>
         <button class="sidebar-item" onclick="cargarVista('VistaAdmin/reportes')"><i class="fa-solid fa-chart-column"></i> Reportes</button>
@@ -23,7 +24,7 @@
     <main class="admin-content">
         <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
             <h2 style="font-size: 24px; font-weight: 800; color: var(--dark-text);">Proveedores</h2>
-            <div style="display:flex; gap:10px; align-items:center;"><label style="font-size:13px; color:var(--text-muted);"><input type="checkbox" id="prov-inactivos"> Mostrar de baja</label><button class="btn-primary" onclick="abrirModalProveedor()"><i class="fa-solid fa-plus"></i> Nuevo proveedor</button></div>
+            <div style="display:flex; gap:10px; align-items:center;"><label style="font-size:13px; color:var(--text-muted);"><input type="checkbox" id="prov-inactivos"> Mostrar de baja</label><button data-roles="4" class="btn-primary" onclick="abrirModalProveedor()"><i class="fa-solid fa-plus"></i> Nuevo proveedor</button></div>
         </div>
 
         <div class="admin-table-container">
@@ -70,9 +71,9 @@
                 <td>${esc(p.ruc)}</td><td>${esc(p.contacto) || '—'}</td>
                 <td>${esc(p.telefono) || '—'}<br><span style="font-size:12px; color:var(--text-muted);">${esc(p.correo)}</span></td>
                 <td>
-                    <button style="background:none; border:none; color:#2563EB; cursor:pointer;" title="Editar" onclick="abrirModalProveedor(${p.id})"><i class="fa-solid fa-pen"></i></button>
-                    ${baja ? `<button class="btn-outline" style="padding:5px 12px; font-size:11px;" onclick="reactivarProveedor(${p.id})">Reactivar</button>`
-                           : `<button style="background:none; border:none; color:#EF4444; cursor:pointer; margin-left:6px;" title="Dar de baja" onclick="bajaProveedor(${p.id})"><i class="fa-solid fa-ban"></i></button>`}
+                    <button data-roles="4" style="background:none; border:none; color:var(--primary-green); cursor:pointer;" title="Editar" onclick="abrirModalProveedor(${p.id})"><i class="fa-solid fa-pen"></i></button>
+                    ${baja ? `<button data-roles="4" class="btn-outline" style="padding:5px 12px; font-size:11px;" onclick="reactivarProveedor(${p.id})">Reactivar</button>`
+                           : `<button data-roles="4" style="background:none; border:none; color:#EF4444; cursor:pointer; margin-left:6px;" title="Dar de baja" onclick="bajaProveedor(${p.id})"><i class="fa-solid fa-ban"></i></button>`}
                 </td></tr>`;
         }).join('');
     }

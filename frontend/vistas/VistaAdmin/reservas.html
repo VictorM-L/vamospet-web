@@ -1,0 +1,178 @@
+<div class="fade-in admin-layout">
+    <aside class="admin-sidebar">
+        <div style="color: white; font-size: 18px; font-weight: 800; padding: 10px 18px 20px 18px; border-bottom: 1px solid #374151; margin-bottom: 10px;">
+            <i class="fa-solid fa-shield-halved" style="color: var(--primary-green);"></i> Admin Panel
+        </div>
+
+        <button class="sidebar-item" onclick="cargarVista('VistaAdmin/dashboard-admin')"><i class="fa-solid fa-chart-pie"></i> Dashboard</button>
+        <button class="sidebar-item" onclick="cargarVista('VistaAdmin/citas')"><i class="fa-solid fa-calendar-check"></i> Gestión de Citas</button>
+        <button class="sidebar-item" onclick="cargarVista('VistaAdmin/examenes')"><i class="fa-solid fa-flask-vial"></i> Exámenes y Cirugías</button>
+        <button class="sidebar-item" onclick="cargarVista('VistaAdmin/emergencias')"><i class="fa-solid fa-truck-medical"></i> Emergencias</button>
+        <button class="sidebar-item" onclick="cargarVista('VistaAdmin/clientes')"><i class="fa-solid fa-users"></i> Clientes y Mascotas</button>
+        <button class="sidebar-item" onclick="cargarVista('VistaAdmin/servicios')"><i class="fa-solid fa-briefcase-medical"></i> Servicios</button>
+        <button class="sidebar-item" onclick="cargarVista('VistaAdmin/inventario')"><i class="fa-solid fa-box-open"></i> Inventario Tienda</button>
+        <button class="sidebar-item" onclick="cargarVista('VistaAdmin/proveedores')"><i class="fa-solid fa-truck-field"></i> Proveedores</button>
+        <button class="sidebar-item" onclick="cargarVista('VistaAdmin/compras')"><i class="fa-solid fa-cart-flatbed"></i> Compras</button>
+        <button class="sidebar-item" onclick="cargarVista('VistaAdmin/devoluciones')"><i class="fa-solid fa-rotate-left"></i> Devoluciones</button>
+        <button class="sidebar-item active" onclick="cargarVista('VistaAdmin/reservas')"><i class="fa-solid fa-hotel"></i> Reservas y viajes</button>
+        <button class="sidebar-item" onclick="cargarVista('VistaAdmin/comprobantes')"><i class="fa-solid fa-receipt"></i> Comprobantes</button>
+        <button class="sidebar-item" onclick="cargarVista('VistaAdmin/finanzas')"><i class="fa-solid fa-file-invoice-dollar"></i> Finanzas</button>
+        <button class="sidebar-item" onclick="cargarVista('VistaAdmin/reportes')"><i class="fa-solid fa-chart-column"></i> Reportes</button>
+        <button class="sidebar-item" onclick="cargarVista('VistaAdmin/horarios')"><i class="fa-solid fa-clock"></i> Horarios Veterinarios</button>
+        <button class="sidebar-item" onclick="cargarVista('VistaAdmin/personal')"><i class="fa-solid fa-user-nurse"></i> Personal</button>
+        <button class="sidebar-item" onclick="cargarVista('VistaAdmin/configuracion')"><i class="fa-solid fa-gear"></i> Configuración</button>
+    </aside>
+
+    <main class="admin-content">
+        <h2 style="font-size: 24px; font-weight: 800; color: var(--dark-text); margin-bottom: 16px;">Reservas, internamientos y viajes</h2>
+
+        <div class="admin-table-container" style="margin-bottom: 24px;">
+            <h3 style="font-size: 18px; font-weight: 700; margin-bottom: 15px;">Cuartos</h3>
+            <div id="rs-cuartos" style="display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:10px;"></div>
+        </div>
+
+        <div class="admin-table-container" style="margin-bottom: 24px;">
+            <h3 style="font-size: 18px; font-weight: 700; margin-bottom: 15px;">Hospedajes, guardería e internamientos</h3>
+            <table class="admin-table">
+                <thead><tr><th>Mascota / Cliente</th><th>Tipo</th><th>Cuarto</th><th>Ingreso</th><th>Salida</th><th>Total</th><th>Pago</th><th>Estado</th><th>Acciones</th></tr></thead>
+                <tbody id="rs-estancias"><tr><td colspan="9" style="text-align:center; padding:16px; color:var(--text-muted);">Cargando...</td></tr></tbody>
+            </table>
+        </div>
+
+        <div class="admin-table-container">
+            <h3 style="font-size: 18px; font-weight: 700; margin-bottom: 15px;">Solicitudes de viaje</h3>
+            <table class="admin-table">
+                <thead><tr><th>Cliente</th><th>Mascotas</th><th>Destino / Fecha</th><th>Total</th><th>Pago</th><th>Estado</th><th>Acciones</th></tr></thead>
+                <tbody id="rs-viajes"><tr><td colspan="7" style="text-align:center; padding:16px; color:var(--text-muted);">Cargando...</td></tr></tbody>
+            </table>
+        </div>
+    </main>
+</div>
+
+<div class="modal-overlay" id="modal-revisar-viaje" style="display:none;">
+    <div class="modal-box" style="max-width:560px;">
+        <h3><i class="fa-solid fa-passport" style="color:var(--primary-green);"></i> Revisar documentos del viaje <span id="rv-num"></span></h3>
+        <p id="rv-resumen" style="font-size:13px; color:var(--text-muted); margin-bottom:10px;"></p>
+        <p style="font-size:12px; color:var(--text-muted); margin-bottom:8px;">Abre cada documento. Si alguno está mal, márcalo como observado: el cliente solo tendrá que reenviar ese.</p>
+        <div id="rv-documentos" class="documentos-viaje"></div>
+        <div class="input-group" style="margin-top:10px;"><label>Observaciones (obligatorias si rechazas)</label><textarea id="rv-obs" rows="3" maxlength="1000"></textarea></div>
+        <div style="display:flex; gap:10px;">
+            <button class="btn-primary" style="flex:1; padding:12px;" onclick="enviarRevisionViaje('Aprobada')"><i class="fa-solid fa-check"></i> Aprobar</button>
+            <button class="btn-outline" style="flex:1; padding:12px; color:#DC2626; border-color:#DC2626;" onclick="enviarRevisionViaje('Rechazada')"><i class="fa-solid fa-xmark"></i> Rechazar</button>
+        </div>
+        <button class="btn-outline" style="width:100%; padding:12px; margin-top:10px;" onclick="document.getElementById('modal-revisar-viaje').style.display='none'">Cerrar</button>
+    </div>
+</div>
+
+<script>
+(function () {
+    const yo = JSON.parse(localStorage.getItem('usuarioLogueado') || '{}');
+    const $ = (id) => document.getElementById(id);
+    const fmt = (f) => f ? new Date(f).toLocaleString('es-PE', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }) : '—';
+    const esAux = yo.rol_id === 4;
+    const esVet = yo.rol_id === 3;
+
+    async function accion(ruta, cuerpo) {
+        try {
+            await enviarJson(`${API_BASE}${ruta}`, 'PATCH', { usuario_id: yo.id, ...cuerpo });
+            cargar();
+        } catch (e) { alert(e.message); }
+    }
+
+    window.ingresoEstancia = (id) => accion(`/estancias/${id}/ingreso`, {});
+    window.salidaEstancia = (id) => { if (confirm('¿Registrar la salida?')) accion(`/estancias/${id}/salida`, {}); };
+    window.cancelarEstancia = (id) => { if (confirm('¿Cancelar esta reserva?')) accion(`/estancias/${id}/cancelar`, {}); };
+    let viajes = [], viajeRevisando = null;
+    window.abrirRevisionViaje = (id) => {
+        viajeRevisando = viajes.find(v => v.id === id);
+        if (!viajeRevisando) return;
+        $('rv-num').innerText = '#' + id;
+        $('rv-resumen').innerText = `${viajeRevisando.cliente || ''} · ${viajeRevisando.destino} · ${viajeRevisando.fecha_viaje}`;
+        $('rv-obs').value = '';
+        const docs = (viajeRevisando.documentos || []).filter(d => d.id);
+        $('rv-documentos').innerHTML = docs.length
+            ? docs.map(d => `<div class="documento-viaje">
+                <span><strong>${esc(d.etiqueta)}</strong> <button class="btn-outline" style="padding:4px 10px; font-size:12px;" onclick="verDocRequisito(${id}, ${d.id})"><i class="fa-solid fa-paperclip"></i> Abrir</button></span>
+                <label style="font-size:12px; cursor:pointer;"><input type="checkbox" class="rv-observado" value="${esc(d.requisito)}" ${d.estado === 'Observado' ? 'checked' : ''}> Observado</label>
+            </div>`).join('')
+            : `<div class="documento-viaje"><span>Documento único (solicitud anterior)</span><button class="btn-outline" style="padding:4px 10px; font-size:12px;" onclick="verDocViaje(${id})">Abrir</button></div>`;
+        $('modal-revisar-viaje').style.display = 'flex';
+    };
+    window.enviarRevisionViaje = async (decision) => {
+        const observados = [...document.querySelectorAll('.rv-observado:checked')].map(c => c.value);
+        const tieneDocs = (viajeRevisando.documentos || []).some(d => d.id);
+        const obs = $('rv-obs').value.trim();
+        if (decision === 'Aprobada' && observados.length) { alert('Quita las marcas de observado para aprobar.'); return; }
+        if (decision === 'Rechazada' && tieneDocs && !observados.length) { alert('Marca qué documento está mal.'); return; }
+        if (decision === 'Rechazada' && obs.length < 3) { alert('Escribe el motivo del rechazo.'); return; }
+        try {
+            await enviarJson(`${API_BASE}/viajes/${viajeRevisando.id}/revisar`, 'PATCH', { usuario_id: yo.id, decision, observaciones: obs, observados });
+            $('modal-revisar-viaje').style.display = 'none';
+            cargar();
+        } catch (e) { alert(e.message); }
+    };
+    window.verDocRequisito = (viajeId, docId) => abrirArchivoApi(`${API_BASE}/viajes/${viajeId}/documentos/${docId}?usuarioId=${yo.id}`);
+    window.verDocViaje = (id) => abrirArchivoApi(`${API_BASE}/viajes/${id}/documento?usuarioId=${yo.id}`);
+    window.verCompRes = (id) => abrirArchivoApi(`${API_BASE}/comprobantes/${id}/pdf?usuarioId=${yo.id}`);
+    window.cobrarEstancia = (id, total, concepto) => {
+        abrirModalPago({
+            titulo: 'Cobrar ' + concepto, monto: total,
+            enviar: (datos) => enviarJson(`${API_BASE}/pagos/registrar`, 'POST', { usuario_id: yo.id, referencia: 'estancia', referencia_id: id, ...datos }),
+            alExito: (r) => { if (r.comprobante) abrirArchivoApi(`${API_BASE}/comprobantes/${r.comprobante.id}/pdf?usuarioId=${yo.id}`); cargar(); }
+        });
+    };
+
+    function accionesEstancia(e) {
+        const b = (txt, fn, outline) => `<button class="${outline ? 'btn-outline' : 'btn-primary'}" style="padding:5px 10px; font-size:12px; margin:2px;" onclick="${fn}">${txt}</button>`;
+        let r = '';
+        if (e.comprobante_id) r += b('Comprobante', `verCompRes(${e.comprobante_id})`, true);
+        if (e.estado === 'Reservada' && e.tipo !== 'Internamiento' && esAux) r += b('Registrar ingreso', `ingresoEstancia(${e.id})`) + b('Cancelar', `cancelarEstancia(${e.id})`, true);
+        if (e.estado === 'Reservada' && e.tipo === 'Internamiento' && esVet) r += b('Registrar ingreso', `ingresoEstancia(${e.id})`);
+        if (e.estado === 'En_curso' && ((e.tipo !== 'Internamiento' && esAux) || (e.tipo === 'Internamiento' && esVet))) r += b(e.tipo === 'Internamiento' ? 'Dar de alta' : 'Registrar salida', `salidaEstancia(${e.id})`);
+        if (e.tipo === 'Internamiento' && e.estado === 'Finalizada' && !e.pago_estado && esAux) r += b('Cobrar', `cobrarEstancia(${e.id}, ${Number(e.total)}, 'Internamiento #${e.id}')`);
+        return r || '—';
+    }
+
+    async function cargar() {
+        try {
+            const [rc, re, rv] = await Promise.all([
+                fetch(`${API_BASE}/estancias/cuartos?usuarioId=${yo.id}`),
+                fetch(`${API_BASE}/estancias?usuarioId=${yo.id}`),
+                fetch(`${API_BASE}/viajes?usuarioId=${yo.id}`)
+            ]);
+            const cuartos = rc.ok ? await rc.json() : [];
+            const estancias = re.ok ? await re.json() : [];
+            viajes = rv.ok ? await rv.json() : [];
+
+            $('rs-cuartos').innerHTML = cuartos.map(c => `
+                <div style="border:1px solid ${c.ocupado ? '#FCA5A5' : '#BBF7D0'}; background:${c.ocupado ? '#FEF2F2' : '#F0FDF4'}; border-radius:10px; padding:10px; font-size:13px;">
+                    <strong>${esc(c.nombre)}</strong><br>
+                    ${c.ocupado ? `${esc(c.mascota || '')} <span style="color:var(--text-muted);">(${esc(c.tipo)})</span>` : '<span style="color:#16A34A;">Libre</span>'}
+                    ${c.proxima_reserva ? `<br><span style="font-size:11px; color:var(--text-muted);">Próx.: ${fmt(c.proxima_reserva)}</span>` : ''}
+                </div>`).join('');
+
+            $('rs-estancias').innerHTML = estancias.length === 0
+                ? '<tr><td colspan="9" style="text-align:center; padding:16px; color:var(--text-muted);">No hay reservas.</td></tr>'
+                : estancias.map(e => `<tr>
+                    <td><strong>${esc(e.mascota || 'N/D')}</strong><br><span style="font-size:12px; color:var(--text-muted);">${esc(e.cliente || '')}</span></td>
+                    <td>${esc(e.tipo === 'Guarderia' ? 'Guardería' : e.tipo)}${e.cuidados_especiales ? `<br><span style="font-size:11px; color:var(--text-muted);">Cuidados: ${esc(e.cuidados_especiales)}</span>` : ''}</td><td>${esc(e.cuarto || (e.tipo === 'Guarderia' ? 'Sin cuarto' : ''))}</td><td>${fmt(e.ingreso)}</td><td>${fmt(e.salida_real || e.salida_estimada)}</td>
+                    <td>S/ ${Number(e.total || 0).toFixed(2)}</td><td>${esc((e.pago_estado || '—').replace('_', ' '))}</td>
+                    <td>${esc(e.estado.replace('_', ' '))}</td><td>${accionesEstancia(e)}</td></tr>`).join('');
+
+            $('rs-viajes').innerHTML = viajes.length === 0
+                ? '<tr><td colspan="7" style="text-align:center; padding:16px; color:var(--text-muted);">No hay solicitudes de viaje.</td></tr>'
+                : viajes.map(v => `<tr>
+                    <td>${esc(v.cliente || 'N/D')}</td><td>${esc((v.mascotas || []).join(', '))}</td>
+                    <td>${esc(v.destino)}<br><span style="font-size:12px; color:var(--text-muted);">${esc(v.fecha_viaje)}</span></td>
+                    <td>S/ ${Number(v.total).toFixed(2)}</td><td>${esc((v.pago_estado || '—').replace('_', ' '))}</td>
+                    <td>${esc(v.estado.replace(/_/g, ' '))}${v.observaciones ? `<br><span style="font-size:11px; color:var(--text-muted);">${esc(v.observaciones)}</span>` : ''}</td>
+                    <td>${(v.documentos || []).filter(d => d.id).map(d => `<button class="btn-outline" style="padding:4px 8px; font-size:11px; margin:2px;" onclick="verDocRequisito(${v.id}, ${d.id})" title="${esc(d.estado || '')}">${esc(d.etiqueta)}${d.estado === 'Observado' ? ' <i class="fa-solid fa-triangle-exclamation" style="color:#DC2626;"></i>' : ''}</button>`).join('')
+                        || (v.documento_unico ? `<button class="btn-outline" style="padding:5px 10px; font-size:12px; margin:2px;" onclick="verDocViaje(${v.id})">Documento</button>` : '')}
+                        ${v.estado === 'Registrada' && esAux ? `<button class="btn-primary" style="padding:5px 10px; font-size:12px; margin:2px;" onclick="abrirRevisionViaje(${v.id})">Revisar</button>` : ''}</td></tr>`).join('');
+        } catch (e) {
+            $('rs-estancias').innerHTML = '<tr><td colspan="9" style="text-align:center; padding:16px;">No se pudo conectar con el servidor.</td></tr>';
+        }
+    }
+    cargar();
+})();
+</script>

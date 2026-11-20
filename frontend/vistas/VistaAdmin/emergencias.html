@@ -6,6 +6,7 @@
         <button class="sidebar-item" onclick="cargarVista('VistaAdmin/dashboard-admin')"><i class="fa-solid fa-chart-pie"></i> Dashboard</button>
         <button class="sidebar-item" onclick="cargarVista('VistaAdmin/citas')"><i class="fa-solid fa-calendar-check"></i> Gestión de Citas</button>
         <button class="sidebar-item" onclick="cargarVista('VistaAdmin/examenes')"><i class="fa-solid fa-flask-vial"></i> Exámenes y Cirugías</button>
+        <button class="sidebar-item" onclick="cargarVista('VistaAdmin/reservas')"><i class="fa-solid fa-hotel"></i> Reservas y viajes</button>
         <button class="sidebar-item active" onclick="cargarVista('VistaAdmin/emergencias')"><i class="fa-solid fa-truck-medical"></i> Emergencias</button>
         <button class="sidebar-item" onclick="cargarVista('VistaAdmin/clientes')"><i class="fa-solid fa-users"></i> Clientes y Mascotas</button>
         <button class="sidebar-item" onclick="cargarVista('VistaAdmin/inventario')"><i class="fa-solid fa-box-open"></i> Inventario Tienda</button>
@@ -15,7 +16,8 @@
         <h2 style="font-size:24px; font-weight:800; color:var(--dark-text);"><i class="fa-solid fa-truck-medical" style="color:#DC2626;"></i> Ingreso por Emergencia</h2>
         <p style="font-size:13px; color:var(--text-muted);">Atención inmediata: no se pide DNI ni correo. Solo el acompañante y los datos de la mascota. Se genera un código temporal para que el dueño vincule después a su mascota.</p>
 
-        <div style="background:white; padding:22px; border-radius:15px; border:1px solid #E4E7EC; max-width:640px;">
+        <p data-roles="1 3" style="font-size:13px; color:var(--text-muted); margin: 10px 0;"><i class="fa-solid fa-circle-info" style="color: var(--primary-green);"></i> El ingreso lo registra el Auxiliar. Aquí ves las emergencias que aún no se vinculan con su dueño.</p>
+        <div data-roles="4" style="background:white; padding:22px; border-radius:15px; border:1px solid #E4E7EC; max-width:640px;">
             <form id="form-emergencia">
                 <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px;">
                     <div class="input-group"><label>Nombre del acompañante *</label><input type="text" id="em-acomp" maxlength="120" required></div>
@@ -46,7 +48,7 @@
 <script>
 (function () {
     const yo = () => JSON.parse(localStorage.getItem('usuarioLogueado') || '{}');
-    const abrirTicket = id => window.open(`${API_BASE}/auxiliar/emergencia/ticket/${id}?usuarioId=${yo().id}`, '_blank');
+    const abrirTicket = id => abrirArchivoApi(`${API_BASE}/auxiliar/emergencia/ticket/${id}?usuarioId=${yo().id}`);
     window.verTicketEmergencia = abrirTicket;
 
     async function cargar() {

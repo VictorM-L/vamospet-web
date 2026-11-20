@@ -18,6 +18,10 @@ public class Cita {
     private LocalDateTime fecha_hora;
     private String estado = "Pendiente";
     private BigDecimal costo;
+    private String enlace_videollamada;
+    private String motivo_estado;
+    private LocalDateTime cancelacion_solicitada;
+    private String motivo_solicitud;
 
     public Integer getId() { return id; }
     public void setId(Integer id) { this.id = id; }
@@ -42,4 +46,21 @@ public class Cita {
 
     public BigDecimal getCosto() { return costo; }
     public void setCosto(BigDecimal costo) { this.costo = costo; }
+
+    public String getEnlace_videollamada() { return enlace_videollamada; }
+    public void setEnlace_videollamada(String enlace_videollamada) { this.enlace_videollamada = enlace_videollamada; }
+    public String getMotivo_estado() { return motivo_estado; }
+    public void setMotivo_estado(String motivo_estado) { this.motivo_estado = motivo_estado; }
+    public LocalDateTime getCancelacion_solicitada() { return cancelacion_solicitada; }
+    public void setCancelacion_solicitada(LocalDateTime cancelacion_solicitada) { this.cancelacion_solicitada = cancelacion_solicitada; }
+    public String getMotivo_solicitud() { return motivo_solicitud; }
+    public void setMotivo_solicitud(String motivo_solicitud) { this.motivo_solicitud = motivo_solicitud; }
+
+    private LocalDateTime inicio_real;
+    public LocalDateTime getInicio_real() { return inicio_real; }
+    public void setInicio_real(LocalDateTime inicio_real) { this.inicio_real = inicio_real; }
+
+    private LocalDateTime fin_real;
+    public LocalDateTime getFin_real() { return fin_real; }
+    public void setFin_real(LocalDateTime fin_real) { this.fin_real = fin_real; }
 }

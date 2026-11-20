@@ -14,6 +14,7 @@
         <button class="sidebar-item" onclick="cargarVista('VistaAdmin/proveedores')"><i class="fa-solid fa-truck-field"></i> Proveedores</button>
         <button class="sidebar-item" onclick="cargarVista('VistaAdmin/compras')"><i class="fa-solid fa-cart-flatbed"></i> Compras</button>
         <button class="sidebar-item" onclick="cargarVista('VistaAdmin/devoluciones')"><i class="fa-solid fa-rotate-left"></i> Devoluciones</button>
+        <button class="sidebar-item" onclick="cargarVista('VistaAdmin/reservas')"><i class="fa-solid fa-hotel"></i> Reservas y viajes</button>
         <button class="sidebar-item" onclick="cargarVista('VistaAdmin/comprobantes')"><i class="fa-solid fa-receipt"></i> Comprobantes</button>
         <button class="sidebar-item" onclick="cargarVista('VistaAdmin/finanzas')"><i class="fa-solid fa-file-invoice-dollar"></i> Finanzas</button>
         <button class="sidebar-item" onclick="cargarVista('VistaAdmin/reportes')"><i class="fa-solid fa-chart-column"></i> Reportes</button>
@@ -33,13 +34,19 @@
                 <option value="">Cualquier Estado</option>
                 <option value="Pendiente">Pendientes</option>
                 <option value="Confirmada">Confirmadas</option>
+                <option value="En curso">En curso</option>
                 <option value="Atendida">Atendidas</option>
                 <option value="No asistió">No asistió</option>
                 <option value="Cancelada">Canceladas</option>
+                <option value="Rechazada">Rechazadas</option>
+                <option value="Por reasignar">Por reasignar</option>
+                <option value="__solicitud">Con solicitud de cancelación</option>
             </select>
             <button class="btn-outline" style="padding: 10px 20px;" onclick="filtrarCitasAdmin()"><i class="fa-solid fa-filter"></i> Filtrar</button>
             <button class="btn-outline" style="padding: 10px 20px;" onclick="document.getElementById('filtro-fecha-citas').value=''; document.getElementById('filtro-estado-citas').value=''; filtrarCitasAdmin();">Limpiar</button>
         </div>
+
+        <div id="cola-auxiliar" class="cola-auxiliar" data-roles="4"></div>
 
         <div class="admin-table-container">
             <table class="admin-table">
@@ -60,9 +67,26 @@
     </main>
 </div>
 
+<div class="modal-overlay" id="modal-reasignar-cita" style="display:none;">
+    <div class="modal-box">
+        <h3><i class="fa-solid fa-shuffle" style="color: var(--primary-green);"></i> Reasignar cita <span id="reasignar-cita-num"></span></h3>
+        <p id="reasignar-cita-detalle" style="font-size: 13px; color: var(--text-muted); margin: 8px 0 15px; line-height: 1.5;"></p>
+        <div class="input-group">
+            <label for="reasignar-vet">Veterinario libre a esa hora</label>
+            <select id="reasignar-vet"></select>
+        </div>
+        <p id="reasignar-sin-vets" style="display:none; font-size: 13px; color: #B42318; margin-bottom: 15px;">No hay otro veterinario libre a esa hora con esa especialidad. Puedes cancelar la cita y avisar al cliente.</p>
+        <div style="display: flex; gap: 10px;">
+            <button type="button" class="btn-outline" style="flex: 1; padding: 12px;" onclick="document.getElementById('modal-reasignar-cita').style.display='none'">Cerrar</button>
+            <button type="button" class="btn-outline" style="flex: 1; padding: 12px; color: #B42318; border-color: #FECDCA;" onclick="cancelarDesdeReasignar()">Cancelar cita</button>
+            <button type="button" class="btn-primary" id="reasignar-confirmar" style="flex: 1; padding: 12px; justify-content: center;" onclick="confirmarReasignacion()">Reasignar</button>
+        </div>
+    </div>
+</div>
+
 <div class="modal-overlay" id="modal-costos-cita" style="display:none;">
     <div class="modal-box">
-        <h3><i class="fa-solid fa-coins" style="color:#7C3AED;"></i> Costos de la cita <span id="costos-cita-num"></span></h3>
+        <h3><i class="fa-solid fa-coins" style="color:var(--primary-green);"></i> Costos de la cita <span id="costos-cita-num"></span></h3>
         <div id="costos-cita-cuerpo"></div>
         <form id="form-costo-extra" style="display:none; margin-top:12px;">
             <div class="input-group"><label>Concepto</label><input type="text" id="costo-concepto" maxlength="200" placeholder="Ej. Radiografía, medicamento aplicado" required></div>
@@ -71,9 +95,7 @@
         </form>
         <div id="cobro-cita-bloque" style="display:none; margin-top:14px; padding-top:14px; border-top:1px solid #E4E7EC;">
             <div style="display:flex; gap:10px; align-items:flex-end;">
-                <div class="input-group" style="flex:1; margin:0;"><label>Método de pago</label>
-                    <select id="cobro-cita-metodo"><option>Efectivo</option><option>Tarjeta</option><option>Yape</option><option>Plin</option><option>Transferencia</option></select></div>
-                <button type="button" class="btn-primary" style="padding:12px 18px;" onclick="cobrarCitaActual()"><i class="fa-solid fa-cash-register"></i> Cobrar <span id="cobro-cita-monto"></span></button>
+                                <button type="button" class="btn-primary" style="padding:12px 18px;" onclick="cobrarCitaActual()"><i class="fa-solid fa-cash-register"></i> Cobrar <span id="cobro-cita-monto"></span></button>
             </div>
         </div>
         <button class="btn-outline" style="width:100%; padding:12px; margin-top:12px;" onclick="document.getElementById('modal-costos-cita').style.display='none'">Cerrar</button>
@@ -115,29 +137,49 @@
             const servicio = __serviciosTodos.find(s => s.id === c.servicio_id);
             const fecha = c.fecha_hora ? new Date(c.fecha_hora).toLocaleString('es-PE', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }) : '—';
             const claseEstado = claseEstadoCita(c.estado);
+            const esCirugia = !!servicio && String(servicio.nombre || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().includes('cirugia');
 
-            const puedeAtender = [1, 3].includes(__yo().rol_id);
-            let acciones = `<span style="color: var(--text-muted); font-size: 12px;">Sin más acciones</span>`;
-            if (c.estado === 'Pendiente') {
-                acciones = `
-                    <button style="background:none; border:none; color:#2563EB; cursor:pointer; font-size:16px; margin-right: 10px;" onclick="cambiarEstadoCitaAdmin(${c.id}, 'Confirmada')" title="Confirmar cita"><i class="fa-solid fa-check-double"></i></button>
-                    <button style="background:none; border:none; color:#EF4444; cursor:pointer; font-size:16px;" onclick="cambiarEstadoCitaAdmin(${c.id}, 'Cancelada')" title="Cancelar"><i class="fa-solid fa-xmark"></i></button>
-                `;
-            } else if (c.estado === 'Confirmada') {
-                acciones = `
-                    ${puedeAtender ? `<button style="background:none; border:none; color:var(--primary-green); cursor:pointer; font-size:16px; margin-right: 10px;" onclick="abrirAtender(${c.id})" title="Registrar atención (marcar como atendida)"><i class="fa-solid fa-check"></i></button>` : ''}
-                    <button style="background:none; border:none; color:#D97706; cursor:pointer; font-size:16px; margin-right: 10px;" onclick="cambiarEstadoCitaAdmin(${c.id}, 'No asistió')" title="Marcar como No asistió"><i class="fa-solid fa-user-clock"></i></button>
-                    <button style="background:none; border:none; color:#EF4444; cursor:pointer; font-size:16px;" onclick="cambiarEstadoCitaAdmin(${c.id}, 'Cancelada')" title="Cancelar"><i class="fa-solid fa-xmark"></i></button>
-                `;
+            const rol = __yo().rol_id;
+            const esVet = rol === 3, esAux = rol === 4;
+            const miCita = esVet && c.veterinario_id === __yo().id;
+            const boton = (color, icono, titulo, accion) => `<button style="background:none; border:none; color:${color}; cursor:pointer; font-size:16px; margin-right: 10px;" onclick="${accion}" title="${titulo}" aria-label="${titulo}"><i class="fa-solid ${icono}"></i></button>`;
+            let acciones = '';
+            if (miCita && c.estado === 'Pendiente') {
+                acciones += boton('var(--primary-green)', 'fa-check-double', 'Confirmar cita', `confirmarCitaVet(${c.id})`);
+                acciones += boton('#D97706', 'fa-hand', 'No puedo atender', `noPuedoAtender(${c.id})`);
             }
+            if (miCita && c.estado === 'Confirmada') {
+                if (servicio && /virtual/i.test(servicio.nombre)) acciones += boton('var(--primary-green)', 'fa-video', c.enlace_videollamada ? 'Cambiar enlace de videollamada' : 'Enviar enlace de videollamada', `enviarEnlaceVideollamada(${c.id}, '${__escC(c.enlace_videollamada || '')}')`);
+                if (esCirugia) acciones += boton('var(--primary-green)', 'fa-table-columns', 'Es una cirugía: se atiende desde el tablero de cirugías', `cargarVista('VistaAdmin/examenes')`);
+                else acciones += boton('var(--primary-green)', 'fa-check', 'Registrar atención (marcar como atendida)', `abrirAtender(${c.id})`);
+                acciones += boton('#D97706', 'fa-hand', 'No puedo atender', `noPuedoAtender(${c.id})`);
+            }
+            if (miCita && c.estado === 'En curso') {
+                acciones += boton('var(--primary-green)', 'fa-table-columns', 'Cirugía en curso: continúa en el tablero de cirugías', `cargarVista('VistaAdmin/examenes')`);
+            }
+            if (esAux) {
+                if (c.estado === 'Pendiente') acciones += boton('#6B7280', 'fa-ban', 'Rechazar cita', `rechazarCita(${c.id})`);
+                if (c.estado === 'Confirmada') acciones += boton('#D97706', 'fa-user-clock', 'Marcar como No asistió', `cambiarEstadoCitaAdmin(${c.id}, 'No asistió')`);
+                if (c.estado === 'Por reasignar') acciones += boton('var(--primary-green)', 'fa-shuffle', 'Reasignar a otro veterinario', `abrirReasignar(${c.id})`);
+                if (c.cancelacion_solicitada) {
+                    acciones += boton('#B42318', 'fa-calendar-xmark', 'Aprobar solicitud de cancelación', `resolverSolicitudCancelacion(${c.id}, true)`);
+                    acciones += boton('var(--primary-green)', 'fa-calendar-check', 'Mantener la cita', `resolverSolicitudCancelacion(${c.id}, false)`);
+                } else if (['Pendiente', 'Confirmada', 'Por reasignar'].includes(c.estado)) {
+                    acciones += boton('#EF4444', 'fa-xmark', 'Cancelar cita', `cambiarEstadoCitaAdmin(${c.id}, 'Cancelada')`);
+                }
+            }
+            if (!acciones) acciones = `<span style="color: var(--text-muted); font-size: 12px;">Sin acciones para tu rol</span>`;
+            const notas = (c.motivo_estado && ['Por reasignar', 'Rechazada', 'Cancelada'].includes(c.estado) ? `<span class="motivo-cita">${__escC(c.motivo_estado)}</span>` : '')
+                + (c.cancelacion_solicitada ? `<span class="etiqueta-solicitud"><i class="fa-solid fa-bell"></i> Pide cancelar: ${__escC(c.motivo_solicitud || '')}</span>` : '');
+            const veterinario = __usuariosTodos.find(u => u.id === c.veterinario_id);
 
             return `
                 <tr>
                     <td>${fecha}</td>
-                    <td><strong>${mascota ? mascota.nombre : 'N/D'}</strong><br><span style="color: var(--text-muted); font-size: 12px;">${cliente ? cliente.nombre : 'N/D'}</span></td>
-                    <td>${servicio ? servicio.nombre : 'N/D'}</td>
-                    <td><span class="status-badge ${claseEstado}">${c.estado}</span></td>
-                    <td>${acciones}<button style="background:none; border:none; color:#7C3AED; cursor:pointer; font-size:16px; margin-left:10px;" onclick="abrirCostosCita(${c.id})" title="Costos de la cita"><i class="fa-solid fa-coins"></i></button></td>
+                    <td><strong>${mascota ? __escC(mascota.nombre) : 'N/D'}</strong><br><span style="color: var(--text-muted); font-size: 12px;">${cliente ? __escC(cliente.nombre) : 'N/D'}</span></td>
+                    <td>${servicio ? __escC(servicio.nombre) : 'N/D'}</td>
+                    <td><span class="status-badge ${claseEstado}">${__escC(c.estado)}</span>${veterinario ? `<span class="motivo-cita">${__escC(veterinario.nombre)}</span>` : ''}${notas}</td>
+                    <td>${acciones}<button style="background:none; border:none; color:var(--primary-green); cursor:pointer; font-size:16px; margin-left:10px;" onclick="abrirCostosCita(${c.id})" title="Costos de la cita"><i class="fa-solid fa-coins"></i></button></td>
                 </tr>
             `;
         }).join('');
@@ -188,35 +230,55 @@
         const res = await fetch(`${API_BASE}/citas/${__citaCostosId}/costos-adicionales`);
         const d = res.ok ? await res.json() : null;
         if (!d) { document.getElementById('costos-cita-cuerpo').innerHTML = '<p>No se pudo cargar.</p>'; return; }
-        const puede = d.editable && (__yo().rol_id === 1 || __yo().rol_id === 3);
+        const citaActual = __citasTodas.find(c => c.id === __citaCostosId);
+        const puede = d.editable && __yo().rol_id === 3 && citaActual && citaActual.veterinario_id === __yo().id;
+        const conTotales = d.total !== undefined;
         document.getElementById('costos-cita-cuerpo').innerHTML = `
             <table class="admin-table"><tbody>
-                <tr><td>Costo base del servicio</td><td style="text-align:right;">S/ ${Number(d.base).toFixed(2)}</td><td></td></tr>
+                ${conTotales ? `<tr><td>Costo base del servicio</td><td style="text-align:right;">S/ ${Number(d.base).toFixed(2)}</td><td></td></tr>` : ''}
+                ${d.extras.length === 0 && !conTotales ? '<tr><td colspan="3" style="color: var(--text-muted);">Aún no hay costos adicionales.</td></tr>' : ''}
                 ${d.extras.map(x => `<tr><td>${__escC(x.concepto)}</td><td style="text-align:right;">S/ ${Number(x.monto).toFixed(2)}</td>
-                    <td>${puede ? `<button style="background:none; border:none; color:#EF4444; cursor:pointer;" onclick="quitarCostoExtra(${x.id})"><i class="fa-solid fa-xmark"></i></button>` : ''}</td></tr>`).join('')}
-                <tr><td><strong>Total</strong></td><td style="text-align:right;"><strong>S/ ${Number(d.total).toFixed(2)}</strong></td><td></td></tr>
+                    <td>${puede ? `<button style="background:none; border:none; color:#EF4444; cursor:pointer;" onclick="quitarCostoExtra(${x.id})" aria-label="Quitar costo"><i class="fa-solid fa-xmark"></i></button>` : ''}</td></tr>`).join('')}
+                ${conTotales ? `<tr><td><strong>Total</strong></td><td style="text-align:right;"><strong>S/ ${Number(d.total).toFixed(2)}</strong></td><td></td></tr>` : ''}
             </tbody></table>
+            ${!conTotales ? '<p style="font-size:12px; color:var(--text-muted); margin-top:8px;">Registra aquí lo que usaste en la atención. El total y el cobro los ve el Auxiliar.</p>' : ''}
             ${!d.editable ? '<p style="font-size:12px; color:var(--text-muted); margin-top:8px;">Esta cita ya no admite cambios de costo (cobrada, cancelada o No asistió).</p>' : ''}`;
         document.getElementById('form-costo-extra').style.display = puede ? 'block' : 'none';
 
         const cita = __citasTodas.find(c => c.id === __citaCostosId);
-        const puedeCobrar = d.editable && cita && cita.estado === 'Atendida' && (__yo().rol_id === 1 || __yo().rol_id === 4);
+        const puedeCobrar = d.editable && cita && cita.estado === 'Atendida' && __yo().rol_id === 4;
         document.getElementById('cobro-cita-bloque').style.display = puedeCobrar ? 'block' : 'none';
         document.getElementById('cobro-cita-monto').innerText = 'S/ ' + Number(d.total).toFixed(2);
     }
 
-    window.cobrarCitaActual = async function () {
-        const metodo = document.getElementById('cobro-cita-metodo').value;
-        if (!confirm('¿Cobrar esta cita por ' + document.getElementById('cobro-cita-monto').innerText + ' (' + metodo + ')?')) return;
-        const res = await fetch(`${API_BASE}/citas/${__citaCostosId}/cobrar`, {
-            method: 'POST', headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ usuario_id: __yo().id, metodo })
+    window.cobrarCitaActual = function () {
+        const id = __citaCostosId;
+        const monto = parseFloat(document.getElementById('cobro-cita-monto').innerText.replace('S/', ''));
+        abrirModalPago({
+            titulo: 'Cobrar cita #' + id,
+            monto,
+            enviar: (datos) => enviarJson(`${API_BASE}/citas/${id}/cobrar`, 'POST', { usuario_id: __yo().id, ...datos }),
+            alExito: (data) => {
+                alert(data.pago && data.pago.estado === 'Por_confirmar'
+                    ? 'Pago Yape registrado. Falta confirmarlo en Finanzas.'
+                    : 'Cita cobrada. Se emitió el comprobante ' + data.comprobante.numero + '.');
+                if (data.comprobante) abrirArchivoApi(`${API_BASE}/comprobantes/${data.comprobante.id}/pdf?usuarioId=${__yo().id}`);
+                pintarCostosCita();
+            }
         });
-        const data = await res.json().catch(() => ({}));
-        if (!res.ok) { alert(data.error || 'No se pudo cobrar la cita.'); return; }
-        alert('Cita cobrada. Se emitió el comprobante ' + data.comprobante.numero + '.');
-        window.open(`${API_BASE}/comprobantes/${data.comprobante.id}/pdf?usuarioId=${__yo().id}`, '_blank');
-        pintarCostosCita();
+    };
+
+    window.enviarEnlaceVideollamada = async function (id, actual) {
+        const enlace = prompt('Pega el enlace de la videollamada (https://...)', actual || '');
+        if (enlace === null) return;
+        try {
+            const data = await enviarJson(`${API_BASE}/citas/${id}/videollamada`, 'PATCH', { usuario_id: __yo().id, enlace: enlace.trim() });
+            __citasTodas = __citasTodas.map(c => c.id === id ? { ...c, enlace_videollamada: data.enlace } : c);
+            filtrarCitasAdmin();
+            alert('Enlace enviado al cliente. Lo verá en su historial y en sus notificaciones.');
+        } catch (e) {
+            alert(e.message);
+        }
     };
 
     window.abrirCostosCita = function (id) {
@@ -246,7 +308,17 @@
         pintarCostosCita();
     };
 
+    function pintarColaAuxiliar() {
+        const caja = document.getElementById('cola-auxiliar');
+        if (!caja || __yo().rol_id !== 4) return;
+        const porReasignar = __citasTodas.filter(c => c.estado === 'Por reasignar').length;
+        const solicitudes = __citasTodas.filter(c => !!c.cancelacion_solicitada).length;
+        const tarjeta = (n, texto, valor) => `<button class="btn-outline" style="padding: 8px 14px; font-size: 13px;" onclick="document.getElementById('filtro-estado-citas').value='${valor}'; filtrarCitasAdmin();"><strong>${n}</strong> ${texto}</button>`;
+        caja.innerHTML = tarjeta(porReasignar, 'por reasignar', 'Por reasignar') + tarjeta(solicitudes, 'solicitudes de cancelación', '__solicitud');
+    }
+
     window.filtrarCitasAdmin = function () {
+        pintarColaAuxiliar();
         const fecha = document.getElementById('filtro-fecha-citas').value;
         const estado = document.getElementById('filtro-estado-citas').value;
 
@@ -254,27 +326,97 @@
         if (fecha) {
             filtradas = filtradas.filter(c => c.fecha_hora && c.fecha_hora.startsWith(fecha));
         }
-        if (estado) {
+        if (estado === '__solicitud') {
+            filtradas = filtradas.filter(c => !!c.cancelacion_solicitada);
+        } else if (estado) {
             filtradas = filtradas.filter(c => c.estado === estado);
         }
         pintarCitasAdmin(filtradas);
     };
 
-    window.cambiarEstadoCitaAdmin = async function (id, nuevoEstado) {
+    async function enviarCambioCita(url, metodo, cuerpo, mensajeError) {
         try {
-            const res = await fetch(`${API_BASE}/citas/${id}/estado`, {
-                method: 'PATCH',
+            const res = await fetch(url, {
+                method: metodo,
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ estado: nuevoEstado })
+                body: JSON.stringify(cuerpo || {})
             });
-            const citaActualizada = await res.json().catch(() => ({}));
-            if (!res.ok) { alert(citaActualizada.error || 'No se pudo actualizar el estado de la cita.'); return; }
-            __citasTodas = __citasTodas.map(c => c.id === citaActualizada.id ? citaActualizada : c);
+            const data = await res.json().catch(() => ({}));
+            if (!res.ok) { alert(data.error || mensajeError); return null; }
+            __citasTodas = __citasTodas.map(c => c.id === data.id ? data : c);
             filtrarCitasAdmin();
+            return data;
         } catch (error) {
             console.error('Error actualizando cita:', error);
-            alert('No se pudo actualizar el estado de la cita.');
+            alert(mensajeError);
+            return null;
         }
+    }
+
+    window.cambiarEstadoCitaAdmin = async function (id, nuevoEstado) {
+        const texto = nuevoEstado === 'Cancelada' ? '¿Cancelar esta cita? Se avisará al cliente.' : '¿Marcar que el cliente no asistió?';
+        if (!confirm(texto)) return;
+        await enviarCambioCita(`${API_BASE}/citas/${id}/estado`, 'PATCH', { estado: nuevoEstado }, 'No se pudo actualizar el estado de la cita.');
+    };
+
+    window.rechazarCita = async function (id) {
+        const motivo = prompt('Motivo del rechazo (se le enviará al cliente):');
+        if (motivo === null) return;
+        await enviarCambioCita(`${API_BASE}/citas/${id}/estado`, 'PATCH', { estado: 'Rechazada', motivo: motivo.trim() }, 'No se pudo rechazar la cita.');
+    };
+
+    window.confirmarCitaVet = async function (id) {
+        await enviarCambioCita(`${API_BASE}/citas/${id}/confirmar`, 'PATCH', {}, 'No se pudo confirmar la cita.');
+    };
+
+    window.noPuedoAtender = async function (id) {
+        const motivo = prompt('¿Por qué no puedes atender esta cita? El Auxiliar la reasignará a otro veterinario.');
+        if (motivo === null) return;
+        const data = await enviarCambioCita(`${API_BASE}/citas/${id}/no-puedo-atender`, 'PATCH', { motivo: motivo.trim() }, 'No se pudo liberar la cita.');
+        if (data) alert('Listo. La cita pasó a la cola "Por reasignar" del Auxiliar.');
+    };
+
+    window.resolverSolicitudCancelacion = async function (id, aprobar) {
+        if (!confirm(aprobar ? '¿Aprobar la cancelación? Se avisará al cliente.' : '¿Mantener la cita? Se avisará al cliente que sigue vigente.')) return;
+        await enviarCambioCita(`${API_BASE}/citas/${id}/solicitud-cancelacion/resolver`, 'PATCH', { aprobar }, 'No se pudo resolver la solicitud.');
+    };
+
+    let __citaReasignarId = null;
+    window.abrirReasignar = async function (id) {
+        __citaReasignarId = id;
+        const c = __citasTodas.find(x => x.id === id);
+        const m = c ? __mascotasTodas.find(x => x.id === c.mascota_id) : null;
+        document.getElementById('reasignar-cita-num').innerText = '#' + id;
+        document.getElementById('reasignar-cita-detalle').innerText = (m ? m.nombre + ' · ' : '') + (c && c.fecha_hora ? new Date(c.fecha_hora).toLocaleString('es-PE') : '') + (c && c.motivo_estado ? ' · Motivo: ' + c.motivo_estado : '');
+        const select = document.getElementById('reasignar-vet');
+        select.innerHTML = '<option value="">Cargando...</option>';
+        document.getElementById('modal-reasignar-cita').style.display = 'flex';
+        try {
+            const res = await fetch(`${API_BASE}/citas/${id}/veterinarios-disponibles`);
+            const vets = res.ok ? await res.json() : [];
+            select.innerHTML = vets.map(v => `<option value="${v.id}">${__escC(v.nombre)}</option>`).join('');
+            document.getElementById('reasignar-sin-vets').style.display = vets.length ? 'none' : 'block';
+            document.getElementById('reasignar-confirmar').disabled = vets.length === 0;
+        } catch (e) {
+            select.innerHTML = '';
+            document.getElementById('reasignar-sin-vets').style.display = 'block';
+        }
+    };
+
+    window.confirmarReasignacion = async function () {
+        const vet = document.getElementById('reasignar-vet').value;
+        if (!vet) return;
+        const data = await enviarCambioCita(`${API_BASE}/citas/${__citaReasignarId}/reasignar`, 'PATCH', { veterinario_id: Number(vet) }, 'No se pudo reasignar la cita.');
+        if (data) {
+            document.getElementById('modal-reasignar-cita').style.display = 'none';
+            alert('Cita reasignada. Se avisó al cliente y al nuevo veterinario.');
+        }
+    };
+
+    window.cancelarDesdeReasignar = async function () {
+        if (!confirm('¿Cancelar la cita y avisar al cliente?')) return;
+        const data = await enviarCambioCita(`${API_BASE}/citas/${__citaReasignarId}/estado`, 'PATCH', { estado: 'Cancelada', motivo: 'Sin veterinario disponible' }, 'No se pudo cancelar la cita.');
+        if (data) document.getElementById('modal-reasignar-cita').style.display = 'none';
     };
 
     (async () => {
@@ -293,6 +435,7 @@
 
             __citasTodas.sort((a, b) => new Date(b.fecha_hora) - new Date(a.fecha_hora));
             pintarCitasAdmin(__citasTodas);
+            pintarColaAuxiliar();
         } catch (error) {
             console.error('Error cargando citas:', error);
             document.getElementById('citas-admin-body').innerHTML = `<tr><td colspan="5" style="text-align:center; color: var(--text-muted); padding: 20px;"><i class="fa-solid fa-plug-circle-xmark"></i> No pudimos conectar con el servidor.</td></tr>`;

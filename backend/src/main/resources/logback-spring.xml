@@ -48,6 +48,16 @@
         <logger name="org.hibernate.SQL" level="DEBUG"/>
     </springProfile>
 
+    <springProfile name="prod">
+        <logger name="com.vamospet" level="INFO"/>
+        <logger name="org.springframework" level="WARN"/>
+        <logger name="org.hibernate" level="WARN"/>
+    </springProfile>
+
+    <springProfile name="test">
+        <logger name="com.vamospet" level="WARN"/>
+    </springProfile>
+
     <root level="INFO">
         <appender-ref ref="CONSOLA"/>
         <appender-ref ref="ARCHIVO"/>

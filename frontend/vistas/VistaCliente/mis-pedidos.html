@@ -22,7 +22,7 @@
         const res = await fetch(`${API_BASE}/comprobantes/por-pedido/${pedidoId}`);
         if (!res.ok) { alert('Este pedido aún no tiene comprobante.'); return; }
         const c = await res.json();
-        window.open(`${API_BASE}/comprobantes/${c.id}/pdf?usuarioId=${usuario.id}`, '_blank');
+        abrirArchivoApi(`${API_BASE}/comprobantes/${c.id}/pdf?usuarioId=${usuario.id}`);
     };
 
     function badgeEstado(estado) {

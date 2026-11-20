@@ -1,5 +1,6 @@
 package com.vamospet.backend.controlador;
 
+import com.vamospet.backend.permisos.UsuarioActual;
 import com.vamospet.backend.modelo.ContactoEmergencia;
 import com.vamospet.backend.modelo.Mascota;
 import com.vamospet.backend.servicio.EmergenciaService;
@@ -34,12 +35,14 @@ public class EmergenciaController {
     }
 
     @GetMapping("/auxiliar/emergencia/pendientes")
-    public ResponseEntity<?> pendientes(@RequestParam Integer usuarioId) {
+    public ResponseEntity<?> pendientes() {
+        Integer usuarioId = UsuarioActual.id();
         return ResponseEntity.ok(servicio.sinVincular(usuarioId));
     }
 
     @GetMapping("/auxiliar/emergencia/ticket/{idMascota}")
-    public ResponseEntity<byte[]> ticket(@PathVariable Integer idMascota, @RequestParam Integer usuarioId) throws Exception {
+    public ResponseEntity<byte[]> ticket(@PathVariable Integer idMascota) throws Exception {
+        Integer usuarioId = UsuarioActual.id();
         Map<String, Object> d = servicio.datosTicket(usuarioId, idMascota);
         byte[] pdf = ticketPdf.generar((String) d.get("codigo"), (Mascota) d.get("mascota"), (ContactoEmergencia) d.get("contacto"));
         return ResponseEntity.ok().contentType(MediaType.APPLICATION_PDF)

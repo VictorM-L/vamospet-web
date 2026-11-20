@@ -61,7 +61,7 @@ public class ReporteService {
         Tabla t = new Tabla();
         t.titulo = "Ingresos por periodo";
         t.subtitulo = rango(d, h);
-        t.columnas = List.of("Fecha", "N° de pagos", "Citas", "Pedidos", "Total");
+        t.columnas = List.of("Fecha", "N° de pagos", "Citas", "Pedidos", "Otros servicios", "Total");
 
         Map<LocalDate, BigDecimal[]> porDia = new TreeMap<>();
         Map<LocalDate, Integer> cuenta = new HashMap<>();
@@ -69,16 +69,19 @@ public class ReporteService {
         int n = 0;
         for (Pago p : pagoRepositorio.findAll()) {
             if (p.getFecha() == null || p.getMonto() == null || !enRango(p.getFecha().toLocalDate(), d, h)) continue;
+            if (p.getEstado() != null && !PagoService.PAGADO.equals(p.getEstado())) continue;
             LocalDate dia = p.getFecha().toLocalDate();
-            BigDecimal[] acc = porDia.computeIfAbsent(dia, k -> new BigDecimal[]{BigDecimal.ZERO, BigDecimal.ZERO});
-            if (p.getCita_id() != null) acc[0] = acc[0].add(p.getMonto()); else acc[1] = acc[1].add(p.getMonto());
+            BigDecimal[] acc = porDia.computeIfAbsent(dia, k -> new BigDecimal[]{BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO});
+            if (p.getCita_id() != null) acc[0] = acc[0].add(p.getMonto());
+            else if (p.getPedido_id() != null) acc[1] = acc[1].add(p.getMonto());
+            else acc[2] = acc[2].add(p.getMonto());
             cuenta.merge(dia, 1, Integer::sum);
             total = total.add(p.getMonto());
             n++;
         }
         for (var e : porDia.entrySet()) {
-            t.fila(e.getKey().format(DIA), String.valueOf(cuenta.get(e.getKey())), soles(e.getValue()[0]), soles(e.getValue()[1]),
-                    soles(e.getValue()[0].add(e.getValue()[1])));
+            t.fila(e.getKey().format(DIA), String.valueOf(cuenta.get(e.getKey())), soles(e.getValue()[0]), soles(e.getValue()[1]), soles(e.getValue()[2]),
+                    soles(e.getValue()[0].add(e.getValue()[1]).add(e.getValue()[2])));
         }
         BigDecimal reembolsos = BigDecimal.ZERO;
         for (Devolucion dv : devolucionRepositorio.findAll()) {
@@ -109,7 +112,7 @@ public class ReporteService {
             a[0]++;
             switch (c.getEstado() == null ? "" : c.getEstado()) {
                 case "Atendida" -> a[1]++;
-                case "Cancelada" -> a[3]++;
+                case "Cancelada", "Rechazada" -> a[3]++;
                 case "No asistió" -> a[4]++;
                 default -> a[2]++;
             }
@@ -137,7 +140,7 @@ public class ReporteService {
             int[] a = porDia.computeIfAbsent(c.getFecha_hora().toLocalDate(), k -> new int[3]);
             if ("Atendida".equals(c.getEstado())) a[0]++;
             else if ("No asistió".equals(c.getEstado())) a[1]++;
-            else if ("Cancelada".equals(c.getEstado())) a[2]++;
+            else if ("Cancelada".equals(c.getEstado()) || "Rechazada".equals(c.getEstado())) a[2]++;
         }
         int at = 0, na = 0, ca = 0;
         for (var e : porDia.entrySet()) {
@@ -216,7 +219,8 @@ public class ReporteService {
         for (Comprobante c : lista) {
             Pago p = c.getPago_id() == null ? null : pagos.get(c.getPago_id());
             if (p == null || p.getFecha() == null || !enRango(p.getFecha().toLocalDate(), d, h)) continue;
-            String concepto = p.getCita_id() != null ? "Cita #" + p.getCita_id() : (p.getPedido_id() != null ? "Pedido #" + p.getPedido_id() : "—");
+            String concepto = p.getCita_id() != null ? "Cita #" + p.getCita_id() : (p.getPedido_id() != null ? "Pedido #" + p.getPedido_id()
+                    : (p.getEstancia_id() != null ? "Estancia #" + p.getEstancia_id() : (p.getViaje_id() != null ? "Viaje #" + p.getViaje_id() : "—")));
             t.fila(c.getNumero() == null ? "#" + c.getId() : c.getNumero(), c.getTipo() == null ? "Boleta" : c.getTipo(),
                     nombres.getOrDefault(p.getUsuario_id(), "N/D"), concepto, p.getMetodo() == null ? "—" : p.getMetodo(),
                     soles(p.getMonto()), p.getFecha().format(DIA_HORA));

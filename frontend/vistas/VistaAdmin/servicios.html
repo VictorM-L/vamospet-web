@@ -13,6 +13,7 @@
         <button class="sidebar-item" onclick="cargarVista('VistaAdmin/proveedores')"><i class="fa-solid fa-truck-field"></i> Proveedores</button>
         <button class="sidebar-item" onclick="cargarVista('VistaAdmin/compras')"><i class="fa-solid fa-cart-flatbed"></i> Compras</button>
         <button class="sidebar-item" onclick="cargarVista('VistaAdmin/devoluciones')"><i class="fa-solid fa-rotate-left"></i> Devoluciones</button>
+        <button class="sidebar-item" onclick="cargarVista('VistaAdmin/reservas')"><i class="fa-solid fa-hotel"></i> Reservas y viajes</button>
         <button class="sidebar-item" onclick="cargarVista('VistaAdmin/comprobantes')"><i class="fa-solid fa-receipt"></i> Comprobantes</button>
         <button class="sidebar-item" onclick="cargarVista('VistaAdmin/finanzas')"><i class="fa-solid fa-file-invoice-dollar"></i> Finanzas</button>
         <button class="sidebar-item" onclick="cargarVista('VistaAdmin/reportes')"><i class="fa-solid fa-chart-column"></i> Reportes</button>
@@ -37,10 +38,10 @@
             <h3 style="font-size: 18px; font-weight: 700; margin-bottom: 15px;">Catálogo de Servicios</h3>
             <table class="admin-table">
                 <thead>
-                    <tr><th>Servicio</th><th>Descripción</th><th>Precio Base</th><th>Pago Previo</th><th>Acciones</th></tr>
+                    <tr><th>Servicio</th><th>Descripción</th><th>Tipo y duración</th><th>Precio Base</th><th>Pago Previo</th><th>Acciones</th></tr>
                 </thead>
                 <tbody id="servicios-admin-body">
-                    <tr><td colspan="5" style="text-align:center; color: var(--text-muted); padding: 20px;"><i class="fa-solid fa-spinner fa-spin"></i> Cargando...</td></tr>
+                    <tr><td colspan="6" style="text-align:center; color: var(--text-muted); padding: 20px;"><i class="fa-solid fa-spinner fa-spin"></i> Cargando...</td></tr>
                 </tbody>
             </table>
         </div>
@@ -61,11 +62,21 @@
 
 <div class="modal-overlay" id="modal-nuevo-servicio" style="display: none;">
     <div class="modal-box">
-        <h3><i class="fa-solid fa-briefcase-medical" style="color: var(--primary-green);"></i> Nuevo Servicio</h3>
+        <h3><i class="fa-solid fa-briefcase-medical" style="color: var(--primary-green);"></i> <span id="serv-titulo">Nuevo Servicio</span></h3>
         <form id="form-nuevo-servicio">
             <div class="input-group"><label>Nombre</label><input type="text" id="serv-nombre" required></div>
             <div class="input-group"><label>Descripción</label><input type="text" id="serv-descripcion"></div>
-            <div class="input-group"><label>Precio Base (S/)</label><input type="number" step="0.01" id="serv-precio" required></div>
+            <div class="input-group"><label>Tipo</label>
+                <select id="serv-tipo">
+                    <option value="Cita">Cita (consulta, vacuna, cirugía, etc.)</option>
+                    <option value="Grooming">Grooming</option>
+                </select>
+                <small id="serv-tipo-fijo" style="display:none; color: var(--text-muted);">Este servicio lo usa su propia sección; su tipo no se cambia.</small>
+            </div>
+            <div class="input-group" id="serv-bloque-duracion"><label>Duración (minutos)</label><input type="number" id="serv-duracion" min="15" max="480" step="15" value="30" required></div>
+            <div class="input-group" id="serv-bloque-cupo" style="display:none;"><label>Cupo diario</label><input type="number" id="serv-cupo" min="1" max="100" step="1"></div>
+            <div class="input-group"><label>Precio Base (S/)</label><input type="number" step="0.01" min="0" id="serv-precio" required></div>
+            <div class="input-group"><label><input type="checkbox" id="serv-activo" checked style="accent-color: var(--primary-green);"> Activo (se ofrece a los clientes; necesita precio mayor a 0)</label></div>
             <div class="input-group"><label><input type="checkbox" id="serv-pago-previo" style="accent-color: var(--primary-green);"> Requiere pago previo</label></div>
             <div style="display: flex; gap: 10px; margin-top: 20px;">
                 <button type="button" class="btn-outline" style="flex: 1; padding: 12px;" onclick="cerrarModalNuevoServicio()">Cancelar</button>
@@ -91,7 +102,8 @@
 
 <script>
 (function () {
-    let __servicios = [], __especialidades = [];
+    let __servicios = [], __especialidades = [], __servicioEditando = null;
+    const TIPOS_EDITABLES = ['Cita', 'Grooming'];
 
     const verInactivos = () => document.getElementById('chk-inactivos-serv').checked;
     const botonAccion = (inactivo, fnBaja, fnReactivar, id) => inactivo
@@ -102,16 +114,17 @@
         const cuerpo = document.getElementById('servicios-admin-body');
         const lista = __servicios.filter(s => s.activo !== false || verInactivos());
         if (lista.length === 0) {
-            cuerpo.innerHTML = `<tr><td colspan="5" style="text-align:center; color: var(--text-muted); padding: 20px;">Aún no hay servicios registrados.</td></tr>`;
+            cuerpo.innerHTML = `<tr><td colspan="6" style="text-align:center; color: var(--text-muted); padding: 20px;">Aún no hay servicios registrados.</td></tr>`;
             return;
         }
         cuerpo.innerHTML = lista.map(s => `
             <tr style="${s.activo === false ? 'opacity: .55;' : ''}">
                 <td><strong>${esc(s.nombre)}</strong>${s.activo === false ? ' <span class="status-badge" style="background:#F3F4F6; color:#6B7280;">Inactivo</span>' : ''}</td>
                 <td style="color: var(--text-muted); font-size: 13px;">${esc(s.descripcion || '—')}</td>
+                <td style="font-size: 13px;">${esc(s.tipo || 'Cita')}${TIPOS_EDITABLES.includes(s.tipo || 'Cita') ? ` · ${s.duracion_min || 30} min` : ''}${s.cupo_diario ? ` · cupo ${s.cupo_diario}/día` : ''}</td>
                 <td>S/ ${Number(s.precio_base || 0).toFixed(2)}</td>
                 <td>${s.requiere_pago_previo ? '<span class="status-badge status-pendiente">Sí</span>' : '<span class="status-badge status-completado">No</span>'}</td>
-                <td>${botonAccion(s.activo === false, 'eliminarServicioAdmin', 'reactivarServicioAdmin', s.id)}</td>
+                <td><button style="background:none; border:none; color:var(--primary-green); cursor:pointer; font-size:16px; margin-right:8px;" title="Editar" onclick="editarServicioAdmin(${s.id})"><i class="fa-solid fa-pen"></i></button>${botonAccion(s.activo === false, 'eliminarServicioAdmin', 'reactivarServicioAdmin', s.id)}</td>
             </tr>
         `).join('');
     }
@@ -132,32 +145,65 @@
         `).join('');
     }
 
-    window.abrirModalNuevoServicio = () => document.getElementById('modal-nuevo-servicio').style.display = 'flex';
+    function prepararModalServicio(s) {
+        __servicioEditando = s || null;
+        const v = (id, valor) => document.getElementById(id).value = valor == null ? '' : valor;
+        document.getElementById('form-nuevo-servicio').reset();
+        document.getElementById('serv-titulo').innerText = s ? 'Editar servicio' : 'Nuevo Servicio';
+        v('serv-nombre', s && s.nombre);
+        v('serv-descripcion', s && s.descripcion);
+        v('serv-precio', s && s.precio_base);
+        v('serv-duracion', s ? (s.duracion_min || 30) : 30);
+        v('serv-cupo', s && s.cupo_diario);
+        document.getElementById('serv-pago-previo').checked = !!(s && s.requiere_pago_previo);
+        document.getElementById('serv-activo').checked = s ? s.activo !== false : true;
+        const tipo = (s && s.tipo) || 'Cita';
+        const fijo = !TIPOS_EDITABLES.includes(tipo);
+        const sel = document.getElementById('serv-tipo');
+        sel.innerHTML = '<option value="Cita">Cita (consulta, vacuna, cirugía, etc.)</option><option value="Grooming">Grooming</option>'
+            + (fijo ? `<option value="${esc(tipo)}">${esc(tipo)}</option>` : '');
+        sel.value = tipo;
+        sel.disabled = fijo;
+        document.getElementById('serv-tipo-fijo').style.display = fijo ? 'block' : 'none';
+        document.getElementById('serv-bloque-duracion').style.display = fijo ? 'none' : 'block';
+        document.getElementById('serv-bloque-cupo').style.display = tipo === 'Guarderia' ? 'block' : 'none';
+        document.getElementById('modal-nuevo-servicio').style.display = 'flex';
+    }
+    window.abrirModalNuevoServicio = () => prepararModalServicio(null);
+    window.editarServicioAdmin = (id) => prepararModalServicio(__servicios.find(s => s.id === id));
     window.cerrarModalNuevoServicio = () => document.getElementById('modal-nuevo-servicio').style.display = 'none';
     window.abrirModalNuevaEspecialidad = () => document.getElementById('modal-nueva-especialidad').style.display = 'flex';
     window.cerrarModalNuevaEspecialidad = () => document.getElementById('modal-nueva-especialidad').style.display = 'none';
 
     document.getElementById('form-nuevo-servicio').addEventListener('submit', async (e) => {
         e.preventDefault();
+        const precio = parseFloat(document.getElementById('serv-precio').value);
+        const activo = document.getElementById('serv-activo').checked;
+        const duracion = parseInt(document.getElementById('serv-duracion').value, 10);
+        const cupoTexto = document.getElementById('serv-cupo').value;
+        const tipo = document.getElementById('serv-tipo').value;
+        if (isNaN(precio) || precio < 0) { alert('Indica un precio válido.'); return; }
+        if (activo && precio === 0) { alert('Pon un precio mayor a 0 o deja el servicio inactivo.'); return; }
+        if (TIPOS_EDITABLES.includes(tipo) && (isNaN(duracion) || duracion < 15 || duracion > 480 || duracion % 15 !== 0)) {
+            alert('La duración debe estar entre 15 y 480 minutos, en múltiplos de 15.'); return;
+        }
+        const cuerpo = Object.assign({}, __servicioEditando || {}, {
+            nombre: document.getElementById('serv-nombre').value,
+            descripcion: document.getElementById('serv-descripcion').value,
+            precio_base: precio,
+            requiere_pago_previo: document.getElementById('serv-pago-previo').checked,
+            activo,
+            tipo
+        });
+        if (TIPOS_EDITABLES.includes(tipo)) cuerpo.duracion_min = duracion;
+        if (tipo === 'Guarderia') cuerpo.cupo_diario = cupoTexto ? parseInt(cupoTexto, 10) : null;
         try {
-            const res = await fetch(`${API_BASE}/servicios`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    nombre: document.getElementById('serv-nombre').value,
-                    descripcion: document.getElementById('serv-descripcion').value,
-                    precio_base: parseFloat(document.getElementById('serv-precio').value),
-                    requiere_pago_previo: document.getElementById('serv-pago-previo').checked
-                })
-            });
-            if (!res.ok) throw new Error();
-            __servicios.push(await res.json());
+            const guardado = await enviarJson(`${API_BASE}/servicios`, 'POST', cuerpo);
+            __servicios = __servicioEditando ? __servicios.map(s => s.id === guardado.id ? guardado : s) : __servicios.concat([guardado]);
             cerrarModalNuevoServicio();
-            document.getElementById('form-nuevo-servicio').reset();
             pintarServicios();
-        } catch { alert('No se pudo guardar el servicio.'); }
+        } catch (err) { alert(err.message); }
     });
-
     document.getElementById('form-nueva-especialidad').addEventListener('submit', async (e) => {
         e.preventDefault();
         try {
@@ -181,20 +227,19 @@
         if (!confirm('¿Dar de baja este servicio? Deja de ofrecerse, pero las citas anteriores conservan su historial. Puedes reactivarlo cuando quieras.')) return;
         try {
             const res = await fetch(`${API_BASE}/servicios/${id}`, { method: 'DELETE' });
-            if (!res.ok) throw new Error();
+            const data = await res.json().catch(() => ({}));
+            if (!res.ok) { alert(data.error || 'No se pudo dar de baja el servicio.'); return; }
             __servicios = __servicios.map(s => s.id === id ? { ...s, activo: false } : s);
             pintarServicios();
-        } catch { alert('No se pudo dar de baja el servicio.'); }
+        } catch { alert('No pudimos conectar con el servidor.'); }
     };
 
     window.reactivarServicioAdmin = async (id) => {
         try {
-            const res = await fetch(`${API_BASE}/servicios/${id}/reactivar`, { method: 'PATCH' });
-            if (!res.ok) throw new Error();
-            const data = await res.json();
+            const data = await enviarJson(`${API_BASE}/servicios/${id}/reactivar`, 'PATCH', {});
             __servicios = __servicios.map(s => s.id === id ? data : s);
             pintarServicios();
-        } catch { alert('No se pudo reactivar el servicio.'); }
+        } catch (err) { alert(err.message); }
     };
 
     window.eliminarEspecialidadAdmin = async (id) => {

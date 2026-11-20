@@ -7,6 +7,8 @@ logs/
 
 .env
 *.env
+.env.properties
+backend/.env.properties
 application-local.properties
 application-local.yml
 *.pem
@@ -14,8 +16,11 @@ application-local.yml
 
 backup_*.sql
 *.dump
+*.backup
 
-# IDEs
+node_modules/
+uploads_clinicos/
+
 .idea/
 *.iml
 .vscode/

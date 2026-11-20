@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="800" viewBox="0 0 800 800" role="img" aria-label="Producto sin foto">
+  <rect width="800" height="800" fill="#F3F4F6"/>
+  <g fill="#D1D5DB">
+    <ellipse cx="400" cy="470" rx="110" ry="95"/>
+    <ellipse cx="285" cy="345" rx="45" ry="58"/>
+    <ellipse cx="365" cy="290" rx="45" ry="60"/>
+    <ellipse cx="455" cy="290" rx="45" ry="60"/>
+    <ellipse cx="530" cy="345" rx="45" ry="58"/>
+  </g>
+  <text x="400" y="650" font-family="Poppins, Arial, sans-serif" font-size="40" font-weight="600" fill="#9CA3AF" text-anchor="middle">Sin foto</text>
+</svg>

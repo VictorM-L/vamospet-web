@@ -36,7 +36,7 @@ import java.util.Map;
 @Service
 public class ComprobantePdfService {
 
-    @Value("${app.frontend.url:http://127.0.0.1:5500/frontend/index.html}")
+    @Value("${app.frontend.url:http://localhost:8080/index.html}")
     private String frontendUrl;
 
     @Autowired private PagoRepository pagoRepositorio;
@@ -47,6 +47,11 @@ public class ComprobantePdfService {
     @Autowired private ServicioRepository servicioRepositorio;
     @Autowired private MascotaRepository mascotaRepositorio;
     @Autowired private CitaCostoAdicionalRepository costoRepositorio;
+    @Autowired private EstanciaRepository estanciaRepositorio;
+    @Autowired private CuartoRepository cuartoRepositorio;
+    @Autowired private ViajeSolicitudRepository viajeRepositorio;
+    @Autowired private ViajeMascotaRepository viajeMascotaRepositorio;
+    @Autowired private ConfiguracionService configuracion;
 
     private static final Color VERDE = new Color(22, 120, 80);
     private static final Color GRIS = new Color(107, 114, 128);
@@ -69,10 +74,11 @@ public class ComprobantePdfService {
         Font normal = FontFactory.getFont(FontFactory.HELVETICA, 10);
         Font chico = FontFactory.getFont(FontFactory.HELVETICA, 8, GRIS);
 
-        Paragraph p = new Paragraph("Vamos Pet", titulo);
+        ConfiguracionClinica clinica = configuracion.actual();
+        Paragraph p = new Paragraph(vacio(clinica.getNombre()) ? "Vamos Pet Clínica Veterinaria" : clinica.getNombre(), titulo);
         p.setAlignment(Element.ALIGN_CENTER);
         doc.add(p);
-        Paragraph sub = new Paragraph("Clínica Veterinaria", chico);
+        Paragraph sub = new Paragraph(datosClinica(clinica), chico);
         sub.setAlignment(Element.ALIGN_CENTER);
         sub.setSpacingAfter(10);
         doc.add(sub);
@@ -90,7 +96,7 @@ public class ComprobantePdfService {
         if (cliente != null && cliente.getDni() != null && cliente.getDni().length() > 2) {
             doc.add(new Paragraph("DNI: " + cliente.getDni().substring(0, 2) + "*".repeat(cliente.getDni().length() - 2), normal));
         }
-        doc.add(new Paragraph("Método de pago: " + (pago != null && pago.getMetodo() != null ? pago.getMetodo() : "—"), normal));
+        doc.add(new Paragraph("Método de pago: " + descripcionMetodo(pago), normal));
 
         PdfPTable tabla = new PdfPTable(new float[]{5f, 1.3f, 2f, 2f});
         tabla.setWidthPercentage(100);
@@ -127,6 +133,40 @@ public class ComprobantePdfService {
                     suma = suma.add(x.getMonto());
                 }
             }
+        } else if (pago != null && pago.getEstancia_id() != null) {
+            Estancia e = estanciaRepositorio.findById(pago.getEstancia_id()).orElse(null);
+            if (e != null) {
+                Mascota m = mascotaRepositorio.findById(e.getMascota_id()).orElse(null);
+                Cuarto cuarto = e.getCuarto_id() == null ? null : cuartoRepositorio.findById(e.getCuarto_id()).orElse(null);
+                java.time.LocalDateTime hasta = e.getSalida_real() != null ? e.getSalida_real() : e.getSalida_estimada();
+                boolean guarderia = EstanciaService.GUARDERIA.equals(e.getTipo());
+                long unidades = guarderia ? EstanciaService.dias(e.getIngreso(), e.getSalida_estimada())
+                        : Math.max(1, (long) Math.ceil(java.time.Duration.between(e.getIngreso(), hasta).toMinutes() / 1440.0));
+                String unidad = "Hospedaje".equals(e.getTipo()) ? "noche(s)" : "día(s)";
+                fila(tabla, (guarderia ? "Guardería" : e.getTipo()) + (m != null ? " — " + m.getNombre() : "") + (cuarto != null ? " (" + cuarto.getNombre() + ")" : ""),
+                        String.valueOf(unidades), e.getPrecio_unitario(), e.getPrecio_unitario().multiply(BigDecimal.valueOf(unidades)), normal);
+                suma = suma.add(e.getPrecio_unitario().multiply(BigDecimal.valueOf(unidades)));
+                DateTimeFormatter f = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
+                doc.add(new Paragraph("Ingreso: " + e.getIngreso().format(f) + "   Salida " + (e.getSalida_real() != null ? "real: " : "prevista: ")
+                        + hasta.format(f) + "   (" + unidades + " " + unidad + ")", chico));
+            }
+        } else if (pago != null && pago.getViaje_id() != null) {
+            ViajeSolicitud v = viajeRepositorio.findById(pago.getViaje_id()).orElse(null);
+            if (v != null) {
+                BigDecimal base = precioServicio(ViajeService.SERVICIO_BASE);
+                BigDecimal adicional = precioServicio(ViajeService.SERVICIO_ADICIONAL);
+                List<ViajeMascota> mascotas = viajeMascotaRepositorio.findAll().stream().filter(x -> v.getId().equals(x.getViaje_id())).toList();
+                int i = 0;
+                for (ViajeMascota vm : mascotas) {
+                    Mascota m = mascotaRepositorio.findById(vm.getMascota_id()).orElse(null);
+                    BigDecimal precio = i == 0 ? base : adicional;
+                    fila(tabla, (i == 0 ? "Viaja con tu mascota — " : "Mascota adicional — ") + (m != null ? m.getNombre() : "#" + vm.getMascota_id()), "1", precio, precio, normal);
+                    suma = suma.add(precio);
+                    i++;
+                }
+                doc.add(new Paragraph("Fecha de viaje: " + v.getFecha_viaje().format(DateTimeFormatter.ofPattern("dd/MM/yyyy"))
+                        + (v.getDestino() != null ? "   Destino: " + v.getDestino() : ""), chico));
+            }
         }
         doc.add(tabla);
 
@@ -150,6 +190,33 @@ public class ComprobantePdfService {
 
         doc.close();
         return salida.toByteArray();
+    }
+
+    static String datosClinica(ConfiguracionClinica c) {
+        StringBuilder sb = new StringBuilder();
+        for (String parte : new String[]{c.getDireccion(), c.getTelefono() == null || c.getTelefono().isBlank() ? null : "Tel. " + c.getTelefono(), c.getCorreo()}) {
+            if (vacio(parte)) continue;
+            if (sb.length() > 0) sb.append("  ·  ");
+            sb.append(parte.trim());
+        }
+        return sb.length() == 0 ? "Clínica Veterinaria" : sb.toString();
+    }
+
+    private static boolean vacio(String s) {
+        return s == null || s.isBlank();
+    }
+
+    private BigDecimal precioServicio(String nombre) {
+        return servicioRepositorio.findAll().stream()
+                .filter(x -> x.getNombre() != null && x.getNombre().equalsIgnoreCase(nombre) && x.getPrecio_base() != null)
+                .map(Servicio::getPrecio_base).findFirst().orElse(BigDecimal.ZERO);
+    }
+
+    private String descripcionMetodo(Pago pago) {
+        if (pago == null || pago.getMetodo() == null) return "—";
+        if (PagoService.TARJETA.equals(pago.getMetodo()) && pago.getTarjeta_ultimos4() != null) return "Tarjeta terminada en " + pago.getTarjeta_ultimos4();
+        if (PagoService.YAPE.equals(pago.getMetodo()) && pago.getOperacion_yape() != null) return "Yape (operación " + pago.getOperacion_yape() + ")";
+        return pago.getMetodo();
     }
 
     private void fila(PdfPTable t, String desc, String cant, BigDecimal pu, BigDecimal sub, Font f) {

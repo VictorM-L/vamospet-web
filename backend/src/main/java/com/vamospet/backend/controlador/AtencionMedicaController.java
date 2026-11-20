@@ -19,8 +19,16 @@ public class AtencionMedicaController {
     @Autowired
     private AtencionMedicaService servicio;
 
+    @Autowired
+    private com.vamospet.backend.repositorio.CirugiaProgramadaRepository cirugiaRepositorio;
+
     @PostMapping("/{id}/atender")
     public ResponseEntity<?> atender(@PathVariable Integer id, @RequestBody Map<String, Object> body) {
+        boolean esCirugia = cirugiaRepositorio.findAll().stream()
+                .anyMatch(c -> id.equals(c.getCita_id()) && !"Cancelada".equals(c.getEstado()));
+        if (esCirugia) {
+            return ResponseEntity.status(409).body(Map.of("error", "Esta cita es una cirugía: regístrala paso a paso en el tablero de cirugías."));
+        }
         try {
             Integer usuarioId = body.get("usuario_id") == null ? null : Integer.valueOf(body.get("usuario_id").toString());
             LocalDate proxima = texto(body, "vacuna_proxima_dosis") == null ? null : LocalDate.parse(texto(body, "vacuna_proxima_dosis"));

@@ -1,6 +1,8 @@
 package com.vamospet.backend.controlador;
 
 import com.vamospet.backend.modelo.Cita;
+import com.vamospet.backend.permisos.Rol;
+import com.vamospet.backend.permisos.UsuarioActual;
 import com.vamospet.backend.modelo.CitaCostoAdicional;
 import com.vamospet.backend.modelo.Servicio;
 import com.vamospet.backend.modelo.Usuario;
@@ -38,11 +40,13 @@ public class CostoAdicionalController {
         if (base == null) base = BigDecimal.ZERO;
         BigDecimal sumaExtras = extras.stream().map(CitaCostoAdicional::getMonto).reduce(BigDecimal.ZERO, BigDecimal::add);
         Map<String, Object> r = new LinkedHashMap<>();
-        r.put("base", base);
         r.put("extras", extras);
-        r.put("total_extras", sumaExtras);
-        r.put("total", base.add(sumaExtras));
         r.put("editable", motivoBloqueo(cita) == null);
+        if (!UsuarioActual.es(Rol.VETERINARIO)) {
+            r.put("base", base);
+            r.put("total_extras", sumaExtras);
+            r.put("total", base.add(sumaExtras));
+        }
         return ResponseEntity.ok(r);
     }
 
@@ -72,7 +76,8 @@ public class CostoAdicionalController {
     }
 
     @DeleteMapping("/{costoId}")
-    public ResponseEntity<?> quitar(@PathVariable Integer citaId, @PathVariable Integer costoId, @RequestParam Integer usuarioId) {
+    public ResponseEntity<?> quitar(@PathVariable Integer citaId, @PathVariable Integer costoId) {
+        Integer usuarioId = UsuarioActual.id();
         Cita cita = citaRepositorio.findById(citaId).orElse(null);
         CitaCostoAdicional c = repositorio.findById(costoId).orElse(null);
         if (cita == null || c == null || !citaId.equals(c.getCita_id())) return ResponseEntity.notFound().build();
@@ -83,7 +88,7 @@ public class CostoAdicionalController {
     }
 
     private String motivoBloqueo(Cita cita) {
-        if ("Cancelada".equals(cita.getEstado()) || "No asistió".equals(cita.getEstado())) {
+        if ("Cancelada".equals(cita.getEstado()) || "No asistió".equals(cita.getEstado()) || "Rechazada".equals(cita.getEstado())) {
             return "La cita está " + cita.getEstado() + "; ya no admite costos adicionales.";
         }
         boolean cobrada = pagoRepositorio.findAll().stream().anyMatch(p -> cita.getId().equals(p.getCita_id()));
@@ -96,8 +101,8 @@ public class CostoAdicionalController {
         try {
             if (usuarioId != null) u = usuarioRepositorio.findById(Integer.valueOf(usuarioId.toString())).orElse(null);
         } catch (NumberFormatException ignorado) { }
-        if (u == null || (!Integer.valueOf(3).equals(u.getRol_id()) && !Integer.valueOf(1).equals(u.getRol_id()))) {
-            return "Solo el veterinario (o el Administrador) puede modificar los costos de una cita.";
+        if (u == null || !Integer.valueOf(3).equals(u.getRol_id())) {
+            return "Solo el veterinario puede modificar los costos adicionales de una cita.";
         }
         if (Integer.valueOf(3).equals(u.getRol_id()) && cita.getVeterinario_id() != null && !cita.getVeterinario_id().equals(u.getId())) {
             return "Esta cita está asignada a otro veterinario.";

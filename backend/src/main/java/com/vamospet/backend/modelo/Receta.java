@@ -17,6 +17,10 @@ public class Receta {
     private String contenido;
     private String archivo_url;
     private String estado = "Pendiente"; 
+    private Boolean usada = false;
+    private LocalDateTime usada_en;
+    private LocalDateTime aprobada_en;
+    private Integer pedido_id;
 
     public Integer getId() { return id; }
     public void setId(Integer id) { this.id = id; }
@@ -38,4 +42,13 @@ public class Receta {
 
     public String getEstado() { return estado; }
     public void setEstado(String estado) { this.estado = estado; }
+
+    public Boolean getUsada() { return usada; }
+    public void setUsada(Boolean usada) { this.usada = usada; }
+    public LocalDateTime getUsada_en() { return usada_en; }
+    public void setUsada_en(LocalDateTime usada_en) { this.usada_en = usada_en; }
+    public LocalDateTime getAprobada_en() { return aprobada_en; }
+    public void setAprobada_en(LocalDateTime aprobada_en) { this.aprobada_en = aprobada_en; }
+    public Integer getPedido_id() { return pedido_id; }
+    public void setPedido_id(Integer pedido_id) { this.pedido_id = pedido_id; }
 }

@@ -58,4 +58,8 @@ public class Usuario {
 
     public Boolean getActivo() { return activo; }
     public void setActivo(Boolean activo) { this.activo = activo; }
+
+    private Boolean hace_grooming = false;
+    public Boolean getHace_grooming() { return hace_grooming; }
+    public void setHace_grooming(Boolean hace_grooming) { this.hace_grooming = hace_grooming; }
 }

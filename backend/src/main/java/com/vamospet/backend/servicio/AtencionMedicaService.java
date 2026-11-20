@@ -26,6 +26,7 @@ public class AtencionMedicaService {
     @Autowired private UsuarioRepository usuarioRepositorio;
     @Autowired private AutorizacionService autorizacion;
     @Autowired private NotificacionService notificacionService;
+    @Autowired private ExamenService examenService;
 
     public record DatosAtencion(String diagnostico, String tratamiento, String vacunaNombre, LocalDate vacunaProximaDosis) {}
 
@@ -88,6 +89,7 @@ public class AtencionMedicaService {
         cita.setEstado("Atendida");
         Cita guardada = citaRepositorio.save(cita);
         notificacionService.cancelarProgramadas("cita:" + guardada.getId());
+        examenService.sincronizarConCita(guardada.getId(), "Atendida");
         if (mascota.getUsuario_id() != null) {
             notificacionService.notificar(mascota.getUsuario_id(), "Atención registrada",
                     mascota.getNombre() + " fue atendido. Puedes ver el detalle en su historial médico.", "Cita");

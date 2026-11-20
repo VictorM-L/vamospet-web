@@ -1,0 +1,205 @@
+<div class="fade-in lab-hero" style="padding: 60px 20px;">
+    <span style="background: rgba(255,255,255,0.1); padding: 8px 16px; border-radius: 20px; font-size: 12px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase;">Viaja con tu mascota</span>
+    <h1 style="font-size: 32px; font-weight: 800; margin: 15px 0;">Solicita tu certificación de viaje</h1>
+    <p id="vj-tarifa" style="opacity:.85;"></p>
+</div>
+
+<div class="fade-in" style="max-width: 720px; margin: 0 auto 80px auto; padding: 0 20px;">
+    <div class="admin-table-container" style="margin-bottom: 24px;">
+        <div class="input-group"><label>Documentos requeridos * (PDF o JPEG, cada documento hasta 5 MB)</label><div id="vj-requisitos" class="documentos-viaje"></div></div>
+        <div class="input-group"><label>Mascotas que viajarán *</label><div id="vj-mascotas" style="display:flex; flex-direction:column; gap:8px;"></div></div>
+        <div style="display:flex; gap:12px; flex-wrap:wrap;">
+            <div class="input-group" style="flex:1; min-width:160px;"><label>Fecha de viaje *</label><input type="date" id="vj-fecha"></div>
+            <div class="input-group" style="flex:2; min-width:200px;"><label>Destino *</label><input type="text" id="vj-destino" maxlength="150" placeholder="Ciudad, país"></div>
+        </div>
+        <div id="vj-resumen" style="background:#F9FAFB; border-radius:10px; padding:12px; margin:10px 0; font-size:14px; color:var(--text-muted);">Elige al menos una mascota para ver el precio.</div>
+        <p id="vj-error" style="color:#DC2626; font-size:13px; display:none; margin-bottom:10px;"></p>
+        <button class="btn-primary" id="vj-enviar" style="width:100%; padding:12px;">Enviar solicitud y pagar</button>
+    </div>
+    <h2 style="font-size:18px; font-weight:800; margin-bottom:12px;">Mis solicitudes</h2>
+    <div id="vj-lista"></div>
+</div>
+
+<script>
+(function () {
+    const usuarioJSON = localStorage.getItem('usuarioLogueado');
+    if (!usuarioJSON) { cargarVista('login'); return; }
+    const usuario = JSON.parse(usuarioJSON);
+    const $ = (id) => document.getElementById(id);
+    let tarifa = { base: 0, adicional: 0, maximo_mascotas: 6 };
+    let requisitos = [];
+    const LIMITE_BYTES = 5 * 1024 * 1024;
+
+    function validarArchivos(archivos) {
+        for (const [r, f] of archivos) {
+            if (!/\.(pdf|jpe?g)$/i.test(f.name)) return `${r.etiqueta}: debe ser PDF o JPEG.`;
+            if (f.size > LIMITE_BYTES) return `${r.etiqueta}: cada documento puede pesar hasta 5 MB.`;
+        }
+        return null;
+    }
+    const hoy = new Date();
+    $('vj-fecha').min = `${hoy.getFullYear()}-${String(hoy.getMonth() + 1).padStart(2, '0')}-${String(hoy.getDate()).padStart(2, '0')}`;
+
+    function seleccionadas() {
+        return [...document.querySelectorAll('.vj-chk:checked')].map(c => Number(c.value));
+    }
+
+    function total(n) {
+        return n === 0 ? 0 : Number(tarifa.base) + Number(tarifa.adicional) * (n - 1);
+    }
+
+    function actualizarResumen() {
+        const n = seleccionadas().length;
+        $('vj-resumen').innerHTML = n === 0
+            ? 'Elige al menos una mascota para ver el precio.'
+            : `${n} mascota(s): base S/ ${Number(tarifa.base).toFixed(2)}${n > 1 ? ` + ${n - 1} adicional(es) × S/ ${Number(tarifa.adicional).toFixed(2)}` : ''} = <strong>S/ ${total(n).toFixed(2)}</strong>`;
+    }
+
+    function mostrarError(t) {
+        const e = $('vj-error');
+        e.textContent = t || '';
+        e.style.display = t ? 'block' : 'none';
+    }
+
+    $('vj-enviar').addEventListener('click', () => {
+        mostrarError('');
+        const ids = seleccionadas();
+        const archivos = requisitos.map(r => [r, ($('vj-req-' + r.clave).files || [])[0]]);
+        const fecha = $('vj-fecha').value;
+        const destino = $('vj-destino').value.trim();
+        const faltan = archivos.filter(([, f]) => !f).map(([r]) => r.etiqueta);
+        if (faltan.length) return mostrarError('Falta adjuntar: ' + faltan.join(', ') + '.');
+        const errorArchivos = validarArchivos(archivos);
+        if (errorArchivos) return mostrarError(errorArchivos);
+        if (ids.length === 0) return mostrarError('Elige al menos una mascota.');
+        if (ids.length > tarifa.maximo_mascotas) return mostrarError(`Máximo ${tarifa.maximo_mascotas} mascotas por viaje.`);
+        if (!fecha) return mostrarError('Indica la fecha de viaje.');
+        if (destino.length < 2) return mostrarError('Indica el destino.');
+        abrirModalPago({
+            titulo: 'Pagar solicitud de viaje',
+            monto: total(ids.length),
+            detalle: `${ids.length} mascota(s) hacia ${destino}`,
+            enviar: async (datos) => {
+                const fd = new FormData();
+                fd.append('usuario_id', usuario.id);
+                fd.append('mascotas', ids.join(','));
+                fd.append('fecha_viaje', fecha);
+                fd.append('destino', destino);
+                fd.append('metodo', datos.metodo);
+                if (datos.correo_tarjeta) fd.append('correo_tarjeta', datos.correo_tarjeta);
+                if (datos.tarjeta_ultimos4) fd.append('tarjeta_ultimos4', datos.tarjeta_ultimos4);
+                if (datos.operacion_yape) fd.append('operacion_yape', datos.operacion_yape);
+                archivos.forEach(([r, f]) => fd.append(r.clave, f));
+                const res = await fetch(`${API_BASE}/cliente/viajes/solicitar`, { method: 'POST', body: fd });
+                const data = await res.json().catch(() => ({}));
+                if (!res.ok) throw new Error(data.error || 'No se pudo enviar la solicitud.');
+                return data;
+            },
+            alExito: (resp) => {
+                alert(resp.pago && resp.pago.estado === 'Por_confirmar'
+                    ? 'Solicitud recibida. Confirmaremos tu pago de Yape y luego revisaremos tu documento.'
+                    : 'Solicitud registrada. Revisaremos tus documentos y te avisaremos.');
+                if (resp.comprobante) abrirArchivoApi(`${API_BASE}/comprobantes/${resp.comprobante.id}/pdf?usuarioId=${usuario.id}`);
+                requisitos.forEach(r => $('vj-req-' + r.clave).value = '');
+                cargarLista();
+            }
+        });
+    });
+
+    window.verDocumentoViaje = function (id) {
+        abrirArchivoApi(`${API_BASE}/viajes/${id}/documento?usuarioId=${usuario.id}`);
+    };
+
+    window.verDocumentoRequisito = function (viajeId, docId) {
+        abrirArchivoApi(`${API_BASE}/viajes/${viajeId}/documentos/${docId}?usuarioId=${usuario.id}`);
+    };
+
+    window.reenviarDocumentosViaje = async function (viajeId) {
+        const inputs = [...document.querySelectorAll(`.vj-reenvio[data-viaje="${viajeId}"]`)];
+        const archivos = inputs.filter(i => i.files[0]).map(i => [requisitos.find(r => r.clave === i.dataset.requisito) || { etiqueta: i.dataset.requisito, clave: i.dataset.requisito }, i.files[0]]);
+        if (archivos.length < inputs.length) { alert('Adjunta todos los documentos observados.'); return; }
+        const error = validarArchivos(archivos);
+        if (error) { alert(error); return; }
+        const fd = new FormData();
+        fd.append('usuario_id', usuario.id);
+        archivos.forEach(([r, f]) => fd.append(r.clave, f));
+        const res = await fetch(`${API_BASE}/cliente/viajes/${viajeId}/documentos`, { method: 'POST', body: fd });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) { alert(data.error || 'No se pudieron enviar los documentos.'); return; }
+        alert('Documentos enviados. Tu solicitud vuelve a revisión.');
+        cargarLista();
+    };
+
+    function bloqueDocumentos(v) {
+        const docs = v.documentos || [];
+        if (v.documento_unico && !docs.some(d => d.id)) {
+            return `<button class="btn-outline" style="padding:6px 12px; font-size:12px;" onclick="verDocumentoViaje(${v.id})"><i class="fa-solid fa-paperclip"></i> Mi documento</button>`;
+        }
+        const rechazada = v.estado === 'Rechazada';
+        const filas = docs.map(d => {
+            const corregir = rechazada && (!d.id || d.estado === 'Observado');
+            const etiqueta = { 'Aceptado': 'status-completado', 'Observado': 'status-cancelada', 'Pendiente': 'status-pendiente' }[d.estado] || 'status-pendiente';
+            return `<div class="documento-viaje ${corregir ? 'observado' : ''}">
+                <span><strong>${esc(d.etiqueta)}</strong>${d.estado ? ` <span class="status-badge ${etiqueta}">${esc(d.estado === 'Pendiente' ? 'En revisión' : d.estado)}</span>` : ''}</span>
+                <span>${d.id ? `<button class="btn-outline" style="padding:4px 10px; font-size:12px;" onclick="verDocumentoRequisito(${v.id}, ${d.id})"><i class="fa-solid fa-paperclip"></i> Ver</button>` : ''}
+                ${corregir ? `<input type="file" class="vj-reenvio" data-viaje="${v.id}" data-requisito="${esc(d.requisito)}" accept=".pdf,.jpg,.jpeg,application/pdf,image/jpeg" style="font-size:12px;">` : ''}</span>
+            </div>`;
+        }).join('');
+        const boton = rechazada ? `<button class="btn-primary" style="padding:6px 12px; font-size:12px; margin-top:6px;" onclick="reenviarDocumentosViaje(${v.id})"><i class="fa-solid fa-upload"></i> Reenviar documentos corregidos</button>` : '';
+        return `<div class="documentos-viaje">${filas}</div>${boton}`;
+    }
+
+    window.verComprobanteViaje = function (id) {
+        abrirArchivoApi(`${API_BASE}/comprobantes/${id}/pdf?usuarioId=${usuario.id}`);
+    };
+
+    async function cargarLista() {
+        const res = await fetch(`${API_BASE}/viajes?usuarioId=${usuario.id}`);
+        const lista = res.ok ? await res.json() : [];
+        const clase = { 'Aprobada': 'status-completado', 'Rechazada': 'status-cancelada', 'Cancelada': 'status-cancelada' };
+        $('vj-lista').innerHTML = lista.length === 0
+            ? '<p style="color:var(--text-muted);">Aún no tienes solicitudes.</p>'
+            : lista.map(v => `
+                <div class="admin-table-container" style="margin-bottom:12px;">
+                    <div style="display:flex; justify-content:space-between; gap:10px; flex-wrap:wrap;">
+                        <div>
+                            <h3 style="font-size:15px; font-weight:700;">Viaje a ${esc(v.destino)} · ${esc(v.fecha_viaje)}</h3>
+                            <p style="font-size:12px; color:var(--text-muted);">${esc((v.mascotas || []).join(', '))}</p>
+                            ${v.observaciones ? `<p style="font-size:12px; margin-top:4px;">${esc(v.observaciones)}</p>` : ''}
+                        </div>
+                        <div style="text-align:right;">
+                            <p style="font-weight:800;">S/ ${Number(v.total).toFixed(2)}</p>
+                            <span class="status-badge ${clase[v.estado] || 'status-pendiente'}">${esc(v.estado.replace(/_/g, ' '))}</span>
+                        </div>
+                    </div>
+                    <div style="margin-top:8px;">${bloqueDocumentos(v)}</div>
+                    <div style="margin-top:8px; display:flex; gap:8px; flex-wrap:wrap;">
+                        ${v.comprobante_id ? `<button class="btn-outline" style="padding:6px 12px; font-size:12px;" onclick="verComprobanteViaje(${v.comprobante_id})"><i class="fa-solid fa-file-pdf"></i> Comprobante</button>` : ''}
+                    </div>
+                </div>`).join('');
+    }
+
+    async function init() {
+        try {
+            const [rt, rm, rr] = await Promise.all([
+                fetch(`${API_BASE}/viajes/tarifa`),
+                fetch(`${API_BASE}/mascotas/usuario/${usuario.id}`),
+                fetch(`${API_BASE}/viajes/requisitos`)
+            ]);
+            if (rt.ok) tarifa = await rt.json();
+            requisitos = rr.ok ? await rr.json() : [];
+            $('vj-requisitos').innerHTML = requisitos.map(r => `<div class="documento-viaje"><label for="vj-req-${esc(r.clave)}"><strong>${esc(r.etiqueta)}</strong></label><input type="file" id="vj-req-${esc(r.clave)}" accept=".pdf,.jpg,.jpeg,application/pdf,image/jpeg" style="font-size:12px;"></div>`).join('');
+            const mascotas = rm.ok ? await rm.json() : [];
+            $('vj-tarifa').textContent = `Base S/ ${Number(tarifa.base).toFixed(2)} + S/ ${Number(tarifa.adicional).toFixed(2)} por cada mascota adicional`;
+            $('vj-mascotas').innerHTML = mascotas.length === 0
+                ? '<span style="color:var(--text-muted);">Primero registra una mascota.</span>'
+                : mascotas.map(m => `<label style="display:flex; gap:8px; align-items:center; font-weight:500;"><input type="checkbox" class="vj-chk" value="${m.id}" style="width:auto;"> ${esc(m.nombre)}</label>`).join('');
+            document.querySelectorAll('.vj-chk').forEach(c => c.addEventListener('change', actualizarResumen));
+        } catch (e) {
+            $('vj-tarifa').textContent = 'No se pudo conectar con el servidor.';
+        }
+        cargarLista();
+    }
+    init();
+})();
+</script>

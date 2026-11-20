@@ -1,0 +1,177 @@
+<div class="fade-in lab-hero" style="padding: 60px 20px;">
+    <span style="background: rgba(255,255,255,0.1); padding: 8px 16px; border-radius: 20px; font-size: 12px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase;">Hospedaje</span>
+    <h1 style="font-size: 32px; font-weight: 800; margin: 15px 0;">Reserva hospedaje o guardería para tu mascota</h1>
+    <p id="hs-config" style="opacity:.85;"></p>
+</div>
+
+<div class="fade-in" style="max-width: 720px; margin: 0 auto 80px auto; padding: 0 20px;">
+    <div class="admin-table-container" style="margin-bottom: 24px;">
+        <div class="selector-modalidad">
+            <button type="button" class="btn-outline activo" id="hs-mod-noche" onclick="elegirModalidad('Hospedaje')"><i class="fa-solid fa-moon"></i> Hospedaje por noche</button>
+            <button type="button" class="btn-outline" id="hs-mod-dia" onclick="elegirModalidad('Guarderia')"><i class="fa-solid fa-sun"></i> Guardería por día</button>
+        </div>
+        <p id="hs-mod-ayuda" style="font-size:13px; color:var(--text-muted); margin-bottom:12px;"></p>
+        <div class="input-group"><label>Mascota *</label><select id="hs-mascota"></select></div>
+        <div style="display:flex; gap:12px; flex-wrap:wrap;">
+            <div class="input-group" style="flex:1; min-width:160px;"><label>Ingreso (fecha) *</label><input type="date" id="hs-ing-f"></div>
+            <div class="input-group" style="flex:1; min-width:120px;"><label>Hora *</label><input type="time" id="hs-ing-h" value="09:00" step="1800"></div>
+        </div>
+        <div style="display:flex; gap:12px; flex-wrap:wrap;">
+            <div class="input-group" style="flex:1; min-width:160px;"><label>Salida (fecha) *</label><input type="date" id="hs-sal-f"></div>
+            <div class="input-group" style="flex:1; min-width:120px;"><label>Hora *</label><input type="time" id="hs-sal-h" value="18:00" step="1800"></div>
+        </div>
+        <div class="input-group"><label>Cuidados especiales (opcional)</label><textarea id="hs-cuidados" rows="2" maxlength="500" placeholder="Alimentación, medicación, miedos, juguetes favoritos"></textarea></div>
+        <div id="hs-resumen" style="background:#F9FAFB; border-radius:10px; padding:12px; margin:10px 0; font-size:14px; color:var(--text-muted);">Elige las fechas para ver disponibilidad y precio.</div>
+        <p id="hs-error" style="color:#DC2626; font-size:13px; display:none; margin-bottom:10px;"></p>
+        <button class="btn-primary" id="hs-reservar" style="width:100%; padding:12px;" disabled>Reservar y pagar</button>
+    </div>
+    <h2 style="font-size:18px; font-weight:800; margin-bottom:12px;">Mis reservas</h2>
+    <div id="hs-lista"></div>
+</div>
+
+<script>
+(function () {
+    const usuarioJSON = localStorage.getItem('usuarioLogueado');
+    if (!usuarioJSON) { cargarVista('login'); return; }
+    const usuario = JSON.parse(usuarioJSON);
+    let vigente = null, modalidad = 'Hospedaje', cfg = null;
+
+    const $ = (id) => document.getElementById(id);
+    const hoy = new Date();
+    const iso = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    $('hs-ing-f').min = iso(hoy);
+    $('hs-sal-f').min = iso(hoy);
+
+    function rango() {
+        const a = $('hs-ing-f').value, b = $('hs-ing-h').value, c = $('hs-sal-f').value, d = $('hs-sal-h').value;
+        if (!a || !b || !c || !d) return null;
+        return { ingreso: `${a}T${b}:00`, salida: `${c}T${d}:00` };
+    }
+
+    function mostrarError(t) {
+        const e = $('hs-error');
+        e.textContent = t || '';
+        e.style.display = t ? 'block' : 'none';
+    }
+
+    async function consultar() {
+        mostrarError('');
+        $('hs-reservar').disabled = true;
+        vigente = null;
+        const r = rango();
+        if (!r) return;
+        const res = await fetch(`${API_BASE}/hospedaje/disponibilidad?ingreso=${encodeURIComponent(r.ingreso)}&salida=${encodeURIComponent(r.salida)}&modalidad=${modalidad}`);
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) { $('hs-resumen').textContent = data.error || 'Fechas no válidas.'; return; }
+        vigente = data;
+        if (modalidad === 'Guarderia') {
+            $('hs-resumen').innerHTML = data.hay_cupo
+                ? `Hay cupo todos los días · ${data.dias} día(s) × S/ ${Number(data.precio_dia).toFixed(2)} = <strong>S/ ${Number(data.total).toFixed(2)}</strong>`
+                : `Sin cupo el <strong>${esc(data.dia_sin_cupo)}</strong> (máximo ${data.cupo_diario} mascotas por día). Prueba otras fechas.`;
+            $('hs-reservar').disabled = !data.hay_cupo || !$('hs-mascota').value;
+            return;
+        }
+        $('hs-resumen').innerHTML = `<strong>${data.cuartos_libres}</strong> de ${data.total_cuartos} cuartos disponibles · ${data.noches} noche(s) × S/ ${Number(data.precio_noche).toFixed(2)} = <strong>S/ ${Number(data.total).toFixed(2)}</strong>`;
+        $('hs-reservar').disabled = data.cuartos_libres < 1 || !$('hs-mascota').value;
+    }
+
+    ['hs-ing-f', 'hs-ing-h', 'hs-sal-f', 'hs-sal-h', 'hs-mascota'].forEach(id => $(id).addEventListener('change', consultar));
+
+    function pintarModalidad() {
+        $('hs-mod-noche').classList.toggle('activo', modalidad === 'Hospedaje');
+        $('hs-mod-dia').classList.toggle('activo', modalidad === 'Guarderia');
+        if (!cfg) return;
+        $('hs-mod-ayuda').textContent = modalidad === 'Guarderia'
+            ? `Tu mascota pasa el día con nosotros, sin cuarto. Cobro por día (cuenta el primero y el último) · S/ ${Number(cfg.precio_dia_guarderia).toFixed(2)} por día · hasta ${cfg.maximo_dias_guarderia} días.`
+            : `Tu mascota se queda en un cuarto. Cobro por noche · S/ ${Number(cfg.precio_noche).toFixed(2)} por noche · hasta ${cfg.maximo_noches} noches.`;
+    }
+
+    window.elegirModalidad = function (m) {
+        if (m === 'Guarderia' && cfg && !cfg.guarderia_disponible) { alert('La guardería aún no está disponible.'); return; }
+        modalidad = m;
+        pintarModalidad();
+        consultar();
+    };
+
+    $('hs-reservar').addEventListener('click', () => {
+        const r = rango();
+        if (!r || !vigente) return;
+        const mascotaId = Number($('hs-mascota').value);
+        const guarderia = modalidad === 'Guarderia';
+        abrirModalPago({
+            titulo: guarderia ? 'Pagar guardería' : 'Pagar hospedaje',
+            monto: vigente.total,
+            detalle: guarderia ? `${vigente.dias} día(s) de guardería` : `${vigente.noches} noche(s) de hospedaje`,
+            enviar: (datos) => enviarJson(`${API_BASE}/cliente/hospedaje/reservar`, 'POST',
+                { usuario_id: usuario.id, modalidad, mascota_id: mascotaId, ingreso: r.ingreso, salida: r.salida, cuidados_especiales: $('hs-cuidados').value, ...datos }),
+            alExito: (resp) => {
+                const comp = resp.comprobante;
+                alert(resp.pago && resp.pago.estado === 'Por_confirmar'
+                    ? 'Reserva registrada. Confirmaremos tu pago de Yape para finalizarla.'
+                    : 'Reserva confirmada.');
+                if (comp) abrirArchivoApi(`${API_BASE}/comprobantes/${comp.id}/pdf?usuarioId=${usuario.id}`);
+                cargarLista();
+                consultar();
+            }
+        });
+    });
+
+    window.verComprobanteEstancia = function (id) {
+        abrirArchivoApi(`${API_BASE}/comprobantes/${id}/pdf?usuarioId=${usuario.id}`);
+    };
+
+    window.pagarEstancia = function (id, total) {
+        pagarReferencia('estancia', id, total, 'Pagar internamiento', 'Internamiento #' + id, cargarLista);
+    };
+
+    function fmt(f) {
+        return f ? new Date(f).toLocaleString('es-PE', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }) : '—';
+    }
+
+    async function cargarLista() {
+        const res = await fetch(`${API_BASE}/estancias?usuarioId=${usuario.id}`);
+        const lista = res.ok ? await res.json() : [];
+        $('hs-lista').innerHTML = lista.length === 0
+            ? '<p style="color:var(--text-muted);">Aún no tienes reservas.</p>'
+            : lista.map(e => `
+                <div class="admin-table-container" style="margin-bottom:12px;">
+                    <div style="display:flex; justify-content:space-between; gap:10px; flex-wrap:wrap;">
+                        <div>
+                            <h3 style="font-size:15px; font-weight:700;">${esc(e.tipo === 'Guarderia' ? 'Guardería' : e.tipo)} · ${esc(e.mascota || '')}</h3>
+                            <p style="font-size:12px; color:var(--text-muted);">${e.cuarto ? esc(e.cuarto) + ' · ' : ''}${fmt(e.ingreso)} → ${fmt(e.salida_real || e.salida_estimada)}</p>
+                            ${e.cuidados_especiales ? `<p style="font-size:12px; color:var(--text-muted);">Cuidados: ${esc(e.cuidados_especiales)}</p>` : ''}
+                        </div>
+                        <div style="text-align:right;">
+                            <p style="font-weight:800;">S/ ${Number(e.total || 0).toFixed(2)}</p>
+                            <span class="status-badge ${e.estado === 'Cancelada' ? 'status-cancelada' : (e.estado === 'Finalizada' ? 'status-completado' : 'status-confirmada')}">${esc(e.estado.replace('_', ' '))}</span>
+                        </div>
+                    </div>
+                    <div style="margin-top:8px;">
+                        ${e.comprobante_id ? `<button class="btn-outline" style="padding:6px 12px; font-size:12px;" onclick="verComprobanteEstancia(${e.comprobante_id})"><i class="fa-solid fa-file-pdf"></i> Comprobante</button>` : ''}
+                        ${e.tipo === 'Internamiento' && e.estado === 'Finalizada' && !e.pago_estado ? `<button class="btn-primary" style="padding:6px 12px; font-size:12px;" onclick="pagarEstancia(${e.id}, ${Number(e.total)})">Pagar</button>` : ''}
+                    </div>
+                </div>`).join('');
+    }
+
+    async function init() {
+        try {
+            const [rc, rm] = await Promise.all([
+                fetch(`${API_BASE}/hospedaje/configuracion`),
+                fetch(`${API_BASE}/mascotas/usuario/${usuario.id}`)
+            ]);
+            cfg = rc.ok ? await rc.json() : null;
+            const mascotas = rm.ok ? await rm.json() : [];
+            if (cfg) $('hs-config').textContent = `${cfg.cuartos} cuartos · ingresos y salidas todos los días de ${cfg.hora_apertura}:00 a ${cfg.hora_cierre}:00`;
+            if (cfg && !cfg.guarderia_disponible) $('hs-mod-dia').title = 'La guardería aún no está disponible';
+            pintarModalidad();
+            $('hs-mascota').innerHTML = mascotas.length === 0
+                ? '<option value="">Primero registra una mascota</option>'
+                : mascotas.map(m => `<option value="${m.id}">${esc(m.nombre)}</option>`).join('');
+        } catch (e) {
+            $('hs-config').textContent = 'No se pudo conectar con el servidor.';
+        }
+        cargarLista();
+    }
+    init();
+})();
+</script>

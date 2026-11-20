@@ -14,6 +14,7 @@
         <button class="sidebar-item" onclick="cargarVista('VistaAdmin/proveedores')"><i class="fa-solid fa-truck-field"></i> Proveedores</button>
         <button class="sidebar-item" onclick="cargarVista('VistaAdmin/compras')"><i class="fa-solid fa-cart-flatbed"></i> Compras</button>
         <button class="sidebar-item" onclick="cargarVista('VistaAdmin/devoluciones')"><i class="fa-solid fa-rotate-left"></i> Devoluciones</button>
+        <button class="sidebar-item" onclick="cargarVista('VistaAdmin/reservas')"><i class="fa-solid fa-hotel"></i> Reservas y viajes</button>
         <button class="sidebar-item" onclick="cargarVista('VistaAdmin/comprobantes')"><i class="fa-solid fa-receipt"></i> Comprobantes</button>
         <button class="sidebar-item active" onclick="cargarVista('VistaAdmin/finanzas')"><i class="fa-solid fa-file-invoice-dollar"></i> Finanzas</button>
         <button class="sidebar-item" onclick="cargarVista('VistaAdmin/reportes')"><i class="fa-solid fa-chart-column"></i> Reportes</button>
@@ -43,12 +44,42 @@
                 </div>
             </div>
             <div class="metric-card">
-                <div class="metric-icon" style="background: #E0E7FF; color: #4F46E5;"><i class="fa-solid fa-cart-shopping"></i></div>
+                <div class="metric-icon" style="background: var(--light-green); color: var(--primary-green);"><i class="fa-solid fa-cart-shopping"></i></div>
                 <div>
                     <h4 style="color: var(--text-muted); font-size: 13px; font-weight: 600; margin-bottom: 5px;">Por Tienda</h4>
                     <h2 style="font-size: 24px; font-weight: 800; color: var(--dark-text);" id="fin-por-tienda">S/ 0.00</h2>
                 </div>
             </div>
+            <div class="metric-card">
+                <div class="metric-icon" style="background: #FEF3C7; color: #D97706;"><i class="fa-solid fa-hotel"></i></div>
+                <div>
+                    <h4 style="color: var(--text-muted); font-size: 13px; font-weight: 600; margin-bottom: 5px;">Hospedaje, internamiento y viajes</h4>
+                    <h2 style="font-size: 24px; font-weight: 800; color: var(--dark-text);" id="fin-por-otros">S/ 0.00</h2>
+                </div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-icon" style="background: #FEE2E2; color: #DC2626;"><i class="fa-solid fa-hourglass-half"></i></div>
+                <div>
+                    <h4 style="color: var(--text-muted); font-size: 13px; font-weight: 600; margin-bottom: 5px;">Por cobrar (atendidas)</h4>
+                    <h2 style="font-size: 24px; font-weight: 800; color: var(--dark-text);" id="fin-por-cobrar">S/ 0.00</h2>
+                </div>
+            </div>
+        </div>
+
+        <div class="admin-table-container" style="margin-bottom: 24px;">
+            <h3 style="font-size: 18px; font-weight: 700; margin-bottom: 15px;">Pagos Yape por confirmar</h3>
+            <table class="admin-table">
+                <thead><tr><th>Cliente</th><th>Concepto</th><th>Operación</th><th>Monto</th><th>Acciones</th></tr></thead>
+                <tbody id="finanzas-yape-body"><tr><td colspan="5" style="text-align:center; color: var(--text-muted); padding: 16px;">Cargando...</td></tr></tbody>
+            </table>
+        </div>
+
+        <div class="admin-table-container" style="margin-bottom: 24px;">
+            <h3 style="font-size: 18px; font-weight: 700; margin-bottom: 15px;">Atenciones por cobrar</h3>
+            <table class="admin-table">
+                <thead><tr><th>Concepto</th><th>Mascota / Cliente</th><th>Fecha</th><th>Total</th><th>Acciones</th></tr></thead>
+                <tbody id="finanzas-cobrar-body"><tr><td colspan="5" style="text-align:center; color: var(--text-muted); padding: 16px;">Cargando...</td></tr></tbody>
+            </table>
         </div>
 
         <div class="admin-table-container">
@@ -62,10 +93,11 @@
                         <th>Fecha</th>
                         <th>Monto</th>
                         <th>Método</th>
+                        <th>Estado</th>
                     </tr>
                 </thead>
                 <tbody id="finanzas-admin-body">
-                    <tr><td colspan="6" style="text-align:center; color: var(--text-muted); padding: 20px;"><i class="fa-solid fa-spinner fa-spin"></i> Cargando...</td></tr>
+                    <tr><td colspan="7" style="text-align:center; color: var(--text-muted); padding: 20px;"><i class="fa-solid fa-spinner fa-spin"></i> Cargando...</td></tr>
                 </tbody>
             </table>
         </div>
@@ -73,52 +105,87 @@
 </div>
 
 <script>
-    (async () => {
-        try {
-            const [resPagos, resUsuarios] = await Promise.all([
-                fetch(`${API_BASE}/pagos`),
-                fetchUsuarios()
-            ]);
+    (function () {
+        const yo = JSON.parse(localStorage.getItem('usuarioLogueado') || '{}');
+        const $ = (id) => document.getElementById(id);
+        const fmt = (f) => f ? new Date(f).toLocaleString('es-PE', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }) : '—';
 
-            const pagos = resPagos.ok ? await resPagos.json() : [];
-            const usuarios = resUsuarios.ok ? await resUsuarios.json() : [];
-
-            const hoy = new Date().toDateString();
-            const pagosHoy = pagos.filter(p => p.fecha && new Date(p.fecha).toDateString() === hoy);
-            const ingresosHoy = pagosHoy.reduce((sum, p) => sum + Number(p.monto || 0), 0);
-            const porCitas = pagos.filter(p => p.cita_id).reduce((sum, p) => sum + Number(p.monto || 0), 0);
-            const porTienda = pagos.filter(p => p.pedido_id).reduce((sum, p) => sum + Number(p.monto || 0), 0);
-
-            document.getElementById('fin-ingresos-dia').innerText = `S/ ${ingresosHoy.toFixed(2)}`;
-            document.getElementById('fin-por-citas').innerText = `S/ ${porCitas.toFixed(2)}`;
-            document.getElementById('fin-por-tienda').innerText = `S/ ${porTienda.toFixed(2)}`;
-
-            const cuerpo = document.getElementById('finanzas-admin-body');
-            if (pagos.length === 0) {
-                cuerpo.innerHTML = `<tr><td colspan="6" style="text-align:center; color: var(--text-muted); padding: 20px;">Aún no hay pagos registrados en el sistema.</td></tr>`;
-                return;
+        window.resolverYape = async function (pagoId, aprobar) {
+            let motivo = null;
+            if (!aprobar) {
+                motivo = prompt('Motivo del rechazo');
+                if (!motivo) return;
             }
+            try {
+                await enviarJson(`${API_BASE}/pagos/${pagoId}/yape`, 'PATCH', { usuario_id: yo.id, aprobar, motivo });
+                cargar();
+            } catch (e) { alert(e.message); }
+        };
 
-            const ordenados = [...pagos].sort((a, b) => new Date(b.fecha) - new Date(a.fecha)).slice(0, 20);
+        window.cobrarPendiente = function (tipo, id, monto, concepto) {
+            abrirModalPago({
+                titulo: 'Cobrar ' + concepto,
+                monto,
+                enviar: (datos) => enviarJson(`${API_BASE}/pagos/registrar`, 'POST', { usuario_id: yo.id, referencia: tipo, referencia_id: id, ...datos }),
+                alExito: (r) => {
+                    if (r.comprobante) abrirArchivoApi(`${API_BASE}/comprobantes/${r.comprobante.id}/pdf?usuarioId=${yo.id}`);
+                    cargar();
+                }
+            });
+        };
 
-            cuerpo.innerHTML = ordenados.map(p => {
-                const cliente = usuarios.find(u => u.id === p.usuario_id);
-                const concepto = p.cita_id ? `Cita #${p.cita_id}` : (p.pedido_id ? `Pedido Web #${p.pedido_id}` : 'Pago');
-                const fecha = p.fecha ? new Date(p.fecha).toLocaleString('es-PE', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }) : '—';
-                return `
-                    <tr>
-                        <td>#PAG-${p.id}</td>
-                        <td>${concepto}</td>
-                        <td>${cliente ? cliente.nombre : 'N/D'}</td>
-                        <td>${fecha}</td>
+        async function cargar() {
+            try {
+                const [resPagos, resUsuarios, resResumen] = await Promise.all([
+                    fetch(`${API_BASE}/pagos`),
+                    fetchUsuarios(),
+                    fetch(`${API_BASE}/pagos/resumen?usuarioId=${yo.id}`)
+                ]);
+                const todos = resPagos.ok ? await resPagos.json() : [];
+                const pagos = todos.filter(p => (p.estado || 'Pagado') === 'Pagado');
+                const usuarios = resUsuarios.ok ? await resUsuarios.json() : [];
+                const resumen = resResumen.ok ? await resResumen.json() : { por_cobrar_total: 0, por_cobrar: [], yape_pendientes: [] };
+
+                const hoy = new Date().toDateString();
+                const suma = (lista) => lista.reduce((t, p) => t + Number(p.monto || 0), 0);
+                $('fin-ingresos-dia').innerText = `S/ ${suma(pagos.filter(p => p.fecha && new Date(p.fecha).toDateString() === hoy)).toFixed(2)}`;
+                $('fin-por-citas').innerText = `S/ ${suma(pagos.filter(p => p.cita_id)).toFixed(2)}`;
+                $('fin-por-tienda').innerText = `S/ ${suma(pagos.filter(p => p.pedido_id)).toFixed(2)}`;
+                $('fin-por-otros').innerText = `S/ ${suma(pagos.filter(p => p.estancia_id || p.viaje_id)).toFixed(2)}`;
+                $('fin-por-cobrar').innerText = `S/ ${Number(resumen.por_cobrar_total || 0).toFixed(2)}`;
+
+                $('finanzas-yape-body').innerHTML = resumen.yape_pendientes.length === 0
+                    ? '<tr><td colspan="5" style="text-align:center; color: var(--text-muted); padding: 16px;">No hay pagos Yape pendientes.</td></tr>'
+                    : resumen.yape_pendientes.map(p => `<tr>
+                        <td>${esc(p.cliente || 'N/D')}</td><td>${esc(p.concepto)}</td><td>${esc(p.operacion || '')}</td>
                         <td><strong>S/ ${Number(p.monto).toFixed(2)}</strong></td>
-                        <td>${p.metodo || '—'}</td>
-                    </tr>
-                `;
-            }).join('');
-        } catch (error) {
-            console.error('Error cargando finanzas:', error);
-            document.getElementById('finanzas-admin-body').innerHTML = `<tr><td colspan="6" style="text-align:center; color: var(--text-muted); padding: 20px;"><i class="fa-solid fa-plug-circle-xmark"></i> No pudimos conectar con el servidor.</td></tr>`;
+                        <td><button data-roles="4" class="btn-primary" style="padding:6px 12px; font-size:12px;" onclick="resolverYape(${p.pago_id}, true)">Confirmar</button>
+                            <button data-roles="4" class="btn-outline" style="padding:6px 12px; font-size:12px; color:#DC2626; border-color:#DC2626;" onclick="resolverYape(${p.pago_id}, false)">Rechazar</button></td></tr>`).join('');
+
+                $('finanzas-cobrar-body').innerHTML = resumen.por_cobrar.length === 0
+                    ? '<tr><td colspan="5" style="text-align:center; color: var(--text-muted); padding: 16px;">No hay atenciones pendientes de cobro.</td></tr>'
+                    : resumen.por_cobrar.map(f => `<tr>
+                        <td>${esc(f.concepto)}</td>
+                        <td><strong>${esc(f.mascota || 'N/D')}</strong><br><span style="color: var(--text-muted); font-size: 12px;">${esc(f.cliente || '')}</span></td>
+                        <td>${fmt(f.fecha)}</td><td><strong>S/ ${Number(f.total).toFixed(2)}</strong></td>
+                        <td><button data-roles="4" class="btn-primary" style="padding:6px 12px; font-size:12px;" onclick="cobrarPendiente('${esc(f.tipo)}', ${Number(f.referencia_id)}, ${Number(f.total)}, '${esc(f.concepto)}')">Cobrar</button></td></tr>`).join('');
+
+                const cuerpo = $('finanzas-admin-body');
+                const ordenados = [...todos].sort((a, b) => new Date(b.fecha) - new Date(a.fecha)).slice(0, 20);
+                cuerpo.innerHTML = ordenados.length === 0
+                    ? '<tr><td colspan="7" style="text-align:center; color: var(--text-muted); padding: 20px;">Aún no hay pagos registrados en el sistema.</td></tr>'
+                    : ordenados.map(p => {
+                        const cliente = usuarios.find(u => u.id === p.usuario_id);
+                        const concepto = p.cita_id ? `Cita #${p.cita_id}` : (p.pedido_id ? `Pedido Web #${p.pedido_id}` : (p.estancia_id ? `Estadía #${p.estancia_id}` : (p.viaje_id ? `Viaje #${p.viaje_id}` : 'Pago')));
+                        return `<tr><td>#PAG-${p.id}</td><td>${concepto}</td><td>${esc(cliente ? cliente.nombre : 'N/D')}</td>
+                            <td>${fmt(p.fecha)}</td><td><strong>S/ ${Number(p.monto).toFixed(2)}</strong></td><td>${esc(p.metodo || '—')}</td>
+                            <td>${esc((p.estado || 'Pagado').replace('_', ' '))}</td></tr>`;
+                    }).join('');
+            } catch (error) {
+                console.error('Error cargando finanzas:', error);
+                $('finanzas-admin-body').innerHTML = `<tr><td colspan="7" style="text-align:center; color: var(--text-muted); padding: 20px;"><i class="fa-solid fa-plug-circle-xmark"></i> No pudimos conectar con el servidor.</td></tr>`;
+            }
         }
+        cargar();
     })();
 </script>

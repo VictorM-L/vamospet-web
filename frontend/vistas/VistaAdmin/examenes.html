@@ -6,6 +6,7 @@
         <button class="sidebar-item" onclick="cargarVista('VistaAdmin/dashboard-admin')"><i class="fa-solid fa-chart-pie"></i> Dashboard</button>
         <button class="sidebar-item" onclick="cargarVista('VistaAdmin/citas')"><i class="fa-solid fa-calendar-check"></i> Gestión de Citas</button>
         <button class="sidebar-item active" onclick="cargarVista('VistaAdmin/examenes')"><i class="fa-solid fa-flask-vial"></i> Exámenes y Cirugías</button>
+        <button class="sidebar-item" onclick="cargarVista('VistaAdmin/reservas')"><i class="fa-solid fa-hotel"></i> Reservas y viajes</button>
         <button class="sidebar-item" onclick="cargarVista('VistaAdmin/emergencias')"><i class="fa-solid fa-truck-medical"></i> Emergencias</button>
         <button class="sidebar-item" onclick="cargarVista('VistaAdmin/clientes')"><i class="fa-solid fa-users"></i> Clientes y Mascotas</button>
         <button class="sidebar-item" onclick="cargarVista('VistaAdmin/inventario')"><i class="fa-solid fa-box-open"></i> Inventario Tienda</button>
@@ -35,13 +36,16 @@
             </table>
         </div>
 
-        <h3 style="font-size:18px; font-weight:700; margin-top:10px;">Cirugías programadas</h3>
-        <div class="admin-table-container">
-            <table class="admin-table">
-                <thead><tr><th>Fecha y hora</th><th>Mascota</th><th>Cirugía</th><th>Estado</th></tr></thead>
-                <tbody id="cir-body"><tr><td colspan="4" style="text-align:center; padding:20px;">Cargando...</td></tr></tbody>
-            </table>
+        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-top:10px;">
+            <h3 style="font-size:18px; font-weight:700;">Tablero de cirugías</h3>
+            <button class="btn-outline" style="padding:8px 14px; font-size:13px;" onclick="cargarCirugias()"><i class="fa-solid fa-rotate"></i> Actualizar</button>
         </div>
+        <p id="cir-ayuda" style="font-size:12px; color:var(--text-muted);"></p>
+        <div class="tablero-cirugias" id="cir-tablero"><p style="padding:20px;"><i class="fa-solid fa-spinner fa-spin"></i> Cargando...</p></div>
+        <details class="cirugias-realizadas">
+            <summary>Realizadas en los últimos 7 días (<span id="cir-realizadas-total">0</span>)</summary>
+            <div id="cir-realizadas"></div>
+        </details>
     </main>
 </div>
 
@@ -74,14 +78,86 @@
     </div>
 </div>
 
+<div class="modal-overlay" id="modal-cir-detalle" style="display:none;">
+    <div class="modal-box" style="max-width:640px;">
+        <h3><i class="fa-solid fa-heart-pulse" style="color:var(--primary-green);"></i> <span id="det-titulo"></span></h3>
+        <p id="det-resumen" style="font-size:13px; color:var(--text-muted); margin-bottom:10px;"></p>
+        <div id="det-examen" style="margin-bottom:12px;"></div>
+        <div class="panel-clinico">
+            <h4>Datos clínicos de la mascota</h4>
+            <div style="display:flex; gap:10px; flex-wrap:wrap;">
+                <div class="input-group" style="flex:2; min-width:200px;"><label>Alergias</label><input type="text" id="det-alergias" maxlength="500" placeholder="Ninguna conocida"></div>
+                <div class="input-group" style="flex:1; min-width:120px;"><label>Peso (kg)</label><input type="number" id="det-peso" min="0.01" max="200" step="0.01"></div>
+            </div>
+            <button class="btn-outline" id="det-guardar-datos" style="padding:8px 14px; font-size:13px;" onclick="guardarDatosClinicos()"><i class="fa-solid fa-floppy-disk"></i> Guardar datos clínicos</button>
+        </div>
+        <div class="panel-clinico" id="det-bloque-notas">
+            <h4>Notas durante la cirugía</h4>
+            <textarea id="det-notas" rows="4" maxlength="2000" placeholder="Hallazgos, anestesia, incidencias"></textarea>
+            <button class="btn-outline" id="det-guardar-notas" style="padding:8px 14px; font-size:13px; margin-top:6px;" onclick="guardarNotasCirugia()"><i class="fa-solid fa-floppy-disk"></i> Guardar notas</button>
+        </div>
+        <div class="panel-clinico" id="det-bloque-resultado"></div>
+        <div class="panel-clinico">
+            <h4>Línea de tiempo</h4>
+            <ol class="linea-tiempo" id="det-linea"></ol>
+        </div>
+        <button class="btn-outline" style="width:100%; padding:12px; margin-top:10px;" onclick="document.getElementById('modal-cir-detalle').style.display='none'">Cerrar</button>
+    </div>
+</div>
+
+<div class="modal-overlay" id="modal-finalizar" style="display:none;">
+    <div class="modal-box">
+        <h3><i class="fa-solid fa-clipboard-check" style="color:var(--primary-green);"></i> Finalizar cirugía</h3>
+        <p id="fin-resumen" style="font-size:13px; color:var(--text-muted); margin-bottom:6px;"></p>
+        <ol class="pasos-cirugia" id="fin-pasos"><li>Resultado</li><li>Complicaciones y medicamentos</li><li>Confirmar</li></ol>
+        <div class="paso-fin" data-paso="1">
+            <div class="input-group"><label>Resultado de la cirugía *</label><textarea id="fin-resultado" rows="4" maxlength="2000" placeholder="Qué se hizo y cómo salió"></textarea></div>
+        </div>
+        <div class="paso-fin" data-paso="2">
+            <div class="input-group"><label>Complicaciones (opcional)</label><textarea id="fin-complicaciones" rows="3" maxlength="2000"></textarea></div>
+            <div class="input-group"><label>Medicamentos e indicaciones (opcional)</label><textarea id="fin-medicamentos" rows="3" maxlength="2000" placeholder="Si lo llenas, se crea una receta aprobada para la mascota"></textarea></div>
+        </div>
+        <div class="paso-fin" data-paso="3">
+            <div id="fin-confirmacion" style="font-size:13px; white-space:pre-wrap; background:#F9FAFB; border-radius:10px; padding:12px;"></div>
+            <p style="font-size:12px; color:var(--text-muted); margin-top:8px;">La cita queda atendida y la cirugía pasa a postoperatorio.</p>
+        </div>
+        <div style="display:flex; gap:10px; margin-top:12px;">
+            <button class="btn-outline" id="fin-atras" style="flex:1; padding:12px;" onclick="pasoFinalizar(-1)">Atrás</button>
+            <button class="btn-primary" id="fin-siguiente" style="flex:1; padding:12px;" onclick="pasoFinalizar(1)">Siguiente</button>
+        </div>
+        <button class="btn-outline" style="width:100%; padding:12px; margin-top:10px;" onclick="document.getElementById('modal-finalizar').style.display='none'">Cancelar</button>
+    </div>
+</div>
+
+<div class="modal-overlay" id="modal-postop" style="display:none;">
+    <div class="modal-box">
+        <h3><i class="fa-solid fa-bed-pulse" style="color:var(--primary-green);"></i> Decisión postoperatoria</h3>
+        <p id="post-resumen" style="font-size:13px; color:var(--text-muted); margin-bottom:10px;"></p>
+        <form id="form-postop">
+            <div class="opciones-postop">
+                <label><input type="radio" name="post-decision" value="Alta directa" checked> Alta directa: vuelve a casa</label>
+                <label><input type="radio" name="post-decision" value="Internar"> Internar en la clínica</label>
+            </div>
+            <div id="post-internar" style="display:none;">
+                <div class="input-group"><label>Ingreso (día y hora) *</label><input type="datetime-local" id="post-ingreso"></div>
+                <div class="input-group"><label>Salida estimada *</label><input type="datetime-local" id="post-salida"></div>
+            </div>
+            <div class="input-group"><label id="post-obs-label">Indicaciones para el dueño</label><textarea id="post-obs" rows="3" maxlength="2000"></textarea></div>
+            <button type="submit" class="btn-primary" style="width:100%; padding:12px;">Cerrar cirugía</button>
+        </form>
+        <button class="btn-outline" style="width:100%; padding:12px; margin-top:10px;" onclick="document.getElementById('modal-postop').style.display='none'">Cancelar</button>
+    </div>
+</div>
+
 <div class="modal-overlay" id="modal-cirugia" style="display:none;">
     <div class="modal-box">
         <h3><i class="fa-solid fa-scalpel" style="color:var(--primary-green);"></i> Programar cirugía</h3>
         <p id="cir-detalle" style="font-size:13px; color:var(--text-muted); margin-bottom:10px;"></p>
         <form id="form-cirugia">
+            <div class="input-group"><label>Servicio quirúrgico *</label><select id="cir-servicio" required></select></div>
             <div class="input-group"><label>Tipo de cirugía *</label><input type="text" id="cir-tipo" maxlength="150" required></div>
             <div class="input-group"><label>Fecha y hora *</label><input type="datetime-local" id="cir-fecha" step="1800" required></div>
-            <p style="font-size:12px; color:var(--text-muted);">Debe estar dentro de la vigencia de la aprobación (30 días) y en una franja libre del veterinario.</p>
+            <p style="font-size:12px; color:var(--text-muted);">Debe estar dentro de la vigencia de la aprobación (30 días) y el veterinario debe tener libre toda la duración del servicio.</p>
             <button type="submit" class="btn-primary" style="width:100%; padding:12px; margin-top:8px;">Programar</button>
         </form>
         <button class="btn-outline" style="width:100%; padding:12px; margin-top:10px;" onclick="document.getElementById('modal-cirugia').style.display='none'">Cancelar</button>
@@ -91,7 +167,8 @@
 <script>
 (function () {
     const yo = () => JSON.parse(localStorage.getItem('usuarioLogueado') || '{}');
-    const esVetOAdmin = () => [1, 3].includes(yo().rol_id);
+    const esVet = () => yo().rol_id === 3;
+    const esAux = () => yo().rol_id === 4;
     let ordenes = [], mascotas = [], ordenActiva = null, ordenSubir = null;
     const fmtF = f => f ? new Date(f).toLocaleString('es-PE', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—';
     const badge = e => {
@@ -111,12 +188,12 @@
             if (!ordenes.length) { body.innerHTML = `<tr><td colspan="5" style="padding:20px; text-align:center; color:var(--text-muted);">No hay órdenes de examen${estado ? ' con ese estado' : ' registradas aún'}.</td></tr>`; return; }
             body.innerHTML = ordenes.map(o => {
                 const archivos = o.archivos.length
-                    ? o.archivos.map(a => `<a href="${API_BASE}/examenes/archivo/${a.id}?usuarioId=${yo().id}" target="_blank" style="display:block; font-size:12px; color:var(--primary-green);"><i class="fa-solid fa-paperclip"></i> ${esc(a.nombre)}</a>`).join('')
+                    ? o.archivos.map(a => `<a href="#" onclick="abrirArchivoApi('${API_BASE}/examenes/archivo/${a.id}?usuarioId=${yo().id}'); return false;" style="display:block; font-size:12px; color:var(--primary-green);"><i class="fa-solid fa-paperclip"></i> ${esc(a.nombre)}</a>`).join('')
                     : '<span style="font-size:12px; color:var(--text-muted);">Sin archivos</span>';
                 let acc = '';
-                if (o.estado !== 'Apto_Cirugia') acc += `<button class="btn-outline" style="padding:5px 10px; font-size:12px; margin:2px;" onclick="elegirArchivo(${o.id})"><i class="fa-solid fa-upload"></i> Subir resultado</button>`;
-                if (esVetOAdmin() && o.estado === 'Resultados_Subidos') acc += `<button class="btn-primary" style="padding:5px 10px; font-size:12px; margin:2px;" onclick="abrirEvaluar(${o.id})"><i class="fa-solid fa-clipboard-check"></i> Evaluar</button>`;
-                if (esVetOAdmin() && o.estado === 'Apto_Cirugia' && o.vigente) acc += `<button class="btn-primary" style="padding:5px 10px; font-size:12px; margin:2px;" onclick="abrirCirugia(${o.id})"><i class="fa-solid fa-calendar-plus"></i> Programar cirugía</button>`;
+                if (esAux() && o.estado !== 'Apto_Cirugia') acc += `<button class="btn-outline" style="padding:5px 10px; font-size:12px; margin:2px;" onclick="elegirArchivo(${o.id})"><i class="fa-solid fa-upload"></i> Subir resultado</button>`;
+                if (esVet() && o.estado === 'Resultados_Subidos') acc += `<button class="btn-primary" style="padding:5px 10px; font-size:12px; margin:2px;" onclick="abrirEvaluar(${o.id})"><i class="fa-solid fa-clipboard-check"></i> Evaluar</button>`;
+                if (esVet() && o.estado === 'Apto_Cirugia' && o.vigente) acc += `<button class="btn-primary" style="padding:5px 10px; font-size:12px; margin:2px;" onclick="abrirCirugia(${o.id})"><i class="fa-solid fa-calendar-plus"></i> Programar cirugía</button>`;
                 const extra = o.estado === 'Apto_Cirugia' ? `<div style="font-size:11px; color:var(--text-muted);">${o.vigente ? 'Vigente hasta ' + esc(o.vigente_hasta) : 'Aprobación vencida: solicita un examen nuevo'}</div>` : '';
                 const obs = o.observaciones ? `<div style="font-size:11px; color:var(--text-muted);">${esc(o.observaciones)}</div>` : '';
                 return `<tr>
@@ -127,18 +204,228 @@
         } catch (e) { body.innerHTML = `<tr><td colspan="5" style="padding:20px; text-align:center;">No pudimos conectar con el servidor.</td></tr>`; }
     };
 
-    async function cargarCirugias() {
-        const body = document.getElementById('cir-body');
-        try {
-            const res = await fetch(`${API_BASE}/cirugias?usuarioId=${yo().id}`);
-            const lista = res.ok ? await res.json() : [];
-            if (!lista.length) { body.innerHTML = `<tr><td colspan="4" style="padding:20px; text-align:center; color:var(--text-muted);">No hay cirugías programadas.</td></tr>`; return; }
-            body.innerHTML = lista.map(c => {
-                const m = mascotas.find(x => x.id === c.mascota_id);
-                return `<tr><td>${fmtF(c.fecha_hora)}</td><td>${esc(m ? m.nombre : 'N/D')}</td><td>${esc(c.tipo_cirugia)}</td><td>${esc(c.estado)}</td></tr>`;
-            }).join('');
-        } catch (e) { body.innerHTML = ''; }
+    const COLUMNAS = [['Por_confirmar', 'Por confirmar'], ['Programada', 'Programada'], ['En_curso', 'En curso'], ['Postoperatorio', 'Postoperatorio']];
+    const BOTON_PASO = { 'Por_confirmar': ['fa-check', 'Confirmar'], 'Programada': ['fa-play', 'Iniciar cirugía'], 'En_curso': ['fa-flag-checkered', 'Finalizar'], 'Postoperatorio': ['fa-door-open', 'Decidir postoperatorio'] };
+    let tablero = [], estancias = [], cirugiaActiva = null, pasoActual = 1;
+    const local = d => new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+    const propia = c => esVet() && c.veterinario_id === yo().id;
+
+    function tarjeta(c) {
+        const examen = c.examen_apto === undefined ? '' : (c.examen_apto
+            ? `<span class="insignia-examen apto"><i class="fa-solid fa-circle-check"></i> Examen apto${c.examen_vigente_hasta ? ' hasta ' + esc(c.examen_vigente_hasta) : ''}</span>`
+            : `<span class="insignia-examen no-apto"><i class="fa-solid fa-triangle-exclamation"></i> Examen no apto o vencido</span>`);
+        const cobro = c.cobro ? `<span class="status-badge ${c.cobro === 'Cobrada' ? 'status-completado' : 'status-pendiente'}">${esc(c.cobro)}</span>` : '';
+        const interna = estancias.find(e => e.cirugia_id === c.id && e.estado !== 'Cancelada');
+        let acciones = '';
+        if (propia(c) && BOTON_PASO[c.estado]) {
+            const [icono, texto] = BOTON_PASO[c.estado];
+            const bloqueado = c.estado === 'Programada' && !c.examen_apto;
+            acciones += `<button class="btn-primary" style="padding:6px 10px; font-size:12px;" ${bloqueado ? 'disabled title="El examen no está apto"' : ''} onclick="siguientePaso(${c.id})"><i class="fa-solid ${icono}"></i> ${texto}</button>`;
+        }
+        if (propia(c) && ['Por_confirmar', 'Programada'].includes(c.estado)) {
+            acciones += `<button class="btn-outline" style="padding:6px 10px; font-size:12px;" onclick="cancelarCirugia(${c.id})"><i class="fa-solid fa-xmark"></i> Cancelar</button>`;
+        }
+        if (interna) {
+            acciones += `<span style="font-size:12px; color:var(--text-muted);">Internamiento: ${esc(interna.estado.replace('_', ' '))}</span>`;
+            if (propia(c) && interna.estado === 'En_curso') acciones += `<button class="btn-primary" style="padding:6px 10px; font-size:12px;" onclick="altaInternamiento(${interna.id})">Dar de alta</button>`;
+        }
+        if (!esAux()) acciones += `<button class="btn-outline" style="padding:6px 10px; font-size:12px;" onclick="verCirugia(${c.id})"><i class="fa-solid fa-eye"></i> Ver</button>`;
+        return `<div class="tarjeta-cirugia">
+            <div class="tarjeta-cirugia-cabecera"><strong>${esc(c.mascota || 'N/D')}</strong><span>${fmtF(c.fecha_hora)}</span></div>
+            <div style="font-size:13px;">${esc(c.tipo_cirugia)}${c.duracion_min ? ` · ${c.duracion_min} min` : ''}</div>
+            <div style="font-size:12px; color:var(--text-muted);">${esc(c.cliente || 'Sin dueño')} · Dr(a). ${esc(c.veterinario || '')}</div>
+            ${c.postoperatorio ? `<div style="font-size:12px;">Postoperatorio: ${esc(c.postoperatorio)}</div>` : ''}
+            <div class="tarjeta-cirugia-insignias">${examen}${cobro}</div>
+            <div class="tarjeta-cirugia-acciones">${acciones}</div>
+        </div>`;
     }
+
+    window.cargarCirugias = async function () {
+        const cont = document.getElementById('cir-tablero');
+        document.getElementById('cir-ayuda').innerText = esAux()
+            ? 'Ves el estado de cada cirugía y si ya se cobró. Los datos clínicos los maneja el veterinario.'
+            : (esVet() ? 'Solo ves tus cirugías. Cada tarjeta tiene un único botón con el siguiente paso.' : 'Vista de solo lectura de todas las cirugías.');
+        try {
+            const res = await fetch(`${API_BASE}/cirugias/tablero?usuarioId=${yo().id}`);
+            const data = await res.json().catch(() => []);
+            if (!res.ok) { cont.innerHTML = `<p style="padding:20px;">${esc(data.error || 'No se pudo cargar el tablero.')}</p>`; return; }
+            tablero = data;
+            if (!esAux()) {
+                const resEst = await fetch(`${API_BASE}/estancias?usuarioId=${yo().id}`);
+                estancias = resEst.ok ? await resEst.json() : [];
+            }
+            cont.innerHTML = COLUMNAS.map(([estado, titulo]) => {
+                const items = tablero.filter(c => c.estado === estado);
+                return `<div class="columna-cirugias"><h4>${titulo} <span>${items.length}</span></h4>${items.length ? items.map(tarjeta).join('') : '<p class="columna-vacia">Sin cirugías</p>'}</div>`;
+            }).join('');
+            const realizadas = tablero.filter(c => c.estado === 'Realizada');
+            document.getElementById('cir-realizadas-total').textContent = realizadas.length;
+            document.getElementById('cir-realizadas').innerHTML = realizadas.length ? realizadas.map(tarjeta).join('') : '<p class="columna-vacia">Ninguna en los últimos 7 días.</p>';
+        } catch (e) { cont.innerHTML = '<p style="padding:20px;">No pudimos conectar con el servidor.</p>'; }
+    };
+
+    async function avanzar(id, datos) {
+        try {
+            await enviarJson(`${API_BASE}/cirugias/${id}/siguiente`, 'PATCH', { usuario_id: yo().id, ...datos });
+            await cargarCirugias();
+            return true;
+        } catch (e) { alert(e.message); return false; }
+    }
+
+    window.siguientePaso = async function (id) {
+        const c = tablero.find(x => x.id === id);
+        if (!c) return;
+        cirugiaActiva = c;
+        if (c.estado === 'Por_confirmar') {
+            if (confirm(`¿Confirmar la cirugía de ${c.mascota}? Su cita también queda confirmada.`)) avanzar(id, {});
+        } else if (c.estado === 'Programada') {
+            if (confirm(`¿Iniciar ahora la cirugía de ${c.mascota}?${c.alergias ? '\nAlergias: ' + c.alergias : ''}`)) {
+                if (await avanzar(id, {})) verCirugia(id);
+            }
+        } else if (c.estado === 'En_curso') {
+            ['fin-resultado', 'fin-complicaciones', 'fin-medicamentos'].forEach(k => document.getElementById(k).value = '');
+            document.getElementById('fin-resumen').innerText = `${c.tipo_cirugia} · ${c.mascota}`;
+            pasoActual = 1;
+            pintarPaso();
+            document.getElementById('modal-finalizar').style.display = 'flex';
+        } else if (c.estado === 'Postoperatorio') {
+            document.getElementById('form-postop').reset();
+            document.getElementById('post-resumen').innerText = `${c.tipo_cirugia} · ${c.mascota}`;
+            const ahora = new Date();
+            ahora.setSeconds(0, 0);
+            document.getElementById('post-ingreso').value = local(ahora);
+            document.getElementById('post-salida').value = local(new Date(ahora.getTime() + 24 * 3600000));
+            cambiarDecision();
+            document.getElementById('modal-postop').style.display = 'flex';
+        }
+    };
+
+    function pintarPaso() {
+        document.querySelectorAll('#modal-finalizar .paso-fin').forEach(d => d.style.display = Number(d.dataset.paso) === pasoActual ? 'block' : 'none');
+        document.querySelectorAll('#fin-pasos li').forEach((li, i) => li.classList.toggle('activo', i + 1 === pasoActual));
+        document.getElementById('fin-atras').disabled = pasoActual === 1;
+        document.getElementById('fin-siguiente').innerHTML = pasoActual === 3 ? '<i class="fa-solid fa-floppy-disk"></i> Finalizar' : 'Siguiente';
+        if (pasoActual === 3) {
+            const v = k => document.getElementById(k).value.trim();
+            document.getElementById('fin-confirmacion').textContent = 'Resultado: ' + v('fin-resultado')
+                + '\nComplicaciones: ' + (v('fin-complicaciones') || 'Ninguna')
+                + '\nMedicamentos: ' + (v('fin-medicamentos') || 'Sin receta');
+        }
+    }
+
+    window.pasoFinalizar = async function (delta) {
+        if (delta > 0 && pasoActual === 1 && !document.getElementById('fin-resultado').value.trim()) { alert('Escribe el resultado de la cirugía.'); return; }
+        if (delta > 0 && pasoActual === 3) {
+            const ok = await avanzar(cirugiaActiva.id, {
+                resultado: document.getElementById('fin-resultado').value,
+                complicaciones: document.getElementById('fin-complicaciones').value,
+                medicamentos: document.getElementById('fin-medicamentos').value
+            });
+            if (ok) document.getElementById('modal-finalizar').style.display = 'none';
+            return;
+        }
+        pasoActual = Math.min(3, Math.max(1, pasoActual + delta));
+        pintarPaso();
+    };
+
+    function decisionElegida() {
+        const r = document.querySelector('input[name="post-decision"]:checked');
+        return r ? r.value : null;
+    }
+    function cambiarDecision() {
+        const internar = decisionElegida() === 'Internar';
+        document.getElementById('post-internar').style.display = internar ? 'block' : 'none';
+        document.getElementById('post-obs-label').innerText = internar ? 'Cuidados durante el internamiento' : 'Indicaciones para el dueño';
+    }
+    document.querySelectorAll('input[name="post-decision"]').forEach(r => r.addEventListener('change', cambiarDecision));
+    document.getElementById('form-postop').addEventListener('submit', async e => {
+        e.preventDefault();
+        const decision = decisionElegida();
+        const datos = { decision, observaciones: document.getElementById('post-obs').value };
+        if (decision === 'Internar') {
+            const ingreso = document.getElementById('post-ingreso').value, salida = document.getElementById('post-salida').value;
+            if (!ingreso || !salida) { alert('Indica el ingreso y la salida estimada.'); return; }
+            datos.ingreso = ingreso + ':00';
+            datos.salida_estimada = salida + ':00';
+        }
+        if (await avanzar(cirugiaActiva.id, datos)) document.getElementById('modal-postop').style.display = 'none';
+    });
+
+    window.cancelarCirugia = async function (id) {
+        if (!confirm('¿Cancelar esta cirugía? La cita asociada también se cancelará.')) return;
+        try {
+            await enviarJson(`${API_BASE}/veterinario/cirugias/${id}/estado`, 'PATCH', { usuario_id: yo().id, estado: 'Cancelada' });
+            cargarCirugias();
+        } catch (e) { alert(e.message); }
+    };
+
+    window.verCirugia = async function (id) {
+        const c = tablero.find(x => x.id === id);
+        if (!c) return;
+        cirugiaActiva = c;
+        const editable = propia(c);
+        document.getElementById('det-titulo').innerText = `${c.tipo_cirugia} · ${c.mascota}`;
+        document.getElementById('det-resumen').innerText = `${fmtF(c.fecha_hora)} · ${c.estado.replace('_', ' ')}${c.inicio_real ? ' · Inició ' + fmtF(c.inicio_real) : ''}${c.fin_real ? ' · Terminó ' + fmtF(c.fin_real) : ''}`;
+        document.getElementById('det-examen').innerHTML = c.examen
+            ? `<span class="insignia-examen ${c.examen_apto ? 'apto' : 'no-apto'}">${esc(c.examen)}: ${c.examen_apto ? 'apto' : 'no apto o vencido'}</span>
+               <a href="#" onclick="event.preventDefault(); verArchivosExamen()" style="font-size:12px; color:var(--primary-green); margin-left:8px;">Ver archivos del examen</a>`
+            : '';
+        const alergias = document.getElementById('det-alergias'), peso = document.getElementById('det-peso');
+        alergias.value = c.alergias || '';
+        peso.value = c.peso_kg != null ? c.peso_kg : '';
+        alergias.disabled = peso.disabled = !editable;
+        document.getElementById('det-guardar-datos').style.display = editable ? 'inline-block' : 'none';
+        const enCurso = c.estado === 'En_curso';
+        document.getElementById('det-bloque-notas').style.display = enCurso || c.notas_intra ? 'block' : 'none';
+        document.getElementById('det-notas').value = c.notas_intra || '';
+        document.getElementById('det-notas').disabled = !(editable && enCurso);
+        document.getElementById('det-guardar-notas').style.display = editable && enCurso ? 'inline-block' : 'none';
+        const res = document.getElementById('det-bloque-resultado');
+        res.style.display = c.resultado ? 'block' : 'none';
+        res.innerHTML = c.resultado ? `<h4>Resultado</h4><p style="white-space:pre-wrap; font-size:13px;">${esc(c.resultado)}</p>${c.complicaciones ? `<p style="font-size:13px;"><strong>Complicaciones:</strong> ${esc(c.complicaciones)}</p>` : ''}` : '';
+        const linea = document.getElementById('det-linea');
+        linea.innerHTML = '<li>Cargando...</li>';
+        document.getElementById('modal-cir-detalle').style.display = 'flex';
+        try {
+            const r = await fetch(`${API_BASE}/cirugias/${id}/linea-tiempo`);
+            const eventos = r.ok ? await r.json() : [];
+            linea.innerHTML = eventos.length ? eventos.map(ev => `<li><strong>${esc(ev.tipo)}</strong> <span>${fmtF(ev.fecha)}</span><div>${esc(ev.descripcion || '')}</div></li>`).join('') : '<li>Sin eventos aún.</li>';
+        } catch (e) { linea.innerHTML = '<li>No se pudo cargar la línea de tiempo.</li>'; }
+    };
+
+    window.verArchivosExamen = function () {
+        document.getElementById('modal-cir-detalle').style.display = 'none';
+        document.getElementById('ex-filtro-estado').value = '';
+        cargarExamenes();
+        document.getElementById('ex-body').scrollIntoView({ behavior: 'smooth' });
+    };
+
+    window.guardarDatosClinicos = async function () {
+        try {
+            await enviarJson(`${API_BASE}/mascotas/${cirugiaActiva.mascota_id}/datos-clinicos`, 'PATCH', {
+                alergias: document.getElementById('det-alergias').value,
+                peso_kg: document.getElementById('det-peso').value
+            });
+            alert('Datos clínicos guardados.');
+            await cargarCirugias();
+        } catch (e) { alert(e.message); }
+    };
+
+    window.guardarNotasCirugia = async function () {
+        try {
+            await enviarJson(`${API_BASE}/cirugias/${cirugiaActiva.id}/notas`, 'PATCH', { usuario_id: yo().id, notas: document.getElementById('det-notas').value });
+            alert('Notas guardadas.');
+            await cargarCirugias();
+        } catch (e) { alert(e.message); }
+    };
+
+    window.altaInternamiento = async function (id) {
+        if (!confirm('¿Dar de alta esta mascota? Se calculará el total del internamiento.')) return;
+        try {
+            await enviarJson(`${API_BASE}/estancias/${id}/salida`, 'PATCH', { usuario_id: yo().id });
+            cargarCirugias();
+        } catch (e) { alert(e.message); }
+    };
 
     window.abrirSolicitudExamen = function () {
         document.getElementById('form-solicitar-examen').reset();
@@ -185,8 +472,19 @@
         cargarExamenes();
     };
 
-    window.abrirCirugia = function (id) {
+    let serviciosQuirurgicos = [];
+    const sinTildes = t => String(t || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+    window.abrirCirugia = async function (id) {
         ordenActiva = ordenes.find(o => o.id === id);
+        try {
+            const r = await fetch(`${API_BASE}/servicios`);
+            const lista = r.ok ? await r.json() : [];
+            serviciosQuirurgicos = lista.filter(sv => sv.activo !== false && sinTildes(sv.nombre).includes('cirugia'));
+        } catch (e) { serviciosQuirurgicos = []; }
+        const sel = document.getElementById('cir-servicio');
+        sel.innerHTML = serviciosQuirurgicos.length
+            ? serviciosQuirurgicos.map(sv => `<option value="${sv.id}">${esc(sv.nombre)} (${sv.duracion_min || 30} min)</option>`).join('')
+            : '<option value="">No hay servicios quirúrgicos activos</option>';
         document.getElementById('cir-detalle').innerText = `${ordenActiva.mascota_nombre}. Aprobación vigente hasta ${ordenActiva.vigente_hasta}.`;
         document.getElementById('cir-tipo').value = ordenActiva.cirugia_prevista || '';
         document.getElementById('cir-fecha').value = '';
@@ -195,16 +493,16 @@
     document.getElementById('form-cirugia').addEventListener('submit', async e => {
         e.preventDefault();
         const res = await fetch(`${API_BASE}/veterinario/cirugias/agendar`, { method: 'POST', headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ usuario_id: yo().id, orden_id: ordenActiva.id, tipo_cirugia: document.getElementById('cir-tipo').value, fecha_hora: document.getElementById('cir-fecha').value }) });
+            body: JSON.stringify({ usuario_id: yo().id, orden_id: ordenActiva.id, servicio_id: document.getElementById('cir-servicio').value, tipo_cirugia: document.getElementById('cir-tipo').value, fecha_hora: document.getElementById('cir-fecha').value }) });
         const d = await res.json().catch(() => ({}));
         if (!res.ok) { alert(d.error || 'No se pudo programar la cirugía.'); return; }
         document.getElementById('modal-cirugia').style.display = 'none';
-        alert('Cirugía programada. También aparece en Gestión de Citas.');
+        alert('Cirugía programada. Aparece en el tablero y en Gestión de Citas.');
         cargarExamenes(); cargarCirugias();
     });
 
     (async () => {
-        if (esVetOAdmin()) document.getElementById('btn-nuevo-examen').style.display = 'inline-block';
+        if (esVet()) document.getElementById('btn-nuevo-examen').style.display = 'inline-block';
         try { const r = await fetch(`${API_BASE}/mascotas`); mascotas = r.ok ? await r.json() : []; } catch (e) { mascotas = []; }
         cargarExamenes(); cargarCirugias();
     })();

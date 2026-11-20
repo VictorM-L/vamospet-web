@@ -13,15 +13,16 @@
             <div class="contact-info-icon"><i class="fa-solid fa-location-dot"></i></div>
             <div>
                 <h4>Dirección</h4>
-                <p>Calle San Martín 849, Miraflores, Lima</p>
+                <p data-clinica="direccion"></p>
             </div>
         </div>
 
         <div class="contact-info-card">
             <div class="contact-info-icon"><i class="fa-brands fa-whatsapp"></i></div>
             <div>
-                <h4>WhatsApp / Emergencias</h4>
-                <p>+51 912 345 678 — Atención 24/7</p>
+                <h4>Teléfono y WhatsApp</h4>
+                <p><a data-clinica="telefono" data-clinica-href="tel" style="color: inherit;"></a> · <a data-clinica-href="whatsapp" target="_blank" rel="noopener" style="color: var(--primary-green); font-weight: 600;">Escríbenos por WhatsApp</a></p>
+                <p data-clinica-si="emergencias_24h" style="font-size: 13px; color: var(--text-muted);">Emergencias las 24 horas</p>
             </div>
         </div>
 
@@ -29,7 +30,7 @@
             <div class="contact-info-icon"><i class="fa-solid fa-envelope"></i></div>
             <div>
                 <h4>Correo</h4>
-                <p>contacto@vamospet.pe</p>
+                <p><a data-clinica="correo" data-clinica-href="correo" style="color: inherit;"></a></p>
             </div>
         </div>
 
@@ -37,13 +38,13 @@
             <div class="contact-info-icon"><i class="fa-solid fa-clock"></i></div>
             <div>
                 <h4>Horario de atención</h4>
-                <p>Lun a Dom: 8:00 am – 9:00 pm (emergencias 24/7)</p>
+                <p data-clinica="horario_atencion"></p>
             </div>
         </div>
 
         <div style="border-radius: 24px; overflow: hidden; margin-top: 30px; box-shadow: var(--shadow-soft);">
             <iframe
-                src="https://www.google.com/maps?q=Calle%20San%20Mart%C3%ADn%20849%2C%20Miraflores%2C%20Lima&output=embed"
+                data-clinica-mapa src="about:blank"
                 width="100%" height="260" style="border:0; display:block;" loading="lazy"
                 referrerpolicy="no-referrer-when-downgrade" title="Ubicación Vamos Pet">
             </iframe>
@@ -55,30 +56,40 @@
         <form id="form-contacto" class="contact-form">
             <div class="input-group">
                 <label>Nombre completo</label>
-                <input type="text" id="contacto-nombre" placeholder="Tu nombre" required>
+                <input type="text" id="contacto-nombre" placeholder="Tu nombre" maxlength="100" required>
+                <small class="mensaje-campo" data-mensaje-para="contacto-nombre"></small>
             </div>
             <div class="input-group">
                 <label>Correo electrónico</label>
-                <input type="email" id="contacto-email" placeholder="tucorreo@ejemplo.com" required>
+                <input type="email" id="contacto-email" placeholder="tucorreo@ejemplo.com" maxlength="150" required>
+                <small class="mensaje-campo" data-mensaje-para="contacto-email"></small>
             </div>
             <div class="input-group">
                 <label>Teléfono</label>
-                <input type="tel" id="contacto-telefono" placeholder="+51 900 000 000">
+                <input type="tel" id="contacto-telefono" placeholder="9 dígitos (opcional)" maxlength="9" inputmode="numeric">
+                <small class="mensaje-campo" data-mensaje-para="contacto-telefono"></small>
             </div>
             <div class="input-group">
                 <label>Motivo</label>
                 <select id="contacto-motivo" required>
                     <option value="">Selecciona una opción</option>
-                    <option value="cita">Agendar una cita</option>
-                    <option value="emergencia">Emergencia</option>
-                    <option value="farmacia">Consulta sobre farmacia</option>
-                    <option value="otro">Otro</option>
+                    <option value="Agendar una cita">Agendar una cita</option>
+                    <option value="Emergencia">Emergencia</option>
+                    <option value="Consulta sobre farmacia">Consulta sobre farmacia</option>
+                    <option value="Otro">Otro</option>
                 </select>
+                <small class="mensaje-campo" data-mensaje-para="contacto-motivo"></small>
             </div>
             <div class="input-group">
                 <label>Mensaje</label>
-                <textarea id="contacto-mensaje" rows="5" placeholder="Cuéntanos en qué podemos ayudarte" required></textarea>
+                <textarea id="contacto-mensaje" rows="5" placeholder="Cuéntanos en qué podemos ayudarte" minlength="10" maxlength="2000" required></textarea>
+                <small class="mensaje-campo" data-mensaje-para="contacto-mensaje"></small>
             </div>
+            <div class="campo-trampa" aria-hidden="true">
+                <label for="contacto-sitio">Sitio web</label>
+                <input type="text" id="contacto-sitio" tabindex="-1" autocomplete="off">
+            </div>
+            <p id="contacto-confirmacion" class="contacto-confirmacion" role="status" hidden></p>
             <button type="submit" class="btn-primary" style="width: 100%; padding: 15px;"><i class="fa-solid fa-paper-plane"></i> Enviar Mensaje</button>
         </form>
     </div>

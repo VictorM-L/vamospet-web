@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="600" viewBox="0 0 800 600" role="img" aria-label="Imagen no disponible">
+  <rect width="800" height="600" fill="#EAF4EE"/>
+  <g fill="#B7DCC6">
+    <ellipse cx="400" cy="330" rx="100" ry="86"/>
+    <ellipse cx="295" cy="218" rx="40" ry="52"/>
+    <ellipse cx="368" cy="168" rx="40" ry="54"/>
+    <ellipse cx="450" cy="168" rx="40" ry="54"/>
+    <ellipse cx="518" cy="218" rx="40" ry="52"/>
+  </g>
+  <text x="400" y="500" font-family="Poppins, Arial, sans-serif" font-size="34" font-weight="600" fill="#158A55" text-anchor="middle">Imagen no disponible</text>
+</svg>

@@ -3,6 +3,8 @@ import com.vamospet.backend.modelo.Cita;
 import com.vamospet.backend.modelo.HorarioAtencion;
 import com.vamospet.backend.repositorio.CitaRepository;
 import com.vamospet.backend.repositorio.HorarioAtencionRepository;
+import com.vamospet.backend.repositorio.ServicioRepository;
+import com.vamospet.backend.modelo.Servicio;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -20,6 +22,7 @@ class AgendaServiceTest {
     private static final Integer VET = 7;
     @Mock private HorarioAtencionRepository horarioRepositorio;
     @Mock private CitaRepository citaRepositorio;
+    @Mock private ServicioRepository servicioRepositorio;
     @InjectMocks private AgendaService agenda;
     private LocalDate proximoLunes;
     @BeforeEach
@@ -98,5 +101,68 @@ class AgendaServiceTest {
         when(horarioRepositorio.findAll()).thenReturn(List.of(horario(VET, 1, "09:00", "10:00")));
         assertTrue(agenda.tieneHorario(VET));
         assertFalse(agenda.tieneHorario(123));
+    }
+    @Test
+    @DisplayName("Una cita rechazada o por reasignar libera la franja del veterinario")
+    void rechazadaYPorReasignarNoBloquean() {
+        when(horarioRepositorio.findAll()).thenReturn(List.of(horario(VET, 1, "09:00", "10:00")));
+        when(citaRepositorio.findAll()).thenReturn(List.of(
+                cita(VET, proximoLunes.atTime(9, 0), "Rechazada"),
+                cita(VET, proximoLunes.atTime(9, 30), "Por reasignar")));
+        List<LocalTime> libres = agenda.franjasLibres(VET, proximoLunes);
+        assertTrue(libres.contains(LocalTime.of(9, 0)));
+        assertTrue(libres.contains(LocalTime.of(9, 30)));
+    }
+    private Servicio servicio(int id, int duracion) {
+        Servicio s = new Servicio();
+        s.setId(id);
+        s.setDuracion_min(duracion);
+        return s;
+    }
+    @Test
+    @DisplayName("Una cita de 120 minutos bloquea las franjas que caen dentro de su duración")
+    void citaLargaBloqueaSuIntervalo() {
+        when(horarioRepositorio.findAll()).thenReturn(List.of(horario(VET, 1, "09:00", "13:00")));
+        Cita larga = cita(VET, proximoLunes.atTime(9, 0), "Confirmada");
+        larga.setServicio_id(50);
+        when(citaRepositorio.findAll()).thenReturn(List.of(larga));
+        when(servicioRepositorio.findAll()).thenReturn(List.of(servicio(50, 120)));
+        assertFalse(agenda.franjaLibre(VET, proximoLunes.atTime(10, 0)));
+        assertEquals(List.of(LocalTime.of(11, 0), LocalTime.of(11, 30), LocalTime.of(12, 0), LocalTime.of(12, 30)),
+                agenda.franjasLibres(VET, proximoLunes));
+    }
+    @Test
+    @DisplayName("Un servicio de 90 minutos necesita el intervalo completo libre y dentro del horario")
+    void servicioLargoNecesitaIntervaloCompleto() {
+        when(horarioRepositorio.findAll()).thenReturn(List.of(horario(VET, 1, "09:00", "12:00")));
+        when(citaRepositorio.findAll()).thenReturn(List.of(cita(VET, proximoLunes.atTime(10, 30), "Pendiente")));
+        assertEquals(List.of(LocalTime.of(9, 0)), agenda.franjasLibres(VET, proximoLunes, 90, null));
+        assertFalse(agenda.franjaLibre(VET, proximoLunes.atTime(11, 0), 90, null));
+    }
+    @Test
+    @DisplayName("Al mover una cita no choca consigo misma")
+    void ignoraLaPropiaCita() {
+        when(horarioRepositorio.findAll()).thenReturn(List.of(horario(VET, 1, "09:00", "10:00")));
+        Cita propia = cita(VET, proximoLunes.atTime(9, 0), "Confirmada");
+        propia.setId(77);
+        when(citaRepositorio.findAll()).thenReturn(List.of(propia));
+        assertTrue(agenda.franjaLibre(VET, proximoLunes.atTime(9, 0), 60, 77));
+        assertFalse(agenda.franjaLibre(VET, proximoLunes.atTime(9, 0), 60, null));
+    }
+    @Test
+    @DisplayName("Una cita en curso sigue ocupando su franja")
+    void enCursoBloquea() {
+        when(horarioRepositorio.findAll()).thenReturn(List.of(horario(VET, 1, "09:00", "10:00")));
+        when(citaRepositorio.findAll()).thenReturn(List.of(cita(VET, proximoLunes.atTime(9, 0), "En curso")));
+        assertFalse(agenda.franjasLibres(VET, proximoLunes).contains(LocalTime.of(9, 0)));
+    }
+    @Test
+    @DisplayName("Sin duración configurada un servicio dura 30 minutos")
+    void duracionPorDefecto() {
+        assertEquals(30, AgendaService.duracionDe((Servicio) null));
+        assertEquals(30, AgendaService.duracionDe(servicio(1, 0)));
+        assertEquals(90, AgendaService.duracionDe(servicio(1, 90)));
+        assertTrue(AgendaService.solapa(540, 660, 600, 630));
+        assertFalse(AgendaService.solapa(540, 600, 600, 630));
     }
 }

@@ -53,14 +53,27 @@ public class AgendaController {
         return res;
     }
 
+    @GetMapping("/grooming/veterinarios")
+    public List<Map<String, Object>> veterinariosGrooming() {
+        List<Map<String, Object>> res = new ArrayList<>();
+        for (Usuario u : usuarioRepositorio.findAll()) {
+            if (vetDisponible(u) && Boolean.TRUE.equals(u.getHace_grooming())) res.add(Map.of("id", u.getId(), "nombre", u.getNombre()));
+        }
+        return res;
+    }
+
     @GetMapping("/disponibilidad")
-    public ResponseEntity<?> disponibilidad(@RequestParam Integer veterinario_id, @RequestParam String fecha) {
+    public ResponseEntity<?> disponibilidad(@RequestParam Integer veterinario_id, @RequestParam String fecha,
+                                            @RequestParam(required = false) Integer servicio_id) {
+        LocalDate dia;
         try {
-            List<String> franjas = agendaService.franjasLibres(veterinario_id, LocalDate.parse(fecha))
-                    .stream().map(t -> t.toString().substring(0, 5)).toList();
-            return ResponseEntity.ok(Map.of("duracion_minutos", AgendaService.DURACION_CITA_MINUTOS, "franjas", franjas));
+            dia = LocalDate.parse(fecha);
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(Map.of("error", "Fecha inválida."));
         }
+        int duracion = agendaService.duracionDe(servicio_id);
+        List<String> franjas = agendaService.franjasLibres(veterinario_id, dia, duracion, null)
+                .stream().map(t -> t.toString().substring(0, 5)).toList();
+        return ResponseEntity.ok(Map.of("duracion_minutos", duracion, "franjas", franjas));
     }
 }
