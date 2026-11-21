@@ -1,5 +1,4 @@
 
-@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800;900&family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700;9..144,800&display=swap');
 
 :root {
     --primary-green: #158A55; 
@@ -1501,50 +1500,24 @@ body {
     padding: 4px 6px;
 }
 
-.tienda-carousel-wrapper {
-    position: relative;
+.tienda-contenido {
     flex: 1;
+    min-width: 0;
 }
 
-.tienda-carousel-track {
-    display: flex;
+.tienda-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
     gap: 22px;
-    overflow-x: auto;
-    scroll-snap-type: x mandatory;
-    padding: 6px 6px 20px 6px;
-    scrollbar-width: none;
+    padding-bottom: 20px;
 }
 
-.tienda-carousel-track::-webkit-scrollbar { display: none; }
-
-.carousel-arrow {
-    position: absolute;
-    top: 40%;
-    transform: translateY(-50%);
-    width: 42px;
-    height: 42px;
-    border-radius: 50%;
-    background: white;
-    box-shadow: var(--shadow-soft);
-    border: 1px solid #E4E7EC;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    color: var(--primary-green);
-    z-index: 5;
-    font-size: 14px;
-    transition: var(--transition-smooth);
+.tienda-grid > p {
+    grid-column: 1 / -1;
 }
-
-.carousel-arrow:hover { background: var(--primary-green); color: white; }
-.carousel-arrow.prev { left: -14px; }
-.carousel-arrow.next { right: -14px; }
 
 .shop-card {
-    min-width: 215px;
-    max-width: 215px;
-    scroll-snap-align: start;
+    min-width: 0;
     background: white;
     border-radius: 24px;
     box-shadow: var(--shadow-soft);
@@ -1561,8 +1534,8 @@ body {
 }
 
 .shop-card-media {
-    height: 150px;
-    background: var(--green-gradient);
+    aspect-ratio: 1 / 1;
+    background: #F3F4F6;
     position: relative;
     overflow: hidden;
 }
@@ -1571,8 +1544,7 @@ body {
     width: 100%;
     height: 100%;
     object-fit: cover;
-    mix-blend-mode: multiply;
-    opacity: 0.9;
+    display: block;
 }
 
 .shop-card-badge {
@@ -1746,15 +1718,718 @@ body {
 
     .credit-card-preview { max-width: 100%; }
 
-    .carousel-arrow { width: 36px; height: 36px; }
-    .carousel-arrow.prev { left: 2px; }
-    .carousel-arrow.next { right: 2px; }
 }
 
 @media (max-width: 600px) {
     h1 { font-size: 26px !important; }
     .metric-card { flex: 1 1 100%; }
-    .shop-card { min-width: 168px; max-width: 168px; }
     .producto-card { padding: 15px; }
     .lab-tests-grid { grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); }
+}
+
+.campo-clave {
+    position: relative;
+}
+
+.campo-clave input {
+    padding-right: 48px;
+}
+
+.boton-ojito {
+    position: absolute;
+    top: 50%;
+    right: 8px;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    font-size: 16px;
+    padding: 8px;
+    border-radius: 8px;
+    line-height: 1;
+}
+
+.boton-ojito:hover,
+.boton-ojito:focus-visible {
+    color: var(--primary-green);
+    outline: none;
+    background: #F0FDF4;
+}
+
+.mensaje-campo {
+    display: block;
+    min-height: 16px;
+    margin-top: 5px;
+    font-size: 12px;
+    line-height: 1.4;
+}
+
+.mensaje-campo.error {
+    color: #B42318;
+}
+
+.mensaje-campo.ok {
+    color: var(--primary-green);
+}
+
+.input-group input.campo-invalido {
+    border-color: #F04438;
+}
+
+.requisitos-clave {
+    list-style: none;
+    margin: 8px 0 0;
+    padding: 0;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 4px 12px;
+    font-size: 12px;
+    color: var(--text-muted);
+}
+
+.requisitos-clave li i {
+    font-size: 10px;
+    margin-right: 4px;
+    color: #D0D5DD;
+}
+
+.requisitos-clave li.cumple {
+    color: var(--primary-green);
+}
+
+.requisitos-clave li.cumple i {
+    color: var(--primary-green);
+}
+
+.pasos-recuperacion {
+    display: flex;
+    gap: 8px;
+    list-style: none;
+    padding: 0;
+    margin: 0 0 25px;
+    counter-reset: paso;
+}
+
+.pasos-recuperacion li {
+    flex: 1;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-muted);
+    padding-top: 10px;
+    border-top: 4px solid #E4E7EC;
+    counter-increment: paso;
+}
+
+.pasos-recuperacion li::before {
+    content: counter(paso) ". ";
+}
+
+.pasos-recuperacion li.activo {
+    color: var(--primary-green);
+    border-top-color: var(--primary-green);
+}
+
+.pasos-recuperacion li.hecho {
+    color: var(--primary-green-dark);
+    border-top-color: #A7F3D0;
+}
+
+.aviso-formulario {
+    border-radius: 12px;
+    padding: 12px 15px;
+    font-size: 13px;
+    line-height: 1.5;
+    margin-bottom: 20px;
+}
+
+.aviso-formulario.info {
+    background: #F0FDF4;
+    border: 1px solid #BBF7D0;
+    color: var(--primary-green-dark);
+}
+
+.aviso-formulario.error {
+    background: #FEF3F2;
+    border: 1px solid #FECDCA;
+    color: #B42318;
+}
+
+.datos-perfil {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 8px 15px;
+    font-size: 13px;
+    margin: 0;
+}
+
+.datos-perfil dt {
+    color: var(--text-muted);
+    font-weight: 600;
+}
+
+.datos-perfil dd {
+    margin: 0;
+    color: var(--dark-text);
+    word-break: break-word;
+}
+
+.aviso-sesion {
+    z-index: 3000;
+}
+
+.cola-auxiliar {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-bottom: 15px;
+}
+
+.tablero-cirugias {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(200px, 1fr));
+    gap: 12px;
+    overflow-x: auto;
+}
+
+.columna-cirugias {
+    background: #F9FAFB;
+    border: 1px solid #E4E7EC;
+    border-radius: 14px;
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    min-height: 140px;
+}
+
+.columna-cirugias h4 {
+    font-size: 14px;
+    font-weight: 700;
+    display: flex;
+    justify-content: space-between;
+}
+
+.columna-cirugias h4 span {
+    background: #E4E7EC;
+    border-radius: 999px;
+    padding: 0 8px;
+    font-size: 12px;
+}
+
+.columna-vacia {
+    font-size: 12px;
+    color: var(--text-muted);
+    text-align: center;
+    padding: 10px;
+}
+
+.tarjeta-cirugia {
+    background: white;
+    border: 1px solid #E4E7EC;
+    border-radius: 12px;
+    padding: 10px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.tarjeta-cirugia-cabecera {
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
+    font-size: 13px;
+}
+
+.tarjeta-cirugia-cabecera span {
+    font-size: 11px;
+    color: var(--text-muted);
+}
+
+.tarjeta-cirugia-insignias,
+.tarjeta-cirugia-acciones {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    align-items: center;
+}
+
+.tarjeta-cirugia-acciones {
+    margin-top: 6px;
+}
+
+.tarjeta-cirugia-acciones button[disabled] {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.insignia-examen {
+    font-size: 11px;
+    font-weight: 600;
+    border-radius: 999px;
+    padding: 2px 8px;
+}
+
+.insignia-examen.apto {
+    background: #DCFCE7;
+    color: #166534;
+}
+
+.insignia-examen.no-apto {
+    background: #FEE2E2;
+    color: #991B1B;
+}
+
+.cirugias-realizadas {
+    background: white;
+    border: 1px solid #E4E7EC;
+    border-radius: 14px;
+    padding: 12px 16px;
+}
+
+.cirugias-realizadas summary {
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 14px;
+}
+
+.cirugias-realizadas > div {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 10px;
+    margin-top: 10px;
+}
+
+.panel-clinico {
+    border-top: 1px solid #E4E7EC;
+    padding-top: 10px;
+    margin-top: 10px;
+}
+
+.panel-clinico h4 {
+    font-size: 14px;
+    font-weight: 700;
+    margin-bottom: 6px;
+}
+
+.panel-clinico textarea {
+    width: 100%;
+    font-family: 'Poppins';
+    border: 1px solid #E4E7EC;
+    border-radius: 8px;
+    padding: 8px;
+}
+
+.linea-tiempo {
+    list-style: none;
+    padding-left: 12px;
+    border-left: 2px solid var(--primary-green);
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    font-size: 12px;
+}
+
+.linea-tiempo span {
+    color: var(--text-muted);
+    margin-left: 6px;
+}
+
+.linea-tiempo div {
+    white-space: pre-wrap;
+    color: var(--text-muted);
+}
+
+.pasos-cirugia {
+    display: flex;
+    gap: 6px;
+    list-style: none;
+    padding: 0;
+    margin: 6px 0 12px 0;
+    font-size: 12px;
+}
+
+.pasos-cirugia li {
+    flex: 1;
+    text-align: center;
+    padding: 6px;
+    border-radius: 8px;
+    background: #F3F4F6;
+    color: var(--text-muted);
+}
+
+.pasos-cirugia li.activo {
+    background: var(--primary-green);
+    color: white;
+    font-weight: 600;
+}
+
+.opciones-postop {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 12px;
+    font-size: 14px;
+}
+
+.status-en-curso {
+    background: #E0F2FE;
+    color: #075985;
+}
+
+.documentos-viaje {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.documento-viaje {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    border: 1px solid #E4E7EC;
+    border-radius: 10px;
+    padding: 8px 12px;
+    font-size: 13px;
+}
+
+.documento-viaje.observado {
+    border-color: #FCA5A5;
+    background: #FEF2F2;
+}
+
+.selector-modalidad {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 15px;
+}
+
+.selector-modalidad button {
+    flex: 1;
+}
+
+.selector-modalidad button.activo {
+    background: var(--primary-green);
+    color: white;
+    border-color: var(--primary-green);
+}
+
+@media (max-width: 900px) {
+    .tablero-cirugias {
+        grid-template-columns: repeat(4, 240px);
+    }
+}
+
+.banners-tienda {
+    position: relative;
+    max-width: 1200px;
+    margin: 30px auto 0 auto;
+    padding: 0 20px;
+}
+
+.banner-pista {
+    position: relative;
+    border-radius: 20px;
+    overflow: hidden;
+    aspect-ratio: 1920 / 700;
+    background: #F3F4F6;
+}
+
+.banner-slide {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    transition: opacity 0.6s ease;
+    pointer-events: none;
+}
+
+.banner-slide.activo {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.banner-slide img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center;
+    display: block;
+}
+
+.banner-slide.rota img {
+    visibility: hidden;
+}
+
+.banner-flecha {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    border: none;
+    background: rgba(255, 255, 255, 0.9);
+    color: var(--dark-text);
+    cursor: pointer;
+    z-index: 2;
+    box-shadow: var(--shadow-soft);
+}
+
+.banner-flecha.anterior { left: 32px; }
+.banner-flecha.siguiente { right: 32px; }
+
+.banner-puntos {
+    position: absolute;
+    bottom: 12px;
+    left: 0;
+    right: 0;
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    z-index: 2;
+}
+
+.banner-punto {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    border: none;
+    background: rgba(255, 255, 255, 0.6);
+    cursor: pointer;
+    padding: 0;
+}
+
+.banner-punto.activo {
+    background: white;
+    width: 24px;
+    border-radius: 6px;
+}
+
+.gestion-banners {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 16px;
+}
+
+.tarjeta-banner {
+    background: white;
+    border: 1px solid #E4E7EC;
+    border-radius: 14px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+.tarjeta-banner.inactivo {
+    opacity: 0.6;
+}
+
+.tarjeta-banner img {
+    width: 100%;
+    aspect-ratio: 1920 / 700;
+    object-fit: cover;
+    background: #F3F4F6;
+    display: block;
+}
+
+.tarjeta-banner-cuerpo {
+    padding: 10px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    font-size: 13px;
+}
+
+.tarjeta-banner-acciones {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+@media (max-width: 900px) {
+    .tienda-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+}
+
+@media (max-width: 700px) {
+    .banner-pista { aspect-ratio: 800 / 600; }
+    .banner-flecha { display: none; }
+}
+
+@media (max-width: 380px) {
+    .tienda-grid { grid-template-columns: 1fr; }
+}
+
+[hidden] {
+    display: none !important;
+}
+
+.campo-trampa {
+    position: absolute;
+    left: -10000px;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+}
+
+.contacto-confirmacion {
+    background: var(--light-green);
+    color: var(--primary-green-dark);
+    border-radius: 12px;
+    padding: 12px 16px;
+    font-weight: 600;
+    font-size: 14px;
+}
+
+.bandeja-contacto {
+    display: grid;
+    grid-template-columns: minmax(260px, 1fr) 2fr;
+    gap: 16px;
+    align-items: start;
+}
+
+.bandeja-lista {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.bandeja-item {
+    text-align: left;
+    background: white;
+    border: 1px solid #E4E7EC;
+    border-radius: 12px;
+    padding: 10px 12px;
+    cursor: pointer;
+    font-family: inherit;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    font-size: 13px;
+}
+
+.bandeja-item.activo {
+    border-color: var(--primary-green);
+    box-shadow: 0 0 0 2px rgba(21, 138, 85, 0.15);
+}
+
+.bandeja-item small {
+    color: var(--text-muted);
+}
+
+.bandeja-detalle {
+    background: white;
+    border: 1px solid #E4E7EC;
+    border-radius: 14px;
+    padding: 16px 18px;
+    min-height: 200px;
+}
+
+.bandeja-texto {
+    white-space: pre-wrap;
+    font-size: 14px;
+    background: #F9FAFB;
+    border-radius: 10px;
+    padding: 12px;
+    margin: 10px 0;
+}
+
+@media (max-width: 900px) {
+    .bandeja-contacto { grid-template-columns: 1fr; }
+}
+
+.aviso-receta {
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+    background: var(--light-green);
+    border: 1px solid #BBF7D0;
+    border-radius: 12px;
+    padding: 12px 14px;
+    margin: 12px 0;
+    font-size: 13px;
+}
+
+.aviso-receta i {
+    color: var(--primary-green);
+    font-size: 18px;
+    margin-top: 2px;
+}
+
+.aviso-receta.bloqueado {
+    background: #FEF2F2;
+    border-color: #FECACA;
+}
+
+.aviso-receta.bloqueado i {
+    color: #B42318;
+}
+
+.aviso-receta select {
+    width: 100%;
+    margin: 6px 0;
+    padding: 8px 10px;
+    border: 1px solid #E4E7EC;
+    border-radius: 8px;
+    font-family: inherit;
+}
+
+.aviso-receta p {
+    color: var(--text-muted);
+    font-size: 12px;
+}
+
+.boton-bloqueado-nota {
+    font-size: 12px;
+    color: #B42318;
+    margin-top: 8px;
+    text-align: center;
+}
+
+body[data-rol="1"] [data-roles]:not([data-roles~="1"]),
+body[data-rol="2"] [data-roles]:not([data-roles~="2"]),
+body[data-rol="3"] [data-roles]:not([data-roles~="3"]),
+body[data-rol="4"] [data-roles]:not([data-roles~="4"]),
+body:not([data-rol]) [data-roles] {
+    display: none !important;
+}
+
+.aviso-supervision {
+    background: #F0FDF4;
+    border: 1px solid #BBF7D0;
+    color: var(--primary-green-dark);
+    border-radius: 12px;
+    padding: 10px 15px;
+    font-size: 13px;
+    margin-bottom: 20px;
+}
+
+.aviso-supervision i {
+    margin-right: 6px;
+}
+
+.status-por-reasignar {
+    background: #FEF3C7;
+    color: #92400E;
+}
+
+.status-rechazada {
+    background: #F3F4F6;
+    color: #4B5563;
+}
+
+.etiqueta-solicitud {
+    display: inline-block;
+    margin-top: 4px;
+    font-size: 11px;
+    font-weight: 600;
+    color: #B42318;
+}
+
+.motivo-cita {
+    display: block;
+    margin-top: 4px;
+    font-size: 11px;
+    color: var(--text-muted);
 }

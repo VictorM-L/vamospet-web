@@ -83,8 +83,8 @@ public class DevolucionController {
             List<Map<String, Object>> items = (List<Map<String, Object>>) body.get("items");
 
             Usuario admin = usuarioId == null ? null : usuarioRepositorio.findById(usuarioId).orElse(null);
-            if (admin == null || !Integer.valueOf(1).equals(admin.getRol_id())) {
-                return error(HttpStatus.FORBIDDEN, "Solo el Administrador puede registrar devoluciones.");
+            if (admin == null || !Integer.valueOf(4).equals(admin.getRol_id())) {
+                return error(HttpStatus.FORBIDDEN, "Solo el Auxiliar de Veterinaria puede registrar devoluciones.");
             }
             Pedido pedido = pedidoId == null ? null : pedidoRepositorio.findById(pedidoId).orElse(null);
             if (pedido == null) return error(HttpStatus.BAD_REQUEST, "Pedido no encontrado.");

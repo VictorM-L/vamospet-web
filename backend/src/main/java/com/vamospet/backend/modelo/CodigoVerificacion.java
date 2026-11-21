@@ -17,6 +17,7 @@ public class CodigoVerificacion {
     private Integer intentos = 0;
     private Boolean usado = false;
     private LocalDateTime creado = LocalDateTime.now();
+    private String proposito = "Registro";
 
     public Integer getId() { return id; }
     public void setId(Integer id) { this.id = id; }
@@ -32,4 +33,6 @@ public class CodigoVerificacion {
     public void setUsado(Boolean usado) { this.usado = usado; }
     public LocalDateTime getCreado() { return creado; }
     public void setCreado(LocalDateTime creado) { this.creado = creado; }
+    public String getProposito() { return proposito; }
+    public void setProposito(String proposito) { this.proposito = proposito; }
 }

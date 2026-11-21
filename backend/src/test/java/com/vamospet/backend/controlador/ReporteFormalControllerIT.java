@@ -11,6 +11,7 @@ import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
+import static com.vamospet.backend.ConToken.como;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 @SpringBootTest
@@ -36,7 +37,7 @@ class ReporteFormalControllerIT {
     }
     @Test @DisplayName("Un administrador descarga el Excel del reporte de ingresos")
     void adminDescargaExcel() throws Exception {
-        mvc.perform(get("/api/reportes/formal/ingresos/xlsx").param("usuarioId", adminId.toString()))
+        mvc.perform(get("/api/reportes/formal/ingresos/xlsx").param("usuarioId", adminId.toString()).with(como(adminId)))
         .andExpect(status().isOk())
         .andExpect(content().contentTypeCompatibleWith(
             "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"))
@@ -44,16 +45,16 @@ class ReporteFormalControllerIT {
     }
     @Test @DisplayName("Un cliente NO puede pedir reportes (403)")
     void clienteNoPuede() throws Exception {
-        mvc.perform(get("/api/reportes/formal/ingresos/xlsx").param("usuarioId", clienteId.toString()))
+        mvc.perform(get("/api/reportes/formal/ingresos/xlsx").param("usuarioId", clienteId.toString()).with(como(clienteId)))
         .andExpect(status().isForbidden());
     }
     @Test @DisplayName("Un tipo de reporte inexistente devuelve 404")
     void tipoDesconocido() throws Exception {
-        mvc.perform(get("/api/reportes/formal/inventado/xlsx").param("usuarioId", adminId.toString()))
+        mvc.perform(get("/api/reportes/formal/inventado/xlsx").param("usuarioId", adminId.toString()).with(como(adminId)))
         .andExpect(status().isNotFound());
     }
-    @Test @DisplayName("GET /api/usuarios sin identificarse devuelve 403")
+    @Test @DisplayName("GET /api/usuarios sin token devuelve 401")
     void listarUsuariosSinPermiso() throws Exception {
-        mvc.perform(get("/api/usuarios")).andExpect(status().isForbidden());
+        mvc.perform(get("/api/usuarios")).andExpect(status().isUnauthorized());
     }
 }

@@ -4,14 +4,6 @@
 
 <script>
 (function () {
-    function imagenPorDefecto(nombreCategoria) {
-        const c = (nombreCategoria || '').toLowerCase();
-        if (c.includes('dental')) return 'https://images.unsplash.com/photo-1623366302587-b25efec27488?q=80&w=700&auto=format&fit=crop';
-        if (c.includes('vitamin') || c.includes('suplemento')) return 'https://images.unsplash.com/photo-1584362917165-526a968579e8?q=80&w=700&auto=format&fit=crop';
-        if (c.includes('cama')) return 'https://images.unsplash.com/photo-1596704122119-21b06f8c7eeb?q=80&w=700&auto=format&fit=crop';
-        if (c.includes('correa') || c.includes('collar')) return 'https://images.unsplash.com/photo-1601322238423-f227546059e6?q=80&w=700&auto=format&fit=crop';
-        return 'https://images.unsplash.com/photo-1628527304948-0615f2a7ed82?q=80&w=700&auto=format&fit=crop';
-    }
 
     async function init() {
         const contenedor = document.getElementById('producto-detalle-contenedor');
@@ -42,16 +34,16 @@
                 }
             }
 
-            const imagenPrincipal = p.imagen || imagenPorDefecto(nombreCategoria);
-            const fotosGaleria = [imagenPrincipal, ...galeria.map(g => g.url)];
+            const imagenPrincipal = urlImagen(p.imagen);
+            const fotosGaleria = [imagenPrincipal, ...galeria.map(g => urlImagen(g.url))];
 
             contenedor.innerHTML = `
                 <div style="display: flex; gap: 50px; flex-wrap: wrap;">
                     <div style="flex: 1; min-width: 280px;">
-                        <img id="foto-principal-producto" src="${imagenPrincipal}" style="width: 100%; border-radius: 24px; box-shadow: var(--shadow-soft); aspect-ratio: 1/1; object-fit: cover;" alt="${esc(p.nombre)}">
+                        <img id="foto-principal-producto" src="${esc(imagenPrincipal)}" ${ATRIBUTO_SIN_FOTO} style="width: 100%; border-radius: 24px; box-shadow: var(--shadow-soft); aspect-ratio: 1/1; object-fit: cover;" alt="${esc(p.nombre)}">
                         ${fotosGaleria.length > 1 ? `
                             <div style="display: flex; gap: 10px; margin-top: 12px; overflow-x: auto;">
-                                ${fotosGaleria.map(url => `<img src="${url}" onclick="document.getElementById('foto-principal-producto').src='${url}'" style="width: 64px; height: 64px; object-fit: cover; border-radius: 10px; cursor: pointer; border: 2px solid #E4E7EC;">`).join('')}
+                                ${fotosGaleria.map(url => `<img src="${esc(url)}" ${ATRIBUTO_SIN_FOTO} onclick="document.getElementById('foto-principal-producto').src=this.src" style="width: 64px; height: 64px; object-fit: cover; border-radius: 10px; cursor: pointer; border: 2px solid #E4E7EC;">`).join('')}
                             </div>
                         ` : ''}
                     </div>

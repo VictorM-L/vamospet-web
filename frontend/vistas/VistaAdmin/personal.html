@@ -13,6 +13,7 @@
         <button class="sidebar-item" onclick="cargarVista('VistaAdmin/proveedores')"><i class="fa-solid fa-truck-field"></i> Proveedores</button>
         <button class="sidebar-item" onclick="cargarVista('VistaAdmin/compras')"><i class="fa-solid fa-cart-flatbed"></i> Compras</button>
         <button class="sidebar-item" onclick="cargarVista('VistaAdmin/devoluciones')"><i class="fa-solid fa-rotate-left"></i> Devoluciones</button>
+        <button class="sidebar-item" onclick="cargarVista('VistaAdmin/reservas')"><i class="fa-solid fa-hotel"></i> Reservas y viajes</button>
         <button class="sidebar-item" onclick="cargarVista('VistaAdmin/comprobantes')"><i class="fa-solid fa-receipt"></i> Comprobantes</button>
         <button class="sidebar-item" onclick="cargarVista('VistaAdmin/finanzas')"><i class="fa-solid fa-file-invoice-dollar"></i> Finanzas</button>
         <button class="sidebar-item" onclick="cargarVista('VistaAdmin/reportes')"><i class="fa-solid fa-chart-column"></i> Reportes</button>
@@ -48,11 +49,22 @@
 <div class="modal-overlay" id="modal-nuevo-personal" style="display: none;">
     <div class="modal-box">
         <h3><i class="fa-solid fa-user-nurse" style="color: var(--primary-green);"></i> Nuevo Colaborador</h3>
-        <form id="form-nuevo-personal">
-            <div class="input-group"><label>Nombre completo</label><input type="text" id="pers-nombre" required></div>
-            <div class="input-group"><label>DNI</label><input type="text" id="pers-dni" maxlength="8" required></div>
-            <div class="input-group"><label>Correo</label><input type="email" id="pers-correo" required></div>
-            <div class="input-group"><label>Contraseña temporal</label><input type="password" id="pers-contrasena" required></div>
+        <form id="form-nuevo-personal" novalidate>
+            <div class="input-group">
+                <label for="pers-nombre">Nombre completo</label>
+                <input type="text" id="pers-nombre" data-regla="nombre" maxlength="100" placeholder="Solo letras, sin títulos como Dr. o Dra." required>
+                <small class="mensaje-campo" data-mensaje-para="pers-nombre" aria-live="polite"></small>
+            </div>
+            <div class="input-group">
+                <label for="pers-dni">DNI</label>
+                <input type="text" id="pers-dni" data-regla="dni" maxlength="8" inputmode="numeric" required>
+                <small class="mensaje-campo" data-mensaje-para="pers-dni" aria-live="polite"></small>
+            </div>
+            <div class="input-group">
+                <label for="pers-correo">Correo</label>
+                <input type="email" id="pers-correo" data-regla="correo" data-verificar-duplicado="correo" maxlength="100" required>
+                <small class="mensaje-campo" data-mensaje-para="pers-correo" aria-live="polite"></small>
+            </div>
             <div class="input-group">
                 <label>Rol</label>
                 <select id="pers-rol" required>
@@ -60,7 +72,12 @@
                     <option value="4">Auxiliar de Veterinaria</option>
                 </select>
             </div>
-            <div class="input-group"><label>Teléfono</label><input type="tel" id="pers-telefono"></div>
+            <div class="input-group">
+                <label for="pers-telefono">Teléfono (opcional)</label>
+                <input type="tel" id="pers-telefono" data-regla="telefono" data-opcional maxlength="9" inputmode="numeric">
+                <small class="mensaje-campo" data-mensaje-para="pers-telefono" aria-live="polite"></small>
+            </div>
+            <p style="font-size: 12px; color: var(--text-muted); line-height: 1.5;"><i class="fa-solid fa-envelope" style="color: var(--primary-green);"></i> Al guardar, el colaborador recibe en su correo un código para crear su propia contraseña. Tú nunca la ves.</p>
             <div style="display: flex; gap: 10px; margin-top: 20px;">
                 <button type="button" class="btn-outline" style="flex: 1; padding: 12px;" onclick="cerrarModalNuevoPersonal()">Cancelar</button>
                 <button type="submit" class="btn-primary" style="flex: 1; padding: 12px;">Guardar</button>
@@ -96,11 +113,11 @@
             <tr style="${deBaja ? 'opacity: .55;' : ''}">
                 <td><strong>${esc(p.nombre)}</strong>${deBaja ? ' <span class="status-badge" style="background:#F3F4F6; color:#6B7280;">De baja</span>' : ''}</td>
                 <td>${esc(p.correo || '—')}</td>
-                <td><span class="status-badge ${colorRol(p.rol_id)}">${nombreRol(p.rol_id)}</span></td>
+                <td><span class="status-badge ${colorRol(p.rol_id)}">${nombreRol(p.rol_id)}</span>${p.rol_id === 3 ? `<label class="motivo-cita" style="cursor:pointer;"><input type="checkbox" ${p.hace_grooming ? 'checked' : ''} ${deBaja ? 'disabled' : ''} onchange="cambiarGrooming(${p.id}, this)"> Atiende grooming</label>` : ''}</td>
                 <td>${esc(p.telefono || '—')}</td>
                 <td>${deBaja
                     ? `<button class="btn-outline" style="padding: 5px 12px; font-size: 11px;" onclick="reactivarPersonal(${p.id})">Reactivar</button>`
-                    : `<button style="background:none; border:none; color:#EF4444; cursor:pointer; font-size:14px;" title="Dar de baja" onclick="darDeBajaPersonal(${p.id})"><i class="fa-solid fa-user-slash"></i></button>`}</td>
+                    : `<button class="btn-outline" style="padding: 5px 10px; font-size: 11px; margin-right: 8px;" title="Enviar restablecimiento de contraseña" onclick="enviarRestablecimientoPersonal(${p.id})"><i class="fa-solid fa-key"></i> Enviar restablecimiento</button><button style="background:none; border:none; color:#EF4444; cursor:pointer; font-size:14px;" title="Dar de baja" onclick="darDeBajaPersonal(${p.id})"><i class="fa-solid fa-user-slash"></i></button>`}</td>
             </tr>`;
         }).join('');
     }
@@ -116,6 +133,15 @@
             pintar();
         } catch { alert(mensajeError); }
     }
+    window.cambiarGrooming = async function (id, casilla) {
+        try {
+            const data = await enviarJson(`${API_BASE}/usuarios/${id}/grooming`, 'PATCH', { hace_grooming: casilla.checked });
+            __personal = __personal.map(p => p.id === data.id ? data : p);
+        } catch (e) {
+            casilla.checked = !casilla.checked;
+            alert(e.message);
+        }
+    };
     window.darDeBajaPersonal = function (id) {
         if (!confirm('¿Dar de baja a este colaborador? No podrá iniciar sesión, pero su historial se conserva y puedes reactivarlo.')) return;
         cambiarEstadoPersonal(id, 'baja', 'No se pudo dar de baja al colaborador.');
@@ -124,11 +150,25 @@
         cambiarEstadoPersonal(id, 'reactivar', 'No se pudo reactivar al colaborador.');
     };
 
+    window.enviarRestablecimientoPersonal = async function (id) {
+        const colaborador = __personal.find(p => p.id === id);
+        if (!colaborador) return;
+        if (!confirm(`¿Enviar un código de restablecimiento a ${colaborador.correo}? El colaborador creará su nueva contraseña; tú no la verás.`)) return;
+        try {
+            const res = await fetch(`${API_BASE}/usuarios/personal/${id}/restablecimiento?usuarioId=${encodeURIComponent(usuarioActualId())}`, { method: 'POST' });
+            const data = await res.json().catch(() => ({}));
+            alert(res.ok ? (data.mensaje || 'Código enviado.') : (data.error || 'No se pudo enviar el restablecimiento.'));
+        } catch {
+            alert('No se pudo enviar el restablecimiento.');
+        }
+    };
+
     window.abrirModalNuevoPersonal = () => document.getElementById('modal-nuevo-personal').style.display = 'flex';
     window.cerrarModalNuevoPersonal = () => document.getElementById('modal-nuevo-personal').style.display = 'none';
 
     document.getElementById('form-nuevo-personal').addEventListener('submit', async (e) => {
         e.preventDefault();
+        if (!formularioCuentaValido(e.target)) return;
         const boton = e.target.querySelector('button[type="submit"]');
         boton.disabled = true;
         boton.innerText = 'Guardando...';
@@ -137,22 +177,25 @@
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    nombre: document.getElementById('pers-nombre').value,
-                    dni: document.getElementById('pers-dni').value,
-                    correo: document.getElementById('pers-correo').value,
-                    contrasena: document.getElementById('pers-contrasena').value,
-                    telefono: document.getElementById('pers-telefono').value,
+                    nombre: normalizarNombre(document.getElementById('pers-nombre').value),
+                    dni: document.getElementById('pers-dni').value.trim(),
+                    correo: document.getElementById('pers-correo').value.trim(),
+                    telefono: document.getElementById('pers-telefono').value.trim(),
                     rol_id: parseInt(document.getElementById('pers-rol').value, 10)
                 })
             });
 
             const data = await res.json().catch(() => ({}));
             if (!res.ok) {
-                alert(data.error || 'No se pudo crear el colaborador.');
+                const mapa = { nombre: 'pers-nombre', dni: 'pers-dni', correo: 'pers-correo', telefono: 'pers-telefono' };
+                if (!mostrarErroresServidor(data.campos, mapa)) alert(data.error || 'No se pudo crear el colaborador.');
                 return;
             }
 
-            __personal.push(data);
+            __personal.push(data.usuario);
+            alert(data.correoEnviado
+                ? `Colaborador creado. Enviamos a ${data.usuario.correo} el código para que cree su contraseña.`
+                : 'Colaborador creado, pero no pudimos enviar el correo. Usa "Enviar restablecimiento" en su fila.');
             cerrarModalNuevoPersonal();
             document.getElementById('form-nuevo-personal').reset();
             pintar();

@@ -1,5 +1,6 @@
 package com.vamospet.backend.controlador;
 
+import com.vamospet.backend.permisos.UsuarioActual;
 import com.vamospet.backend.modelo.Usuario;
 import com.vamospet.backend.repositorio.UsuarioRepository;
 import com.vamospet.backend.servicio.ReporteExcelService;
@@ -31,20 +32,26 @@ public class ReporteFormalController {
     @Autowired private UsuarioRepository usuarioRepositorio;
 
     @GetMapping("/{tipo}")
-    public ResponseEntity<?> ver(@PathVariable String tipo, @RequestParam Integer usuarioId,
-                                 @RequestParam(required = false) String desde, @RequestParam(required = false) String hasta) {
+    public ResponseEntity<?> ver(@PathVariable String tipo,
+                                 @RequestParam(required = false) String desde,
+                                 @RequestParam(required = false) String hasta) {
+        Integer usuarioId = UsuarioActual.id();
         return preparar(tipo, usuarioId, desde, hasta, Formato.JSON);
     }
 
     @GetMapping("/{tipo}/pdf")
-    public ResponseEntity<?> pdf(@PathVariable String tipo, @RequestParam Integer usuarioId,
-                                 @RequestParam(required = false) String desde, @RequestParam(required = false) String hasta) {
+    public ResponseEntity<?> pdf(@PathVariable String tipo,
+                                 @RequestParam(required = false) String desde,
+                                 @RequestParam(required = false) String hasta) {
+        Integer usuarioId = UsuarioActual.id();
         return preparar(tipo, usuarioId, desde, hasta, Formato.PDF);
     }
 
     @GetMapping("/{tipo}/xlsx")
-    public ResponseEntity<?> xlsx(@PathVariable String tipo, @RequestParam Integer usuarioId,
-                                  @RequestParam(required = false) String desde, @RequestParam(required = false) String hasta) {
+    public ResponseEntity<?> xlsx(@PathVariable String tipo,
+                                  @RequestParam(required = false) String desde,
+                                  @RequestParam(required = false) String hasta) {
+        Integer usuarioId = UsuarioActual.id();
         return preparar(tipo, usuarioId, desde, hasta, Formato.XLSX);
     }
 

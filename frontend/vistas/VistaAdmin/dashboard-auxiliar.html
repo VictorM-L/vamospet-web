@@ -10,6 +10,7 @@
         <button class="sidebar-item" onclick="cargarVista('VistaAdmin/citas')"><i class="fa-solid fa-calendar-check"></i> Ver Citas</button>
         <button class="sidebar-item" onclick="cargarVista('VistaAdmin/examenes')"><i class="fa-solid fa-flask-vial"></i> Exámenes y Cirugías</button>
         <button class="sidebar-item" onclick="cargarVista('VistaAdmin/emergencias')"><i class="fa-solid fa-truck-medical"></i> Emergencias</button>
+        <button class="sidebar-item" onclick="cargarVista('VistaAdmin/reservas')"><i class="fa-solid fa-hotel"></i> Reservas y viajes</button>
         <button class="sidebar-item" onclick="cargarVista('VistaAdmin/comprobantes')"><i class="fa-solid fa-receipt"></i> Comprobantes</button>
     </aside>
 
@@ -66,7 +67,7 @@
                 .reduce((sum, p) => sum + Number(p.monto || 0), 0);
             document.getElementById('aux-caja-hoy').innerText = `S/ ${cajaHoy.toFixed(2)}`;
 
-            const pendientes = pedidos.filter(p => p.estado === 'Pendiente');
+            const pendientes = pedidos.filter(p => p.estado === 'Pendiente' && p.canal !== 'Mostrador');
             const contPendientes = document.getElementById('aux-pedidos-pendientes');
             if (pendientes.length === 0) {
                 contPendientes.innerHTML = `<p style="color: var(--text-muted); font-size: 13px;">No hay pedidos pendientes por preparar.</p>`;

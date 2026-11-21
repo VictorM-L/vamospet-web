@@ -1,6 +1,8 @@
 package com.vamospet.backend.controlador;
 import com.vamospet.backend.modelo.HistorialEvento;
 import com.vamospet.backend.repositorio.HistorialEventoRepository;
+import com.vamospet.backend.permisos.Rol;
+import com.vamospet.backend.permisos.UsuarioActual;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 import java.util.List;
@@ -21,7 +23,9 @@ public class HistorialEventoController {
     }
 
     @PostMapping
-    public HistorialEvento guardar(@RequestBody HistorialEvento evento) { 
-        return repositorio.save(evento); 
+    public HistorialEvento guardar(@RequestBody HistorialEvento evento) {
+        evento.setId(null);
+        if (UsuarioActual.es(Rol.VETERINARIO)) evento.setVeterinario_id(UsuarioActual.id());
+        return repositorio.save(evento);
     }
 }

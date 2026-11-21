@@ -13,84 +13,137 @@
         <button class="sidebar-item" onclick="cargarVista('VistaAdmin/proveedores')"><i class="fa-solid fa-truck-field"></i> Proveedores</button>
         <button class="sidebar-item" onclick="cargarVista('VistaAdmin/compras')"><i class="fa-solid fa-cart-flatbed"></i> Compras</button>
         <button class="sidebar-item" onclick="cargarVista('VistaAdmin/devoluciones')"><i class="fa-solid fa-rotate-left"></i> Devoluciones</button>
+        <button class="sidebar-item" onclick="cargarVista('VistaAdmin/reservas')"><i class="fa-solid fa-hotel"></i> Reservas y viajes</button>
         <button class="sidebar-item" onclick="cargarVista('VistaAdmin/comprobantes')"><i class="fa-solid fa-receipt"></i> Comprobantes</button>
         <button class="sidebar-item" onclick="cargarVista('VistaAdmin/finanzas')"><i class="fa-solid fa-file-invoice-dollar"></i> Finanzas</button>
         <button class="sidebar-item" onclick="cargarVista('VistaAdmin/reportes')"><i class="fa-solid fa-chart-column"></i> Reportes</button>
         <button class="sidebar-item" onclick="cargarVista('VistaAdmin/horarios')"><i class="fa-solid fa-clock"></i> Horarios Veterinarios</button>
         <button class="sidebar-item" onclick="cargarVista('VistaAdmin/personal')"><i class="fa-solid fa-user-nurse"></i> Personal</button>
+        <button class="sidebar-item" onclick="cargarVista('VistaAdmin/mensajes')"><i class="fa-solid fa-envelope-open-text"></i> Mensajes de contacto</button>
         <button class="sidebar-item active" onclick="cargarVista('VistaAdmin/configuracion')"><i class="fa-solid fa-gear"></i> Configuración</button>
     </aside>
 
     <main class="admin-content">
         <h2 style="font-size: 24px; font-weight: 800; color: var(--dark-text);">Configuración de la Clínica</h2>
+        <p style="color: var(--text-muted); font-size: 13px; max-width: 640px;">Estos datos se muestran en el sitio (encabezado, pie de página, contacto y comprobantes) y los usa el sistema para el horario del hospedaje y el plazo de cancelación de citas.</p>
 
-        <form id="form-configuracion" class="contact-form" style="max-width: 600px;">
+        <form id="form-configuracion" class="contact-form" style="max-width: 640px;" novalidate>
             <div class="input-group">
-                <label>Nombre de la clínica</label>
-                <input type="text" id="config-nombre" value="Vamos Pet Clínica Veterinaria">
+                <label for="config-nombre">Nombre de la clínica</label>
+                <input type="text" id="config-nombre" maxlength="100" required>
+                <small class="mensaje-campo" data-mensaje-para="config-nombre"></small>
             </div>
             <div class="input-group">
-                <label>Dirección</label>
-                <input type="text" id="config-direccion" value="Av. Los Peluditos 123, Lima, Perú">
+                <label for="config-direccion">Dirección</label>
+                <input type="text" id="config-direccion" maxlength="200" required>
+                <small class="mensaje-campo" data-mensaje-para="config-direccion"></small>
             </div>
-            <div style="display: flex; gap: 15px;">
-                <div class="input-group" style="flex: 1;">
-                    <label>Teléfono de emergencias</label>
-                    <input type="tel" id="config-telefono" value="+51 912 345 678">
+            <div style="display: flex; gap: 15px; flex-wrap: wrap;">
+                <div class="input-group" style="flex: 1; min-width: 200px;">
+                    <label for="config-telefono">Teléfono</label>
+                    <input type="tel" id="config-telefono" maxlength="30" placeholder="+51 987 654 321" required>
+                    <small class="mensaje-campo" data-mensaje-para="config-telefono"></small>
                 </div>
-                <div class="input-group" style="flex: 1;">
-                    <label>Correo de contacto</label>
-                    <input type="email" id="config-correo" value="contacto@vamospet.pe">
-                </div>
-            </div>
-            <div style="display: flex; gap: 15px;">
-                <div class="input-group" style="flex: 1;">
-                    <label>Hora de apertura</label>
-                    <input type="time" id="config-apertura" value="08:00">
-                </div>
-                <div class="input-group" style="flex: 1;">
-                    <label>Hora de cierre</label>
-                    <input type="time" id="config-cierre" value="21:00">
+                <div class="input-group" style="flex: 1; min-width: 200px;">
+                    <label for="config-whatsapp">WhatsApp (con código de país, solo números)</label>
+                    <input type="text" id="config-whatsapp" maxlength="15" inputmode="numeric" placeholder="51987654321" required>
+                    <small class="mensaje-campo" data-mensaje-para="config-whatsapp"></small>
                 </div>
             </div>
             <div class="input-group">
-                <label><input type="checkbox" id="config-emergencias" checked style="accent-color: var(--primary-green);"> Ofrecemos atención de emergencias 24/7</label>
+                <label for="config-correo">Correo de contacto</label>
+                <input type="email" id="config-correo" maxlength="150" required>
+                <small class="mensaje-campo" data-mensaje-para="config-correo"></small>
             </div>
+            <div class="input-group">
+                <label for="config-horario">Horario de atención (como se mostrará en el sitio)</label>
+                <input type="text" id="config-horario" maxlength="150" placeholder="Lun a Dom: 8:00 am – 9:00 pm" required>
+                <small class="mensaje-campo" data-mensaje-para="config-horario"></small>
+            </div>
+            <div class="input-group">
+                <label><input type="checkbox" id="config-emergencias" style="accent-color: var(--primary-green);"> Atendemos emergencias las 24 horas</label>
+            </div>
+            <div style="display: flex; gap: 15px; flex-wrap: wrap;">
+                <div class="input-group" style="flex: 1; min-width: 160px;">
+                    <label for="config-apertura">Hospedaje: hora de apertura</label>
+                    <input type="number" id="config-apertura" min="0" max="23" step="1" required>
+                    <small class="mensaje-campo" data-mensaje-para="config-apertura"></small>
+                </div>
+                <div class="input-group" style="flex: 1; min-width: 160px;">
+                    <label for="config-cierre">Hospedaje: hora de cierre</label>
+                    <input type="number" id="config-cierre" min="1" max="24" step="1" required>
+                    <small class="mensaje-campo" data-mensaje-para="config-cierre"></small>
+                </div>
+                <div class="input-group" style="flex: 1; min-width: 160px;">
+                    <label for="config-horas">Horas mínimas para cancelar una cita</label>
+                    <input type="number" id="config-horas" min="1" max="168" step="1" required>
+                    <small class="mensaje-campo" data-mensaje-para="config-horas"></small>
+                </div>
+            </div>
+            <p id="config-estado" role="status" style="font-size: 13px; color: var(--text-muted);"></p>
             <button type="submit" class="btn-primary" style="width: 100%; padding: 15px;"><i class="fa-solid fa-floppy-disk"></i> Guardar Cambios</button>
         </form>
-
-        <p style="color: var(--text-muted); font-size: 13px; max-width: 600px;">
-            <i class="fa-solid fa-circle-info"></i> Estos datos se guardan localmente en el navegador. Si quieres que se guarden en la base de datos para todos los administradores, dime y agrego una entidad <code>Configuracion</code> con su endpoint en el backend.
-        </p>
     </main>
 </div>
 
 <script>
 (function () {
-    const CLAVE = 'vamospetConfiguracion';
+    const $ = (id) => document.getElementById(id);
+    const CAMPOS = { nombre: 'config-nombre', direccion: 'config-direccion', telefono: 'config-telefono', whatsapp: 'config-whatsapp',
+        correo: 'config-correo', horario_atencion: 'config-horario', hospedaje_apertura: 'config-apertura', hospedaje_cierre: 'config-cierre',
+        horas_cancelacion: 'config-horas' };
 
-    const guardada = JSON.parse(localStorage.getItem(CLAVE) || '{}');
-    if (guardada.nombre) document.getElementById('config-nombre').value = guardada.nombre;
-    if (guardada.direccion) document.getElementById('config-direccion').value = guardada.direccion;
-    if (guardada.telefono) document.getElementById('config-telefono').value = guardada.telefono;
-    if (guardada.correo) document.getElementById('config-correo').value = guardada.correo;
-    if (guardada.apertura) document.getElementById('config-apertura').value = guardada.apertura;
-    if (guardada.cierre) document.getElementById('config-cierre').value = guardada.cierre;
-    if (typeof guardada.emergencias === 'boolean') document.getElementById('config-emergencias').checked = guardada.emergencias;
+    function llenar(c) {
+        $('config-nombre').value = c.nombre || '';
+        $('config-direccion').value = c.direccion || '';
+        $('config-telefono').value = c.telefono || '';
+        $('config-whatsapp').value = c.whatsapp || '';
+        $('config-correo').value = c.correo || '';
+        $('config-horario').value = c.horario_atencion || '';
+        $('config-emergencias').checked = !!c.emergencias_24h;
+        $('config-apertura').value = c.hospedaje_apertura;
+        $('config-cierre').value = c.hospedaje_cierre;
+        $('config-horas').value = c.horas_cancelacion;
+    }
 
-    document.getElementById('form-configuracion').addEventListener('submit', (e) => {
+    $('form-configuracion').addEventListener('submit', async (e) => {
         e.preventDefault();
+        Object.values(CAMPOS).forEach(id => mensajeCampo($(id), '', ''));
+        $('config-estado').textContent = '';
+        const entero = (id) => $(id).value === '' ? null : Number($(id).value);
         const datos = {
-            nombre: document.getElementById('config-nombre').value,
-            direccion: document.getElementById('config-direccion').value,
-            telefono: document.getElementById('config-telefono').value,
-            correo: document.getElementById('config-correo').value,
-            apertura: document.getElementById('config-apertura').value,
-            cierre: document.getElementById('config-cierre').value,
-            emergencias: document.getElementById('config-emergencias').checked
+            nombre: $('config-nombre').value.trim(),
+            direccion: $('config-direccion').value.trim(),
+            telefono: $('config-telefono').value.trim(),
+            whatsapp: $('config-whatsapp').value.trim(),
+            correo: $('config-correo').value.trim(),
+            horario_atencion: $('config-horario').value.trim(),
+            emergencias_24h: $('config-emergencias').checked,
+            hospedaje_apertura: entero('config-apertura'),
+            hospedaje_cierre: entero('config-cierre'),
+            horas_cancelacion: entero('config-horas')
         };
-        localStorage.setItem(CLAVE, JSON.stringify(datos));
-        alert('Configuración guardada.');
+        if (datos.hospedaje_apertura != null && datos.hospedaje_cierre != null && datos.hospedaje_cierre <= datos.hospedaje_apertura) {
+            mensajeCampo($('config-cierre'), 'El cierre debe ser después de la apertura.', 'error');
+            return;
+        }
+        const res = await fetch(`${API_BASE}/configuracion`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(datos) });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+            if (!mostrarErroresServidor(data.campos, CAMPOS)) $('config-estado').textContent = data.error || 'No se pudo guardar.';
+            return;
+        }
+        llenar(data);
+        $('config-estado').textContent = 'Cambios guardados. El sitio ya muestra los datos nuevos.';
+        cargarConfiguracionClinica(true);
     });
+
+    (async () => {
+        try {
+            const res = await fetch(`${API_BASE}/configuracion`);
+            if (res.ok) llenar(await res.json());
+            else $('config-estado').textContent = 'No se pudo cargar la configuración.';
+        } catch (e) { $('config-estado').textContent = 'No pudimos conectar con el servidor.'; }
+    })();
 })();
 </script>

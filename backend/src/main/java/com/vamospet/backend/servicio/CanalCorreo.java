@@ -2,6 +2,7 @@ package com.vamospet.backend.servicio;
 
 import com.vamospet.backend.modelo.Usuario;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.stereotype.Component;
@@ -12,6 +13,9 @@ public class CanalCorreo implements CanalNotificacion {
     @Autowired
     private JavaMailSender mailSender;
 
+    @Value("${spring.mail.username:}")
+    private String remitente;
+
     @Override
     public String nombre() { return "correo"; }
 
@@ -19,7 +23,7 @@ public class CanalCorreo implements CanalNotificacion {
     public void enviar(Usuario destinatario, String titulo, String mensaje) {
         if (destinatario.getCorreo() == null || destinatario.getCorreo().isBlank()) return;
         SimpleMailMessage correo = new SimpleMailMessage();
-        correo.setFrom("vamospetnotis@gmail.com");
+        if (remitente != null && !remitente.isBlank()) correo.setFrom(remitente);
         correo.setTo(destinatario.getCorreo());
         correo.setSubject("Vamos Pet — " + titulo);
         correo.setText(mensaje + "\n\n— Equipo Vamos Pet Clínica Veterinaria");

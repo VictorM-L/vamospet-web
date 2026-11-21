@@ -1,0 +1,176 @@
+<div class="fade-in lab-hero" style="padding: 70px 20px;">
+    <span style="background: rgba(255,255,255,0.1); padding: 8px 16px; border-radius: 20px; font-size: 12px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase;">Grooming</span>
+    <h1 style="font-size: 38px; font-weight: 800; margin: 15px 0;">Baño y corte para tu mascota</h1>
+    <p style="color: #9CA3AF; font-size: 15px; max-width: 550px; margin: 0 auto;">Elige el paquete, quién lo atenderá y un horario con tiempo suficiente para todo el servicio.</p>
+</div>
+
+<div class="fade-in" style="max-width: 720px; margin: 0 auto 80px auto; padding: 0 20px;">
+
+    <div id="grm-aviso" style="display: none; text-align: center; background: white; border: 1px solid #E4E7EC; border-radius: 24px; padding: 50px 30px; box-shadow: var(--shadow-soft);"></div>
+
+    <form id="form-grooming" style="display: none; flex-direction: column; gap: 20px;" class="contact-form">
+        <div class="input-group">
+            <label>1. Tu mascota</label>
+            <div id="grm-mascotas" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; margin-top: 8px;"></div>
+        </div>
+
+        <div class="input-group">
+            <label>2. Paquete</label>
+            <div id="grm-paquetes" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-top: 8px;"></div>
+        </div>
+
+        <div class="input-group">
+            <label>3. Quién lo atiende</label>
+            <select id="grm-vet" disabled><option value="">Primero elige un paquete</option></select>
+        </div>
+
+        <div class="input-group">
+            <label>4. Fecha</label>
+            <input type="date" id="grm-fecha" disabled>
+        </div>
+
+        <div class="input-group">
+            <label>5. Hora de inicio <span id="grm-duracion" style="font-weight:400; color:var(--text-muted);"></span></label>
+            <div id="grm-franjas" style="display:flex; flex-wrap:wrap; gap:8px; margin-top:6px;">
+                <span style="color:var(--text-muted); font-size:13px;">Elige paquete, quién lo atiende y la fecha.</span>
+            </div>
+        </div>
+
+        <div id="grm-resumen" style="display:none; background: var(--light-green); border-radius: 12px; padding: 15px 18px; font-size: 14px; color: var(--primary-green-dark); font-weight: 600;"></div>
+
+        <button type="submit" class="btn-primary" style="width: 100%; padding: 15px;"><i class="fa-regular fa-calendar-check"></i> Reservar grooming</button>
+    </form>
+</div>
+
+<style>
+    .grm-opcion { border: 2px solid #E4E7EC; border-radius: 14px; padding: 14px 12px; text-align: center; cursor: pointer; background: white; font-family: inherit; }
+    .grm-opcion:hover { border-color: var(--primary-green); }
+    .grm-opcion.selected { border-color: var(--primary-green); background: var(--light-green); }
+    .grm-opcion i { font-size: 24px; color: var(--primary-green); display: block; margin-bottom: 6px; }
+    .grm-opcion strong { display: block; font-size: 14px; }
+    .grm-opcion small { display: block; color: var(--text-muted); font-size: 12px; margin-top: 4px; }
+    .grm-franja { border: 2px solid #E4E7EC; background: white; border-radius: 10px; padding: 8px 14px; font-weight: 700; font-size: 13px; cursor: pointer; font-family: inherit; }
+    .grm-franja:hover { border-color: var(--primary-green); }
+    .grm-franja.selected { border-color: var(--primary-green); background: var(--light-green); color: var(--primary-green-dark); }
+</style>
+
+<script>
+    (function () {
+        const usuario = JSON.parse(localStorage.getItem('usuarioLogueado') || 'null');
+        if (!usuario) { cargarVista('login'); return; }
+        const estado = { mascota: null, paquete: null, hora: null };
+        let paquetes = [];
+        const aviso = (html) => {
+            const a = document.getElementById('grm-aviso');
+            a.innerHTML = html;
+            a.style.display = 'block';
+        };
+
+        function marcar(contenedor, elegido) {
+            document.querySelectorAll(`#${contenedor} .grm-opcion`).forEach(b => b.classList.toggle('selected', b === elegido));
+        }
+
+        function limpiarFranjas(texto) {
+            estado.hora = null;
+            document.getElementById('grm-franjas').innerHTML = `<span style="color:var(--text-muted); font-size:13px;">${texto}</span>`;
+            pintarResumen();
+        }
+
+        function pintarResumen() {
+            const r = document.getElementById('grm-resumen');
+            if (!estado.paquete) { r.style.display = 'none'; return; }
+            const fecha = document.getElementById('grm-fecha').value;
+            r.style.display = 'block';
+            r.innerHTML = `<i class="fa-solid fa-circle-info"></i> ${esc(estado.paquete.nombre)} · ${estado.paquete.duracion_min || 30} min · S/ ${Number(estado.paquete.precio_base).toFixed(2)}`
+                + (fecha && estado.hora ? `<br>${esc(fecha)} a las ${esc(estado.hora)}` : '');
+        }
+
+        window.elegirMascotaGrooming = function (id, el) { estado.mascota = id; marcar('grm-mascotas', el); };
+
+        window.elegirPaqueteGrooming = async function (id, el) {
+            estado.paquete = paquetes.find(p => p.id === id);
+            marcar('grm-paquetes', el);
+            document.getElementById('grm-duracion').innerText = `(el paquete dura ${estado.paquete.duracion_min || 30} minutos)`;
+            const sel = document.getElementById('grm-vet');
+            sel.disabled = true;
+            sel.innerHTML = '<option value="">Cargando...</option>';
+            const res = await fetch(`${API_BASE}/agenda/grooming/veterinarios`);
+            const lista = res.ok ? await res.json() : [];
+            sel.innerHTML = lista.length
+                ? '<option value="">Elige quién lo atiende</option>' + lista.map(v => `<option value="${v.id}">${esc(v.nombre)}</option>`).join('')
+                : '<option value="">Por ahora nadie atiende grooming</option>';
+            sel.disabled = !lista.length;
+            document.getElementById('grm-fecha').disabled = true;
+            limpiarFranjas('Elige quién lo atiende y la fecha.');
+        };
+
+        async function cargarFranjas() {
+            const vet = document.getElementById('grm-vet').value;
+            const fecha = document.getElementById('grm-fecha');
+            fecha.disabled = !vet;
+            if (!vet || !fecha.value || !estado.paquete) { limpiarFranjas('Elige quién lo atiende y la fecha.'); return; }
+            limpiarFranjas('Buscando horarios...');
+            const res = await fetch(`${API_BASE}/agenda/disponibilidad?veterinario_id=${vet}&fecha=${fecha.value}&servicio_id=${estado.paquete.id}`);
+            const data = res.ok ? await res.json() : { franjas: [] };
+            if (!data.franjas.length) { limpiarFranjas('No hay horarios con tiempo suficiente ese día. Prueba otra fecha.'); return; }
+            document.getElementById('grm-franjas').innerHTML = data.franjas.map(h =>
+                `<button type="button" class="grm-franja" onclick="elegirHoraGrooming('${h}', this)">${h}</button>`).join('');
+        }
+
+        window.elegirHoraGrooming = function (hora, el) {
+            estado.hora = hora;
+            document.querySelectorAll('.grm-franja').forEach(b => b.classList.toggle('selected', b === el));
+            pintarResumen();
+        };
+
+        document.getElementById('grm-vet').addEventListener('change', cargarFranjas);
+        document.getElementById('grm-fecha').addEventListener('change', cargarFranjas);
+        document.getElementById('grm-fecha').min = new Date().toISOString().split('T')[0];
+
+        document.getElementById('form-grooming').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const vet = document.getElementById('grm-vet').value;
+            const fecha = document.getElementById('grm-fecha').value;
+            if (!estado.mascota || !estado.paquete || !vet || !fecha || !estado.hora) { alert('Completa los cinco pasos.'); return; }
+            try {
+                await enviarJson(`${API_BASE}/citas`, 'POST', {
+                    mascota_id: estado.mascota,
+                    servicio_id: estado.paquete.id,
+                    veterinario_id: parseInt(vet, 10),
+                    fecha_hora: `${fecha}T${estado.hora}:00`
+                });
+                alert('¡Listo! Reservamos el grooming. Te avisaremos cuando se confirme.');
+                cargarVista('VistaCliente/perfil-cliente');
+            } catch (err) {
+                alert(err.message);
+                cargarFranjas();
+            }
+        });
+
+        (async () => {
+            try {
+                const [rm, rs] = await Promise.all([
+                    fetch(`${API_BASE}/mascotas/usuario/${usuario.id}`),
+                    fetch(`${API_BASE}/servicios?tipo=Grooming`)
+                ]);
+                const mascotas = rm.ok ? await rm.json() : [];
+                paquetes = (rs.ok ? await rs.json() : []).filter(p => Number(p.precio_base) > 0);
+                if (!mascotas.length) {
+                    aviso('<h3 style="font-size:18px; font-weight:700; margin-bottom:10px;">Aún no tienes mascotas registradas</h3><button class="btn-primary" onclick="cargarVista(\'VistaCliente/perfil-cliente\')">Registrar mascota</button>');
+                    return;
+                }
+                if (!paquetes.length) {
+                    aviso('<h3 style="font-size:18px; font-weight:700;">Por ahora no hay paquetes de grooming disponibles</h3>');
+                    return;
+                }
+                document.getElementById('grm-mascotas').innerHTML = mascotas.map(m =>
+                    `<button type="button" class="grm-opcion" onclick="elegirMascotaGrooming(${m.id}, this)"><i class="fa-solid ${(m.especie || '').toLowerCase().includes('gato') ? 'fa-cat' : 'fa-dog'}"></i><strong>${esc(m.nombre)}</strong></button>`).join('');
+                document.getElementById('grm-paquetes').innerHTML = paquetes.map(p =>
+                    `<button type="button" class="grm-opcion" onclick="elegirPaqueteGrooming(${p.id}, this)"><i class="fa-solid fa-scissors"></i><strong>${esc(p.nombre.replace(/^Grooming\s*-\s*/i, ''))}</strong><small>${esc(p.descripcion || '')}</small><small>${p.duracion_min || 30} min · S/ ${Number(p.precio_base).toFixed(2)}</small></button>`).join('');
+                document.getElementById('form-grooming').style.display = 'flex';
+            } catch (err) {
+                aviso('<p>No pudimos conectar con el servidor.</p>');
+            }
+        })();
+    })();
+</script>

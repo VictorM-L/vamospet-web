@@ -7,6 +7,8 @@ import com.vamospet.backend.repositorio.ComprobanteRepository;
 import com.vamospet.backend.repositorio.PagoRepository;
 import com.vamospet.backend.repositorio.UsuarioRepository;
 import com.vamospet.backend.servicio.ComprobantePdfService;
+import com.vamospet.backend.permisos.Rol;
+import com.vamospet.backend.permisos.UsuarioActual;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -31,7 +33,15 @@ public class ComprobanteController {
     @Autowired private ComprobantePdfService pdfService;
 
     @GetMapping
-    public List<Comprobante> listar() { return repositorio.findAll(); }
+    public List<Comprobante> listar() {
+        if (!UsuarioActual.es(Rol.CLIENTE)) return repositorio.findAll();
+        Integer yo = UsuarioActual.id();
+        java.util.Set<Integer> misPagos = new java.util.HashSet<>();
+        for (Pago p : pagoRepositorio.findAll()) {
+            if (yo.equals(p.getUsuario_id())) misPagos.add(p.getId());
+        }
+        return repositorio.findAll().stream().filter(c -> c.getPago_id() != null && misPagos.contains(c.getPago_id())).toList();
+    }
 
     @PostMapping
     public Comprobante guardar(@RequestBody Comprobante comprobante) {
@@ -52,7 +62,8 @@ public class ComprobanteController {
     }
 
     @GetMapping("/{id}/pdf")
-    public ResponseEntity<?> pdf(@PathVariable Integer id, @RequestParam Integer usuarioId) {
+    public ResponseEntity<?> pdf(@PathVariable Integer id) {
+        Integer usuarioId = UsuarioActual.id();
         Comprobante c = repositorio.findById(id).orElse(null);
         if (c == null) return ResponseEntity.notFound().build();
         Usuario u = usuarioRepositorio.findById(usuarioId).orElse(null);

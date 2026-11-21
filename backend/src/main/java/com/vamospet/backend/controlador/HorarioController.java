@@ -1,5 +1,6 @@
 package com.vamospet.backend.controlador;
 
+import com.vamospet.backend.permisos.UsuarioActual;
 import com.vamospet.backend.modelo.HorarioAtencion;
 import com.vamospet.backend.modelo.Usuario;
 import com.vamospet.backend.modelo.VeterinarioEspecialidad;
@@ -85,7 +86,8 @@ public class HorarioController {
     }
 
     @DeleteMapping("/horarios/{id}")
-    public ResponseEntity<?> eliminar(@PathVariable Integer id, @RequestParam Integer usuarioId) {
+    public ResponseEntity<?> eliminar(@PathVariable Integer id) {
+        Integer usuarioId = UsuarioActual.id();
         if (!esAdmin(usuarioId)) return error(HttpStatus.FORBIDDEN, "Solo el Administrador puede quitar horarios.");
         if (!horarioRepositorio.existsById(id)) return ResponseEntity.notFound().build();
         horarioRepositorio.deleteById(id);

@@ -8,7 +8,6 @@ import com.vamospet.backend.servicio.InventarioService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.ArrayList;
@@ -60,23 +59,5 @@ public class PedidoDetalleController {
                     "error", "No hay stock suficiente de: " + String.join(", ", faltantes)));
         }
         return ResponseEntity.ok(Map.of("ok", true));
-    }
-
-    @PostMapping
-    @Transactional
-    public PedidoDetalle guardar(@RequestBody PedidoDetalle detalle) {
-        PedidoDetalle guardado = repositorio.save(detalle);
-
-        if (guardado.getProducto_id() != null && guardado.getCantidad() != null) {
-            inventarioService.registrarMovimiento(
-                    guardado.getProducto_id(),
-                    "Salida",
-                    guardado.getCantidad(),
-                    "Venta - Pedido #" + guardado.getPedido_id(),
-                    null
-            );
-        }
-
-        return guardado;
     }
 }

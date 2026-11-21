@@ -1,10 +1,135 @@
 
-const API_URL = 'http://localhost:8080/api/usuarios';
-const API_BASE = 'http://localhost:8080/api';
+const SERVIDOR_BASE = window.location.origin;
+const API_BASE = `${SERVIDOR_BASE}/api`;
+const API_URL = `${API_BASE}/usuarios`;
 
 function usuarioActualId() {
     try { return (JSON.parse(localStorage.getItem('usuarioLogueado')) || {}).id; } catch (e) { return null; }
 }
+const CLAVE_TOKEN = 'vamospetToken';
+const CLAVE_TOKEN_EXPIRA = 'vamospetTokenExpira';
+const CLAVE_TOKEN_RENOVADO = 'vamospetTokenRenovado';
+const RUTAS_SIN_TOKEN = ['/usuarios/login', '/usuarios/registro', '/usuarios/recuperar/'];
+const RENOVAR_CADA_MS = 2 * 60 * 1000;
+let __sesionVencidaEnCurso = false;
+
+function tokenActual() {
+    return localStorage.getItem(CLAVE_TOKEN);
+}
+
+function guardarToken(token, expira) {
+    if (!token) return;
+    localStorage.setItem(CLAVE_TOKEN, token);
+    localStorage.setItem(CLAVE_TOKEN_EXPIRA, String(expira || ''));
+    localStorage.setItem(CLAVE_TOKEN_RENOVADO, String(Date.now()));
+}
+
+function esUrlApi(url) {
+    return url.startsWith(API_BASE) || url.startsWith(API_URL);
+}
+
+function rutaSinToken(url) {
+    const ruta = url.slice(API_BASE.length);
+    return RUTAS_SIN_TOKEN.some(r => ruta.startsWith(r));
+}
+
+const __fetchOriginal = window.fetch.bind(window);
+window.fetch = async function (recurso, opciones) {
+    const url = typeof recurso === 'string' ? recurso : (recurso && recurso.url) || '';
+    if (!esUrlApi(url)) return __fetchOriginal(recurso, opciones);
+    const token = rutaSinToken(url) ? null : tokenActual();
+    const conToken = Object.assign({}, opciones || {});
+    const cabeceras = new Headers(conToken.headers || (typeof recurso !== 'string' && recurso.headers) || {});
+    if (token) cabeceras.set('Authorization', 'Bearer ' + token);
+    conToken.headers = cabeceras;
+    const respuesta = await __fetchOriginal(recurso, conToken);
+    if (respuesta.status === 401 && token && !url.includes('/sesion/cerrar')) manejarSesionVencida();
+    return respuesta;
+};
+
+function manejarSesionVencida() {
+    if (__sesionVencidaEnCurso || !localStorage.getItem('usuarioLogueado')) return;
+    __sesionVencidaEnCurso = true;
+    cerrarSesionPorTiempo('Tu sesión expiró o ya no es válida. Vuelve a iniciar sesión.');
+    setTimeout(() => { __sesionVencidaEnCurso = false; }, 1000);
+}
+
+async function renovarToken(forzar) {
+    const usuario = usuarioEnSesion();
+    if (!usuario || esPersonalInterno(usuario) || !tokenActual()) return;
+    const ultima = Number(localStorage.getItem(CLAVE_TOKEN_RENOVADO)) || 0;
+    if (!forzar && Date.now() - ultima < RENOVAR_CADA_MS) return;
+    localStorage.setItem(CLAVE_TOKEN_RENOVADO, String(Date.now()));
+    try {
+        const res = await fetch(`${API_BASE}/sesion/renovar`, { method: 'POST' });
+        if (!res.ok) return;
+        const data = await res.json();
+        guardarToken(data.token, data.token_expira);
+    } catch (e) {
+        localStorage.setItem(CLAVE_TOKEN_RENOVADO, String(ultima));
+    }
+}
+
+async function abrirArchivoApi(url, nombreDescarga) {
+    const ventana = nombreDescarga ? null : window.open('', '_blank');
+    try {
+        const res = await fetch(url);
+        if (!res.ok) {
+            let mensaje = 'No se pudo abrir el archivo.';
+            try { mensaje = (await res.json()).error || mensaje; } catch (e) { }
+            throw new Error(mensaje);
+        }
+        const enlace = URL.createObjectURL(await res.blob());
+        if (ventana) {
+            ventana.location.href = enlace;
+        } else {
+            const a = document.createElement('a');
+            a.href = enlace;
+            a.download = nombreDescarga;
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+        }
+        setTimeout(() => URL.revokeObjectURL(enlace), 60000);
+    } catch (err) {
+        if (ventana) ventana.close();
+        if (localStorage.getItem('usuarioLogueado')) alert(err.message);
+    }
+}
+
+function rolActual() {
+    try { return (JSON.parse(localStorage.getItem('usuarioLogueado')) || {}).rol_id || null; } catch (e) { return null; }
+}
+
+function marcarRolEnPagina() {
+    const rol = rolActual();
+    if (rol) document.body.dataset.rol = String(rol);
+    else delete document.body.dataset.rol;
+}
+
+const VISTAS_SUPERVISION_ADMIN = ['mensajes', 'citas', 'examenes', 'emergencias', 'clientes', 'inventario', 'banners', 'proveedores', 'compras', 'devoluciones', 'comprobantes', 'finanzas', 'reservas'];
+
+function mostrarAvisoSupervision(vista) {
+    const pagina = (vista || '').split('/')[1];
+    if (rolActual() !== 1 || !VISTAS_SUPERVISION_ADMIN.includes(pagina)) return;
+    const contenido = document.querySelector('#app-content .admin-content');
+    if (!contenido || contenido.querySelector('.aviso-supervision')) return;
+    const aviso = document.createElement('div');
+    aviso.className = 'aviso-supervision';
+    aviso.setAttribute('role', 'note');
+    aviso.innerHTML = '<i class="fa-solid fa-eye"></i> Modo supervisión: el Administrador ve esta sección en solo lectura. Las operaciones las realiza el personal a cargo.';
+    contenido.prepend(aviso);
+}
+
+function bloquearSiEsPersonal(accion) {
+    const usuario = usuarioEnSesion();
+    if (usuario && [1, 3, 4].includes(usuario.rol_id)) {
+        alert(`El personal de la clínica no ${accion} desde la web. ${usuario.rol_id === 4 ? 'Usa Venta en Mostrador o atiende al cliente desde tu panel.' : ''}`.trim());
+        return true;
+    }
+    return false;
+}
+
 function fetchUsuarios() {
     return fetch(`${API_BASE}/usuarios?usuarioId=${encodeURIComponent(usuarioActualId())}`);
 }
@@ -13,6 +138,365 @@ function esc(valor) {
     return String(valor == null ? '' : valor).replace(/[&<>"']/g, c => (
         { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 }
+
+const REGLAS_CUENTA = {
+    nombre: { rx: /^\p{L}+(?: \p{L}+)*$/u, msg: 'Solo letras y un espacio entre palabras.' },
+    dni: { rx: /^\d{8}$/, msg: 'El DNI debe tener exactamente 8 dígitos.' },
+    telefono: { rx: /^9\d{8}$/, msg: 'El teléfono debe tener 9 dígitos y empezar con 9.' },
+    correo: { rx: /^[^@\s]+@[^@\s]+\.[^@\s]+$/, msg: 'Escribe un correo válido, por ejemplo nombre@correo.com.' },
+    codigo: { rx: /^\d{6}$/, msg: 'El código tiene 6 dígitos.' }
+};
+
+const REGLAS_SOLO_DIGITOS = ['dni', 'telefono', 'codigo'];
+
+const REQUISITOS_CLAVE = [
+    { texto: 'Entre 8 y 64 caracteres', ok: v => v.length >= 8 && v.length <= 64 },
+    { texto: 'Al menos una letra', ok: v => /\p{L}/u.test(v) },
+    { texto: 'Al menos un número', ok: v => /\d/.test(v) }
+];
+
+function claveCumpleRequisitos(valor) {
+    return REQUISITOS_CLAVE.every(r => r.ok(valor || ''));
+}
+
+function normalizarNombre(valor) {
+    return String(valor || '').trim().replace(/\s+/g, ' ');
+}
+
+function mensajeCampo(input, texto, tipo) {
+    if (!input) return;
+    const destino = document.querySelector(`[data-mensaje-para="${input.id}"]`);
+    if (destino) {
+        destino.textContent = texto || '';
+        destino.classList.toggle('error', tipo === 'error');
+        destino.classList.toggle('ok', tipo === 'ok');
+    }
+    input.classList.toggle('campo-invalido', tipo === 'error');
+    if (tipo === 'error') input.setAttribute('aria-invalid', 'true'); else input.removeAttribute('aria-invalid');
+}
+
+function validarCampoCuenta(input, mostrarVacio) {
+    const regla = REGLAS_CUENTA[input.dataset.regla];
+    if (!regla) return true;
+    const valor = input.dataset.regla === 'nombre' ? normalizarNombre(input.value) : input.value.trim();
+    if (!valor) {
+        if (input.dataset.opcional !== undefined) { mensajeCampo(input, '', null); return true; }
+        if (mostrarVacio) { mensajeCampo(input, 'Este campo es obligatorio.', 'error'); return false; }
+        mensajeCampo(input, '', null);
+        return false;
+    }
+    if (!regla.rx.test(valor)) { mensajeCampo(input, regla.msg, 'error'); return false; }
+    if (input.dataset.duplicado === '1') { mensajeCampo(input, input.dataset.mensajeDuplicado || 'Ya está registrado.', 'error'); return false; }
+    mensajeCampo(input, '', null);
+    return true;
+}
+
+function validarConfirmacion(input) {
+    const original = document.getElementById(input.dataset.confirma);
+    if (!original) return true;
+    if (!input.value) { mensajeCampo(input, '', null); return false; }
+    if (input.value !== original.value) { mensajeCampo(input, 'Las contraseñas no coinciden.', 'error'); return false; }
+    mensajeCampo(input, 'Las contraseñas coinciden.', 'ok');
+    return true;
+}
+
+function pintarRequisitosClave(input) {
+    const lista = document.querySelector(`[data-requisitos-para="${input.id}"]`);
+    if (!lista) return;
+    const valor = input.value || '';
+    lista.innerHTML = REQUISITOS_CLAVE.map(r => {
+        const cumple = r.ok(valor);
+        return `<li class="${cumple ? 'cumple' : ''}"><i class="fa-solid ${cumple ? 'fa-circle-check' : 'fa-circle'}"></i> ${esc(r.texto)}</li>`;
+    }).join('');
+}
+
+function prepararFormulariosCuenta(raiz) {
+    (raiz || document).querySelectorAll('[data-requisitos-para]').forEach(lista => {
+        const input = document.getElementById(lista.dataset.requisitosPara);
+        if (input) pintarRequisitosClave(input);
+    });
+}
+
+function formularioCuentaValido(form) {
+    let primero = null;
+    form.querySelectorAll('[data-regla]').forEach(input => {
+        if (!validarCampoCuenta(input, true) && !primero) primero = input;
+    });
+    form.querySelectorAll('[data-requisitos-para]').forEach(lista => {
+        const input = document.getElementById(lista.dataset.requisitosPara);
+        if (input && !claveCumpleRequisitos(input.value)) {
+            mensajeCampo(input, 'La contraseña aún no cumple todos los requisitos.', 'error');
+            if (!primero) primero = input;
+        }
+    });
+    form.querySelectorAll('[data-confirma]').forEach(input => {
+        if (!validarConfirmacion(input)) {
+            if (!input.value) mensajeCampo(input, 'Repite la contraseña.', 'error');
+            if (!primero) primero = input;
+        }
+    });
+    if (primero) primero.focus();
+    return !primero;
+}
+
+function mostrarErroresServidor(campos, mapa) {
+    if (!campos) return false;
+    let alguno = false;
+    Object.entries(campos).forEach(([campo, texto]) => {
+        const input = document.getElementById(mapa[campo]);
+        if (input) { mensajeCampo(input, texto, 'error'); alguno = true; }
+    });
+    return alguno;
+}
+
+const __consultasDuplicado = {};
+
+function consultarDuplicado(input) {
+    const tipo = input.dataset.verificarDuplicado;
+    if (!tipo) return;
+    clearTimeout(__consultasDuplicado[input.id]);
+    input.dataset.duplicado = '0';
+    const valor = input.value.trim();
+    const regla = REGLAS_CUENTA[tipo];
+    if (!regla || !regla.rx.test(valor)) return;
+    __consultasDuplicado[input.id] = setTimeout(async () => {
+        try {
+            const res = await fetch(`${API_URL}/existe?${tipo}=${encodeURIComponent(valor)}`);
+            if (!res.ok || input.value.trim() !== valor) return;
+            const data = await res.json();
+            input.dataset.duplicado = data.existe ? '1' : '0';
+            input.dataset.mensajeDuplicado = tipo === 'dni'
+                ? 'Este DNI ya tiene una cuenta. Inicia sesión o recupera tu contraseña.'
+                : 'Este correo ya está registrado. Inicia sesión o recupera tu contraseña.';
+            if (data.existe) mensajeCampo(input, input.dataset.mensajeDuplicado, 'error');
+            else mensajeCampo(input, tipo === 'dni' ? 'DNI disponible.' : 'Correo disponible.', 'ok');
+        } catch (e) {
+            input.dataset.duplicado = '0';
+        }
+    }, 400);
+}
+
+document.addEventListener('beforeinput', (e) => {
+    const input = e.target;
+    if (!input.dataset || !REGLAS_SOLO_DIGITOS.includes(input.dataset.regla)) return;
+    if (e.data && /\D/.test(e.data)) {
+        e.preventDefault();
+        mensajeCampo(input, 'Solo se permiten números.', 'error');
+    }
+});
+
+document.addEventListener('input', (e) => {
+    const input = e.target;
+    if (!input.dataset) return;
+    if (REGLAS_SOLO_DIGITOS.includes(input.dataset.regla)) {
+        const limpio = input.value.replace(/\D/g, '');
+        const maximo = parseInt(input.getAttribute('maxlength'), 10) || limpio.length;
+        if (limpio !== input.value) {
+            input.value = limpio.slice(0, maximo);
+            mensajeCampo(input, 'Solo se permiten números.', 'error');
+            return;
+        }
+    }
+    if (input.dataset.regla) {
+        validarCampoCuenta(input, false);
+        consultarDuplicado(input);
+    }
+    if (input.type === 'password' || input.dataset.ojitoActivo === '1') {
+        pintarRequisitosClave(input);
+        if (input.classList.contains('campo-invalido') && claveCumpleRequisitos(input.value)) mensajeCampo(input, '', null);
+        document.querySelectorAll(`[data-confirma="${input.id}"]`).forEach(c => { if (c.value) validarConfirmacion(c); });
+    }
+    if (input.dataset.confirma) validarConfirmacion(input);
+});
+
+document.addEventListener('focusout', (e) => {
+    const input = e.target;
+    if (input.dataset && input.dataset.regla && input.value) validarCampoCuenta(input, false);
+});
+
+document.addEventListener('click', (e) => {
+    const boton = e.target.closest('[data-ojito]');
+    if (!boton) return;
+    const input = document.getElementById(boton.dataset.ojito);
+    if (!input) return;
+    const mostrar = input.type === 'password';
+    input.type = mostrar ? 'text' : 'password';
+    input.dataset.ojitoActivo = '1';
+    boton.setAttribute('aria-pressed', String(mostrar));
+    boton.setAttribute('aria-label', mostrar ? 'Ocultar contraseña' : 'Mostrar contraseña');
+    boton.innerHTML = `<i class="fa-regular ${mostrar ? 'fa-eye-slash' : 'fa-eye'}"></i>`;
+    input.focus();
+});
+
+const SESION_CLIENTE_INACTIVIDAD_MS = 20 * 60 * 1000;
+const SESION_CLIENTE_AVISO_MS = 19 * 60 * 1000;
+const SESION_PERSONAL_TOTAL_MS = 8 * 60 * 60 * 1000;
+const CLAVE_ULTIMA_ACTIVIDAD = 'vamospetUltimaActividad';
+const CLAVE_INICIO_SESION = 'vamospetInicioSesion';
+let __ultimaEscrituraActividad = 0;
+
+function usuarioEnSesion() {
+    try { return JSON.parse(localStorage.getItem('usuarioLogueado')); } catch (e) { return null; }
+}
+
+function esPersonalInterno(usuario) {
+    return !!usuario && [1, 3, 4].includes(usuario.rol_id);
+}
+
+function iniciarSesionLocal(datos) {
+    const ahora = String(Date.now());
+    const usuario = Object.assign({}, datos);
+    const token = usuario.token;
+    const expira = usuario.token_expira;
+    delete usuario.token;
+    delete usuario.token_expira;
+    guardarToken(token, expira);
+    localStorage.setItem('usuarioLogueado', JSON.stringify(usuario));
+    localStorage.setItem(CLAVE_INICIO_SESION, ahora);
+    localStorage.setItem(CLAVE_ULTIMA_ACTIVIDAD, ahora);
+    __ultimaEscrituraActividad = Date.now();
+}
+
+function actualizarUsuarioEnSesion(datos) {
+    const actual = usuarioEnSesion();
+    if (!actual) return;
+    localStorage.setItem('usuarioLogueado', JSON.stringify(Object.assign({}, actual, datos)));
+}
+
+function limpiarSesionLocal() {
+    localStorage.removeItem(CLAVE_TOKEN);
+    localStorage.removeItem(CLAVE_TOKEN_EXPIRA);
+    localStorage.removeItem(CLAVE_TOKEN_RENOVADO);
+    localStorage.removeItem('usuarioLogueado');
+    localStorage.removeItem(CLAVE_INICIO_SESION);
+    localStorage.removeItem(CLAVE_ULTIMA_ACTIVIDAD);
+}
+
+function avisoSesionVisible() {
+    const aviso = document.getElementById('aviso-sesion');
+    return !!aviso && aviso.style.display !== 'none';
+}
+
+function modalPagoAbierto() {
+    const modal = document.getElementById('modal-pago-global');
+    return !!modal && modal.style.display !== 'none';
+}
+
+function registrarActividad(opciones) {
+    const usuario = usuarioEnSesion();
+    if (!usuario || esPersonalInterno(usuario)) return;
+    const forzar = opciones && opciones.forzar;
+    if (avisoSesionVisible() && !forzar && !(opciones && opciones.ignorarAviso)) return;
+    const ahora = Date.now();
+    if (!forzar && ahora - __ultimaEscrituraActividad < 5000) return;
+    __ultimaEscrituraActividad = ahora;
+    localStorage.setItem(CLAVE_ULTIMA_ACTIVIDAD, String(ahora));
+    renovarToken(forzar);
+}
+
+function mostrarAvisoSesion(segundos) {
+    let aviso = document.getElementById('aviso-sesion');
+    if (!aviso) {
+        aviso = document.createElement('div');
+        aviso.id = 'aviso-sesion';
+        aviso.className = 'modal-overlay aviso-sesion';
+        aviso.setAttribute('role', 'alertdialog');
+        aviso.setAttribute('aria-modal', 'true');
+        aviso.setAttribute('aria-labelledby', 'aviso-sesion-titulo');
+        aviso.innerHTML = `
+            <div class="modal-box">
+                <h3 id="aviso-sesion-titulo"><i class="fa-regular fa-clock" style="color: var(--primary-green);"></i> ¿Sigues ahí?</h3>
+                <p style="font-size: 14px; color: var(--text-muted); line-height: 1.6; margin: 10px 0 20px;">Llevas un rato sin actividad. Por seguridad cerraremos tu sesión en <strong id="aviso-sesion-cuenta">60</strong> segundos. Tu carrito se mantiene guardado.</p>
+                <div style="display: flex; gap: 10px;">
+                    <button type="button" class="btn-outline" style="flex: 1; padding: 12px;" onclick="cerrarSesion()">Cerrar sesión</button>
+                    <button type="button" class="btn-primary" style="flex: 1; padding: 12px; justify-content: center;" id="aviso-sesion-seguir" onclick="seguirConectado()">Seguir conectado</button>
+                </div>
+            </div>`;
+        document.body.appendChild(aviso);
+    }
+    document.getElementById('aviso-sesion-cuenta').textContent = Math.max(0, segundos);
+    if (aviso.style.display !== 'flex') {
+        aviso.style.display = 'flex';
+        document.getElementById('aviso-sesion-seguir').focus();
+    }
+}
+
+function ocultarAvisoSesion() {
+    const aviso = document.getElementById('aviso-sesion');
+    if (aviso) aviso.style.display = 'none';
+}
+
+function seguirConectado() {
+    registrarActividad({ forzar: true });
+    ocultarAvisoSesion();
+}
+
+function cerrarSesionPorTiempo(mensaje) {
+    ocultarAvisoSesion();
+    const modalPago = document.getElementById('modal-pago-global');
+    if (modalPago) modalPago.remove();
+    limpiarSesionLocal();
+    reiniciarChatAsistente();
+    actualizarMenuUsuario();
+    cargarVista('login');
+    setTimeout(() => alert(mensaje), 50);
+}
+
+function revisarSesion() {
+    const usuario = usuarioEnSesion();
+    if (!usuario) { ocultarAvisoSesion(); return false; }
+    const ahora = Date.now();
+    if (!tokenActual()) {
+        cerrarSesionPorTiempo('Por seguridad, vuelve a iniciar sesión.');
+        return true;
+    }
+    const tokenExpira = Number(localStorage.getItem(CLAVE_TOKEN_EXPIRA)) || 0;
+    if (esPersonalInterno(usuario) && tokenExpira && ahora >= tokenExpira) {
+        cerrarSesionPorTiempo('Pasaron 8 horas desde que iniciaste sesión. Vuelve a ingresar para continuar.');
+        return true;
+    }
+    if (!localStorage.getItem(CLAVE_INICIO_SESION)) localStorage.setItem(CLAVE_INICIO_SESION, String(ahora));
+    if (!localStorage.getItem(CLAVE_ULTIMA_ACTIVIDAD)) localStorage.setItem(CLAVE_ULTIMA_ACTIVIDAD, String(ahora));
+    if (esPersonalInterno(usuario)) {
+        const inicio = Number(localStorage.getItem(CLAVE_INICIO_SESION)) || ahora;
+        if (ahora - inicio >= SESION_PERSONAL_TOTAL_MS) {
+            cerrarSesionPorTiempo('Pasaron 8 horas desde que iniciaste sesión. Vuelve a ingresar para continuar.');
+            return true;
+        }
+        return false;
+    }
+    if (modalPagoAbierto()) {
+        registrarActividad({ ignorarAviso: true });
+        ocultarAvisoSesion();
+        return false;
+    }
+    const ultima = Number(localStorage.getItem(CLAVE_ULTIMA_ACTIVIDAD)) || ahora;
+    const inactivo = ahora - ultima;
+    if (inactivo >= SESION_CLIENTE_INACTIVIDAD_MS) {
+        cerrarSesionPorTiempo('Cerramos tu sesión porque pasaron 20 minutos sin actividad. Tu carrito sigue guardado.');
+        return true;
+    }
+    if (inactivo >= SESION_CLIENTE_AVISO_MS) mostrarAvisoSesion(Math.ceil((SESION_CLIENTE_INACTIVIDAD_MS - inactivo) / 1000));
+    else ocultarAvisoSesion();
+    return false;
+}
+
+['click', 'keydown', 'scroll', 'wheel', 'touchstart', 'mousemove'].forEach(evento => {
+    document.addEventListener(evento, () => registrarActividad(), { passive: true, capture: true });
+});
+
+window.addEventListener('storage', (e) => {
+    if (e.key === 'usuarioLogueado') {
+        actualizarMenuUsuario();
+        if (!e.newValue) {
+            ocultarAvisoSesion();
+            cargarVista('home');
+        }
+    }
+    if (e.key === CLAVE_ULTIMA_ACTIVIDAD) revisarSesion();
+});
+
+setInterval(revisarSesion, 1000);
 
 function obtenerCarrito() {
     try {
@@ -28,6 +512,7 @@ function guardarCarrito(carrito) {
 }
 
 function agregarAlCarrito(producto) {
+    if (bloquearSiEsPersonal('compra')) return;
     const carrito = obtenerCarrito();
     const existente = carrito.find(p => p.producto_id === producto.producto_id);
     if (existente) {
@@ -53,12 +538,77 @@ function cerrarMenuMovil() {
     if (nav) nav.classList.remove('menu-movil-abierto');
 }
 
-function desplazarCarrusel(idTrack, direccion) {
-    const track = document.getElementById(idTrack);
-    if (!track) return;
-    const primeraTarjeta = track.querySelector('.shop-card');
-    const ancho = primeraTarjeta ? primeraTarjeta.offsetWidth + 22 : 240;
-    track.scrollBy({ left: ancho * 2 * direccion, behavior: 'smooth' });
+const IMAGEN_SIN_FOTO = 'img/producto-sin-foto.svg';
+const ATRIBUTO_SIN_FOTO = `onerror="this.onerror=null;this.src='${IMAGEN_SIN_FOTO}'"`;
+const IMAGEN_NO_DISPONIBLE = 'img/imagen-no-disponible.svg';
+
+function reemplazarImagenCaida(evento) {
+    const img = evento.target;
+    if (!img || img.tagName !== 'IMG' || img.hasAttribute('onerror') || img.dataset.reemplazada) return;
+    img.dataset.reemplazada = '1';
+    img.src = IMAGEN_NO_DISPONIBLE;
+}
+
+document.addEventListener('error', reemplazarImagenCaida, true);
+
+function urlImagen(url) {
+    if (!url) return IMAGEN_SIN_FOTO;
+    return url.startsWith('/uploads/') ? SERVIDOR_BASE + url : url;
+}
+
+const __carruselesBanner = {};
+
+async function montarBanners(idContenedor, seccion) {
+    const cont = document.getElementById(idContenedor);
+    if (!cont) return;
+    if (__carruselesBanner[idContenedor]) clearInterval(__carruselesBanner[idContenedor]);
+    cont.hidden = true;
+    let lista = [];
+    try {
+        const res = await fetch(`${API_BASE}/banners?seccion=${encodeURIComponent(seccion)}`);
+        lista = res.ok ? await res.json() : [];
+    } catch (e) { lista = []; }
+    if (!lista.length) { cont.innerHTML = ''; return; }
+    const varios = lista.length > 1;
+    cont.innerHTML = `
+        <div class="banner-pista">${lista.map((b, i) => `
+            <picture class="banner-slide${i === 0 ? ' activo' : ''}" aria-hidden="${i === 0 ? 'false' : 'true'}">
+                <source media="(max-width: 700px)" srcset="${esc(urlImagen(b.imagen_movil || b.imagen_pc))}">
+                <img src="${esc(urlImagen(b.imagen_pc))}" alt="Promoción de ${esc(seccion)} ${i + 1}" ${i === 0 ? '' : 'loading="lazy"'} onerror="this.closest('.banner-slide').classList.add('rota')">
+            </picture>`).join('')}
+        </div>
+        ${varios ? `<button type="button" class="banner-flecha anterior" aria-label="Banner anterior"><i class="fa-solid fa-chevron-left"></i></button>
+        <button type="button" class="banner-flecha siguiente" aria-label="Banner siguiente"><i class="fa-solid fa-chevron-right"></i></button>
+        <div class="banner-puntos">${lista.map((b, i) => `<button type="button" class="banner-punto${i === 0 ? ' activo' : ''}" aria-label="Ir al banner ${i + 1}" data-i="${i}"></button>`).join('')}</div>` : ''}`;
+    cont.hidden = false;
+    if (!varios) return;
+    const slides = [...cont.querySelectorAll('.banner-slide')];
+    const puntos = [...cont.querySelectorAll('.banner-punto')];
+    let actual = 0, pausado = false, inicioX = null;
+    const ir = (n) => {
+        actual = (n + slides.length) % slides.length;
+        slides.forEach((s, i) => { s.classList.toggle('activo', i === actual); s.setAttribute('aria-hidden', i === actual ? 'false' : 'true'); });
+        puntos.forEach((p, i) => p.classList.toggle('activo', i === actual));
+    };
+    cont.querySelector('.banner-flecha.anterior').addEventListener('click', () => ir(actual - 1));
+    cont.querySelector('.banner-flecha.siguiente').addEventListener('click', () => ir(actual + 1));
+    puntos.forEach(p => p.addEventListener('click', () => ir(Number(p.dataset.i))));
+    cont.addEventListener('mouseenter', () => { pausado = true; });
+    cont.addEventListener('mouseleave', () => { pausado = false; });
+    cont.addEventListener('touchstart', (e) => { inicioX = e.touches[0].clientX; pausado = true; }, { passive: true });
+    cont.addEventListener('touchend', (e) => {
+        if (inicioX !== null) {
+            const dx = e.changedTouches[0].clientX - inicioX;
+            if (Math.abs(dx) > 40) ir(actual + (dx < 0 ? 1 : -1));
+        }
+        inicioX = null;
+        pausado = false;
+    });
+    cont.__irBanner = ir;
+    __carruselesBanner[idContenedor] = setInterval(() => {
+        if (!document.body.contains(cont)) { clearInterval(__carruselesBanner[idContenedor]); return; }
+        if (!pausado && !document.hidden) ir(actual + 1);
+    }, 5000);
 }
 
 async function subirImagen(inputFileElement) {
@@ -75,7 +625,7 @@ async function subirImagen(inputFileElement) {
             alert(data.error || 'No se pudo subir la imagen.');
             return null;
         }
-        return `http://localhost:8080${data.url}`;
+        return data.url;
     } catch (error) {
         console.error('Error subiendo imagen:', error);
         alert('No se pudo conectar con el servidor para subir la imagen.');
@@ -95,6 +645,7 @@ function previsualizarImagen(inputFileElement, imgElementId) {
 }
 
 function irAAgendar() {
+    if (bloquearSiEsPersonal('agenda citas')) return;
     const usuarioJSON = localStorage.getItem('usuarioLogueado');
     if (usuarioJSON) {
         cargarVista('VistaCliente/agendar-cita');
@@ -103,12 +654,63 @@ function irAAgendar() {
     }
 }
 
+function irAAgendarGrooming() {
+    if (bloquearSiEsPersonal('agenda citas')) return;
+    if (localStorage.getItem('usuarioLogueado')) cargarVista('VistaCliente/agendar-grooming');
+    else cargarVista('login');
+}
+
+const CLAVE_RECETA_CARRITO = 'vamospetRecetaCarrito';
+
+async function estadoRecetaVenta(items, clienteId) {
+    const estado = { conReceta: [], recetas: [], error: null };
+    if (!items || !items.length) return estado;
+    try {
+        const res = await fetch(`${API_BASE}/productos`);
+        const productos = res.ok ? await res.json() : [];
+        const ids = new Set(items.map(i => Number(i.producto_id)));
+        estado.conReceta = productos.filter(p => ids.has(p.id) && p.requiere_receta).map(p => p.nombre);
+        if (estado.conReceta.length && clienteId) {
+            const r = await fetch(`${API_BASE}/recetas/vigentes/cliente/${clienteId}`);
+            estado.recetas = r.ok ? await r.json() : [];
+        }
+    } catch (e) {
+        estado.error = 'No pudimos revisar las recetas. Intenta de nuevo.';
+    }
+    return estado;
+}
+
+function bloqueRecetaHtml(estado, idSelect, elegida, textoSinRecetas) {
+    if (!estado.conReceta.length) return '';
+    const lista = esc(estado.conReceta.join(', '));
+    if (!estado.recetas.length) {
+        return `<div class="aviso-receta bloqueado" role="alert"><i class="fa-solid fa-file-prescription"></i>
+            <div><strong>Necesitas una receta aprobada</strong><p>${lista} se vende${estado.conReceta.length > 1 ? 'n' : ''} solo con receta veterinaria aprobada y vigente (30 días desde su aprobación). ${textoSinRecetas}</p></div></div>`;
+    }
+    return `<div class="aviso-receta"><i class="fa-solid fa-file-prescription"></i>
+        <div><label for="${idSelect}"><strong>Receta para:</strong> ${lista}</label>
+        <select id="${idSelect}">
+            <option value="">Elige una receta vigente</option>
+            ${estado.recetas.map(r => `<option value="${r.id}" ${String(r.id) === String(elegida) ? 'selected' : ''}>${esc(r.mascota)} · vence ${esc(r.vence)} · ${esc(String(r.contenido || '').slice(0, 40))}</option>`).join('')}
+        </select>
+        <p>Una receta sirve para una sola compra.</p></div></div>`;
+}
+
+function irAVistaCliente(vista) {
+    if (localStorage.getItem('usuarioLogueado')) cargarVista(vista);
+    else cargarVista('login');
+}
+
 function verProductoDetalle(id) {
     localStorage.setItem('productoSeleccionadoId', id);
     cargarVista('producto-detalle');
 }
 
 function verHistorialMascota(id) {
+    if (rolActual() === 4) {
+        alert('El historial clínico lo revisan el veterinario y el dueño de la mascota.');
+        return;
+    }
     localStorage.setItem('mascotaSeleccionadaId', id);
     cargarVista('VistaCliente/mascota-detalle');
 }
@@ -139,9 +741,9 @@ function enmascararDni(dni) {
 }
 
 const PERMISOS_ADMIN = {
-    1: ['dashboard-admin', 'citas', 'examenes', 'emergencias', 'clientes', 'servicios', 'inventario', 'proveedores', 'compras', 'devoluciones', 'horarios', 'reportes', 'comprobantes', 'finanzas', 'personal', 'configuracion'],
-    3: ['dashboard-veterinario', 'citas', 'examenes', 'emergencias', 'clientes'],
-    4: ['dashboard-auxiliar', 'venta-mostrador', 'clientes', 'citas', 'examenes', 'emergencias', 'comprobantes']
+    1: ['dashboard-admin', 'citas', 'examenes', 'emergencias', 'clientes', 'servicios', 'inventario', 'banners', 'proveedores', 'compras', 'devoluciones', 'horarios', 'reportes', 'comprobantes', 'finanzas', 'reservas', 'personal', 'configuracion', 'mensajes'],
+    3: ['dashboard-veterinario', 'citas', 'examenes', 'reservas', 'emergencias', 'clientes'],
+    4: ['dashboard-auxiliar', 'venta-mostrador', 'clientes', 'citas', 'examenes', 'reservas', 'emergencias', 'comprobantes', 'finanzas', 'inventario', 'banners', 'proveedores', 'compras', 'devoluciones', 'mensajes']
 };
 
 function dashboardHomeParaRol(rolId) {
@@ -166,7 +768,10 @@ function claseEstadoCita(estado) {
         'Confirmada': 'status-confirmada',
         'Atendida': 'status-completado',
         'No asistió': 'status-cancelada',
-        'Cancelada': 'status-cancelada'
+        'Cancelada': 'status-cancelada',
+        'Rechazada': 'status-rechazada',
+        'Por reasignar': 'status-por-reasignar',
+        'En curso': 'status-en-curso'
     };
     return mapa[estado] || 'status-pendiente';
 }
@@ -243,7 +848,7 @@ async function toggleNotificaciones() {
                     </div>
                     <div>
                         <p style="font-size:13px; font-weight:700; color: var(--dark-text);">${esc(n.titulo)}</p>
-                        <p style="font-size:12px; color: var(--text-muted); margin: 2px 0;">${esc(n.mensaje)}</p>
+                        <p style="font-size:12px; color: var(--text-muted); margin: 2px 0;">${enlazarTexto(n.mensaje)}</p>
                         <span style="font-size:11px; color:#9CA3AF;">${tiempoRelativo(n.fecha)}</span>
                     </div>
                 </div>
@@ -376,6 +981,7 @@ const SIDEBAR_POR_ROL = {
             { pagina: 'dashboard-veterinario', etiqueta: 'Dashboard', icono: 'fa-chart-pie' },
             { pagina: 'citas', etiqueta: 'Gestión de Citas', icono: 'fa-calendar-check' },
             { pagina: 'examenes', etiqueta: 'Exámenes y Cirugías', icono: 'fa-flask-vial' },
+            { pagina: 'reservas', etiqueta: 'Reservas y viajes', icono: 'fa-hotel' },
             { pagina: 'emergencias', etiqueta: 'Emergencias', icono: 'fa-truck-medical' },
             { pagina: 'clientes', etiqueta: 'Clientes y Mascotas', icono: 'fa-users' }
         ]
@@ -386,10 +992,18 @@ const SIDEBAR_POR_ROL = {
             { pagina: 'dashboard-auxiliar', etiqueta: 'Dashboard', icono: 'fa-chart-pie' },
             { pagina: 'venta-mostrador', etiqueta: 'Venta en Mostrador', icono: 'fa-cash-register' },
             { pagina: 'clientes', etiqueta: 'Clientes y Mascotas', icono: 'fa-users' },
-            { pagina: 'citas', etiqueta: 'Ver Citas', icono: 'fa-calendar-check' },
+            { pagina: 'citas', etiqueta: 'Citas y reasignaciones', icono: 'fa-calendar-check' },
             { pagina: 'emergencias', etiqueta: 'Ingreso por Emergencia', icono: 'fa-truck-medical' },
             { pagina: 'examenes', etiqueta: 'Exámenes (subir resultados)', icono: 'fa-flask-vial' },
-            { pagina: 'comprobantes', etiqueta: 'Comprobantes', icono: 'fa-receipt' }
+            { pagina: 'reservas', etiqueta: 'Reservas y viajes', icono: 'fa-hotel' },
+            { pagina: 'finanzas', etiqueta: 'Por cobrar y Yape', icono: 'fa-file-invoice-dollar' },
+            { pagina: 'comprobantes', etiqueta: 'Comprobantes', icono: 'fa-receipt' },
+            { pagina: 'inventario', etiqueta: 'Inventario Tienda', icono: 'fa-box-open' },
+            { pagina: 'banners', etiqueta: 'Banners de la tienda', icono: 'fa-images' },
+            { pagina: 'mensajes', etiqueta: 'Mensajes de contacto', icono: 'fa-envelope-open-text' },
+            { pagina: 'proveedores', etiqueta: 'Proveedores', icono: 'fa-truck-field' },
+            { pagina: 'compras', etiqueta: 'Compras', icono: 'fa-cart-flatbed' },
+            { pagina: 'devoluciones', etiqueta: 'Devoluciones', icono: 'fa-rotate-left' }
         ]
     }
 };
@@ -463,8 +1077,11 @@ async function cargarVista(vista) {
 
         if (vista.startsWith('VistaAdmin/')) {
             aplicarSidebarPorRol(vista);
+            mostrarAvisoSupervision(vista);
         }
-        
+        prepararFormulariosCuenta(appContent);
+        pintarClinica(appContent);
+
         window.scrollTo({ top: 0, behavior: 'smooth' });
 
     } catch (error) {
@@ -479,12 +1096,23 @@ async function cargarVista(vista) {
     }
 }
 
+function datosRegistro() {
+    return {
+        nombre: normalizarNombre(document.getElementById('registro-nombre').value),
+        dni: document.getElementById('registro-dni').value.trim(),
+        correo: document.getElementById('registro-email').value.trim(),
+        telefono: document.getElementById('registro-telefono').value.trim(),
+        contrasena: document.getElementById('registro-password').value
+    };
+}
+
+const CAMPOS_REGISTRO = { nombre: 'registro-nombre', dni: 'registro-dni', correo: 'registro-email', telefono: 'registro-telefono', contrasena: 'registro-password', codigo: 'registro-codigo' };
+
 window.reenviarCodigoRegistro = async function () {
-    const g = id => document.getElementById(id).value;
     const res = await fetch(`${API_URL}/registro`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ nombre: g('registro-nombre'), dni: g('registro-dni'), correo: g('registro-email'), contrasena: g('registro-password') })
+        body: JSON.stringify(datosRegistro())
     });
     const data = await res.json().catch(() => ({}));
     alert(data.requiereCodigo ? 'Te enviamos un código nuevo.' : (data.error || 'No se pudo reenviar.'));
@@ -494,31 +1122,22 @@ document.addEventListener('submit', async (e) => {
     e.preventDefault(); 
 
     if (e.target.id === 'form-registro') {
-        const nombre = document.getElementById('registro-nombre').value;
-        const dni = document.getElementById('registro-dni').value;
-        const email = document.getElementById('registro-email').value;
-        const password = document.getElementById('registro-password').value;
-        const confirm = document.getElementById('registro-confirm').value;
-
-        if (password !== confirm) {
-            alert('¡Las contraseñas no coinciden, mi kin!');
-            return;
-        }
-        if (password.length < 8) {
-            alert('La contraseña debe tener al menos 8 caracteres.');
-            return;
-        }
-        if (!/^\d{8}$/.test(dni.trim())) {
-            alert('El DNI debe tener exactamente 8 dígitos.');
-            return;
-        }
+        const form = e.target;
+        if (!formularioCuentaValido(form)) return;
 
         const codigoInput = document.getElementById('registro-codigo');
         const enPasoCodigo = codigoInput && document.getElementById('registro-paso-codigo').style.display !== 'none';
+        if (enPasoCodigo && !REGLAS_CUENTA.codigo.rx.test(codigoInput.value.trim())) {
+            mensajeCampo(codigoInput, REGLAS_CUENTA.codigo.msg, 'error');
+            codigoInput.focus();
+            return;
+        }
 
+        const boton = document.getElementById('registro-boton');
+        boton.disabled = true;
         try {
             const url = enPasoCodigo ? `${API_URL}/registro/confirmar` : `${API_URL}/registro`;
-            const cuerpo = { nombre, dni, correo: email, contrasena: password };
+            const cuerpo = datosRegistro();
             if (enPasoCodigo) cuerpo.codigo = codigoInput.value.trim();
             const response = await fetch(url, {
                 method: 'POST',
@@ -530,19 +1149,22 @@ document.addEventListener('submit', async (e) => {
             if (data.requiereCodigo) {
                 document.getElementById('registro-paso-codigo').style.display = 'block';
                 document.getElementById('registro-codigo-msg').innerText = data.mensaje || 'Enviamos un código a tu correo.';
-                document.getElementById('registro-boton').innerText = 'Verificar y crear cuenta';
+                boton.innerText = 'Verificar y crear cuenta';
+                codigoInput.focus();
                 return;
             }
 
             if (response.ok) {
                 alert('¡Cuenta creada con éxito! Ahora inicia sesión.');
                 cargarVista('login');
-            } else {
-                alert(data.error || 'Error al registrar. Intenta con otro correo.');
+            } else if (!mostrarErroresServidor(data.campos, CAMPOS_REGISTRO)) {
+                alert(data.error || 'No se pudo crear la cuenta. Revisa los datos.');
             }
         } catch (error) {
             console.error('Error de conexión:', error);
             alert('No pudimos conectar con el servidor (Verifica que Spring Boot esté corriendo).');
+        } finally {
+            boton.disabled = false;
         }
     }
 
@@ -560,7 +1182,7 @@ document.addEventListener('submit', async (e) => {
             if (response.ok) {
                 const usuario = await response.json();
                 
-                localStorage.setItem('usuarioLogueado', JSON.stringify(usuario));
+                iniciarSesionLocal(usuario);
                 actualizarMenuUsuario();
                 reiniciarChatAsistente();
                 
@@ -582,22 +1204,89 @@ document.addEventListener('submit', async (e) => {
     }
 
     if (e.target.id === 'form-contacto') {
-        const nombre = document.getElementById('contacto-nombre').value;
-        const mensaje = document.getElementById('contacto-mensaje').value;
-
-        alert(`¡Gracias ${nombre}! Recibimos tu mensaje y te responderemos a la brevedad.`);
-        console.log('Mensaje de contacto (pendiente de endpoint backend):', {
-            nombre,
-            email: document.getElementById('contacto-email').value,
-            telefono: document.getElementById('contacto-telefono').value,
-            motivo: document.getElementById('contacto-motivo').value,
-            mensaje
-        });
-        e.target.reset();
+        const form = e.target;
+        const boton = form.querySelector('button[type="submit"]');
+        const valor = (id) => ((document.getElementById(id) || {}).value || '').trim();
+        const campos = { nombre: 'contacto-nombre', correo: 'contacto-email', telefono: 'contacto-telefono', asunto: 'contacto-motivo', mensaje: 'contacto-mensaje' };
+        Object.values(campos).forEach(id => mensajeCampo(document.getElementById(id), '', ''));
+        const confirmacion = document.getElementById('contacto-confirmacion');
+        if (confirmacion) confirmacion.hidden = true;
+        const errores = {};
+        if (!REGLAS_CUENTA.nombre.rx.test(normalizarNombre(valor('contacto-nombre')))) errores.nombre = REGLAS_CUENTA.nombre.msg;
+        if (!REGLAS_CUENTA.correo.rx.test(valor('contacto-email'))) errores.correo = REGLAS_CUENTA.correo.msg;
+        if (valor('contacto-telefono') && !REGLAS_CUENTA.telefono.rx.test(valor('contacto-telefono'))) errores.telefono = REGLAS_CUENTA.telefono.msg;
+        if (!valor('contacto-motivo')) errores.asunto = 'Elige el motivo.';
+        const largo = valor('contacto-mensaje').length;
+        if (largo < 10 || largo > 2000) errores.mensaje = 'El mensaje debe tener entre 10 y 2000 caracteres.';
+        if (Object.keys(errores).length) { mostrarErroresServidor(errores, campos); return; }
+        boton.disabled = true;
+        try {
+            const res = await fetch(`${API_BASE}/contacto`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    nombre: normalizarNombre(valor('contacto-nombre')),
+                    correo: valor('contacto-email'),
+                    telefono: valor('contacto-telefono'),
+                    asunto: valor('contacto-motivo'),
+                    mensaje: valor('contacto-mensaje'),
+                    sitio_web: valor('contacto-sitio')
+                })
+            });
+            const data = await res.json().catch(() => ({}));
+            if (res.ok) {
+                form.reset();
+                if (confirmacion) { confirmacion.textContent = '¡Gracias! ' + (data.mensaje || 'Recibimos tu mensaje.'); confirmacion.hidden = false; }
+            } else if (!mostrarErroresServidor(data.campos, campos)) {
+                alert(data.error || 'No se pudo enviar tu mensaje. Intenta de nuevo.');
+            }
+        } catch (error) {
+            alert('No pudimos conectar con el servidor. Intenta de nuevo en unos minutos.');
+        } finally {
+            boton.disabled = false;
+        }
     }
 });
 
+let __configClinica = null;
+let __promesaConfigClinica = null;
+
+function cargarConfiguracionClinica(forzar) {
+    if (forzar || !__promesaConfigClinica) {
+        __promesaConfigClinica = fetch(`${API_BASE}/configuracion`)
+            .then(r => r.ok ? r.json() : null)
+            .catch(() => null)
+            .then(c => { if (c) __configClinica = c; pintarClinica(document); return __configClinica; });
+    }
+    return __promesaConfigClinica;
+}
+
+function horasCancelacionClinica() {
+    return __configClinica && __configClinica.horas_cancelacion ? __configClinica.horas_cancelacion : 24;
+}
+
+function pintarClinica(raiz) {
+    const c = __configClinica;
+    if (!c || !raiz) return;
+    raiz.querySelectorAll('[data-clinica]').forEach(el => {
+        const v = c[el.dataset.clinica];
+        el.textContent = v == null ? '' : String(v);
+        el.hidden = v == null || String(v).trim() === '';
+    });
+    raiz.querySelectorAll('[data-clinica-href]').forEach(el => {
+        const tipo = el.dataset.clinicaHref;
+        if (tipo === 'whatsapp') el.href = c.whatsapp ? `https://wa.me/${encodeURIComponent(c.whatsapp)}` : '#';
+        else if (tipo === 'tel') el.href = c.telefono ? `tel:${c.telefono.replace(/\s/g, '')}` : '#';
+        else if (tipo === 'correo') el.href = c.correo ? `mailto:${c.correo}` : '#';
+    });
+    raiz.querySelectorAll('[data-clinica-si]').forEach(el => { el.hidden = !c[el.dataset.clinicaSi]; });
+    raiz.querySelectorAll('[data-clinica-mapa]').forEach(el => {
+        if (c.direccion) el.src = `https://www.google.com/maps?q=${encodeURIComponent(c.direccion)}&output=embed`;
+    });
+}
+
 function actualizarMenuUsuario() {
+    marcarRolEnPagina();
     const usuarioJSON = localStorage.getItem('usuarioLogueado');
     const headerActions = document.querySelector('header > div:last-child');
     
@@ -624,8 +1313,8 @@ function actualizarMenuUsuario() {
         else {
             headerActions.innerHTML = `
                 <div style="text-align: right; line-height: 1.2;">
-                    <span style="font-size: 11px; color: var(--text-muted); display: block;">Emergencias 24/7</span>
-                    <strong style="color: var(--dark-text); font-size: 14px;"><i class="fa-solid fa-phone" style="color: var(--primary-green);"></i> +51 912 345 678</strong>
+                    <span data-clinica-si="emergencias_24h" style="font-size: 11px; color: var(--text-muted); display: block;">Emergencias 24/7</span>
+                    <strong style="color: var(--dark-text); font-size: 14px;"><i class="fa-solid fa-phone" style="color: var(--primary-green);"></i> <a data-clinica="telefono" data-clinica-href="tel" style="color: inherit; text-decoration: none;"></a></strong>
                 </div>
                 
                 <div class="hover-card" style="position: relative; cursor: pointer; font-size: 22px; color: var(--dark-text);" onclick="cargarVista('carrito')">
@@ -653,8 +1342,8 @@ function actualizarMenuUsuario() {
     } else {
         headerActions.innerHTML = `
             <div style="text-align: right; line-height: 1.2;">
-                <span style="font-size: 11px; color: var(--text-muted); display: block;">Emergencias 24/7</span>
-                <strong style="color: var(--dark-text); font-size: 14px;"><i class="fa-solid fa-phone" style="color: var(--primary-green);"></i> +51 912 345 678</strong>
+                <span data-clinica-si="emergencias_24h" style="font-size: 11px; color: var(--text-muted); display: block;">Emergencias 24/7</span>
+                <strong style="color: var(--dark-text); font-size: 14px;"><i class="fa-solid fa-phone" style="color: var(--primary-green);"></i> <a data-clinica="telefono" data-clinica-href="tel" style="color: inherit; text-decoration: none;"></a></strong>
             </div>
             
             <div class="hover-card" style="position: relative; cursor: pointer; font-size: 22px; color: var(--dark-text);" onclick="cargarVista('carrito')">
@@ -671,18 +1360,175 @@ function actualizarMenuUsuario() {
     actualizarBadgeCarrito();
     actualizarBadgeNotificaciones();
     actualizarVisibilidadAsistenteIA();
+    pintarClinica(headerActions);
 }
 
 function cerrarSesion() {
-    localStorage.removeItem('usuarioLogueado');
+    ocultarAvisoSesion();
+    if (tokenActual()) fetch(`${API_BASE}/sesion/cerrar`, { method: 'POST' }).catch(() => {});
+    limpiarSesionLocal();
     reiniciarChatAsistente();
     actualizarMenuUsuario();
     cargarVista('home');
 }
 
 document.addEventListener('DOMContentLoaded', () => {
+    if (revisarSesion()) return;
     actualizarMenuUsuario();
     actualizarBadgeCarrito();
+    cargarConfiguracionClinica();
     if (new URLSearchParams(window.location.search).get('verificar')) cargarVista('verificar-comprobante');
     else cargarVista('home');
 });
+
+function luhnValido(numero) {
+    const d = String(numero).replace(/\D/g, '');
+    if (d.length < 13 || d.length > 19) return false;
+    let suma = 0, doble = false;
+    for (let i = d.length - 1; i >= 0; i--) {
+        let n = parseInt(d[i], 10);
+        if (doble) { n *= 2; if (n > 9) n -= 9; }
+        suma += n;
+        doble = !doble;
+    }
+    return suma % 10 === 0;
+}
+
+function vencimientoValido(mes, anio) {
+    const m = parseInt(mes, 10);
+    let a = parseInt(anio, 10);
+    if (isNaN(m) || isNaN(a) || m < 1 || m > 12) return false;
+    if (a < 100) a += 2000;
+    const fin = new Date(a, m, 0, 23, 59, 59);
+    return fin >= new Date();
+}
+
+function formatearNumeroTarjeta(input) {
+    const d = input.value.replace(/\D/g, '').slice(0, 19);
+    input.value = d.replace(/(.{4})/g, '$1 ').trim();
+}
+
+let __alCancelarPago = null;
+
+function cerrarModalPago(pagado) {
+    const m = document.getElementById('modal-pago-global');
+    if (m) m.remove();
+    const alCancelar = __alCancelarPago;
+    __alCancelarPago = null;
+    if (m && !pagado && alCancelar) alCancelar();
+}
+
+function abrirModalPago(opciones) {
+    const usuarioJSON = localStorage.getItem('usuarioLogueado');
+    if (!usuarioJSON) { cargarVista('login'); return; }
+    const usuario = JSON.parse(usuarioJSON);
+    const personal = usuario.rol_id !== 2;
+    cerrarModalPago();
+    __alCancelarPago = opciones.alCancelar || null;
+    const metodos = personal ? ['Efectivo', 'Tarjeta', 'Yape'] : ['Tarjeta', 'Yape'];
+    const html = `
+    <div class="modal-overlay" id="modal-pago-global" style="display:flex;">
+        <div class="modal-box" style="max-height:92vh; overflow-y:auto;">
+            <h3><i class="fa-solid fa-credit-card" style="color:var(--primary-green);"></i> ${esc(opciones.titulo || 'Pagar')}</h3>
+            <p style="font-size:22px; font-weight:800; margin-bottom:12px;">S/ ${Number(opciones.monto).toFixed(2)}</p>
+            ${opciones.detalle ? `<p style="font-size:13px; color:var(--text-muted); margin-bottom:12px;">${esc(opciones.detalle)}</p>` : ''}
+            <div class="input-group">
+                <label>Método de pago</label>
+                <select id="pg-metodo">${metodos.map(m => `<option value="${m}">${m === 'Yape' ? 'Yape (QR)' : m}</option>`).join('')}</select>
+            </div>
+            <div id="pg-tarjeta">
+                <div class="input-group"><label>Nombre en la tarjeta</label><input type="text" id="pg-nombre" maxlength="60" autocomplete="off"></div>
+                <div class="input-group"><label>Número de tarjeta</label><input type="text" id="pg-numero" inputmode="numeric" maxlength="23" placeholder="0000 0000 0000 0000" autocomplete="off" oninput="formatearNumeroTarjeta(this)"></div>
+                <div style="display:flex; gap:10px;">
+                    <div class="input-group" style="flex:1;"><label>Mes</label><input type="text" id="pg-mes" inputmode="numeric" maxlength="2" placeholder="MM"></div>
+                    <div class="input-group" style="flex:1;"><label>Año</label><input type="text" id="pg-anio" inputmode="numeric" maxlength="4" placeholder="AA"></div>
+                    <div class="input-group" style="flex:1;"><label>CVV</label><input type="password" id="pg-cvv" inputmode="numeric" maxlength="4" autocomplete="off"></div>
+                </div>
+                <div class="input-group"><label>Correo asociado a la tarjeta *</label><input type="email" id="pg-correo" maxlength="120" placeholder="correo@ejemplo.com" value="${esc(usuario.email || usuario.correo || '')}"></div>
+                <p style="font-size:11px; color:var(--text-muted);">Solo guardamos los últimos 4 dígitos. Te enviaremos el comprobante a este correo.</p>
+            </div>
+            <div id="pg-yape" style="display:none; text-align:center;">
+                <img src="img/yape-qr.png" alt="QR de Yape" style="width:200px; height:200px; object-fit:contain; border:1px solid #E5E7EB; border-radius:12px; margin-bottom:10px;">
+                <p style="font-size:13px; color:var(--text-muted); margin-bottom:10px;">Escanea el QR, paga S/ ${Number(opciones.monto).toFixed(2)} y escribe el número de operación.</p>
+                <div class="input-group" style="text-align:left;"><label>Número de operación *</label><input type="text" id="pg-operacion" maxlength="20" placeholder="Ej. 12345678"></div>
+                <p style="font-size:11px; color:var(--text-muted);">${personal ? 'El pago se registra de inmediato.' : 'Nuestro equipo confirmará tu pago y recibirás el comprobante.'}</p>
+            </div>
+            <div id="pg-efectivo" style="display:none;">
+                <p style="font-size:13px; color:var(--text-muted);">Registra el cobro en efectivo recibido en caja.</p>
+            </div>
+            <p id="pg-error" style="color:#DC2626; font-size:13px; margin:10px 0; display:none;"></p>
+            <button class="btn-primary" id="pg-confirmar" style="width:100%; padding:12px;">Confirmar pago</button>
+            <button class="btn-outline" style="width:100%; padding:12px; margin-top:10px;" onclick="cerrarModalPago()">Cancelar</button>
+        </div>
+    </div>`;
+    document.body.insertAdjacentHTML('beforeend', html);
+    const sel = document.getElementById('pg-metodo');
+    const alternar = () => {
+        document.getElementById('pg-tarjeta').style.display = sel.value === 'Tarjeta' ? 'block' : 'none';
+        document.getElementById('pg-yape').style.display = sel.value === 'Yape' ? 'block' : 'none';
+        document.getElementById('pg-efectivo').style.display = sel.value === 'Efectivo' ? 'block' : 'none';
+    };
+    sel.addEventListener('change', alternar);
+    alternar();
+    document.getElementById('pg-confirmar').addEventListener('click', async () => {
+        const err = document.getElementById('pg-error');
+        const boton = document.getElementById('pg-confirmar');
+        err.style.display = 'none';
+        const mostrar = (t) => { err.textContent = t; err.style.display = 'block'; };
+        const datos = { metodo: sel.value };
+        if (sel.value === 'Tarjeta') {
+            const numero = document.getElementById('pg-numero').value.replace(/\D/g, '');
+            const correo = document.getElementById('pg-correo').value.trim();
+            if (document.getElementById('pg-nombre').value.trim().length < 3) return mostrar('Escribe el nombre que aparece en la tarjeta.');
+            if (!luhnValido(numero)) return mostrar('El número de tarjeta no es válido.');
+            if (!vencimientoValido(document.getElementById('pg-mes').value, document.getElementById('pg-anio').value)) return mostrar('La tarjeta está vencida o la fecha no es válida.');
+            if (!/^\d{3,4}$/.test(document.getElementById('pg-cvv').value)) return mostrar('El CVV debe tener 3 o 4 dígitos.');
+            if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(correo)) return mostrar('Ingresa el correo asociado a la tarjeta.');
+            datos.correo_tarjeta = correo;
+            datos.tarjeta_ultimos4 = numero.slice(-4);
+        } else if (sel.value === 'Yape') {
+            const op = document.getElementById('pg-operacion').value.trim();
+            if (!/^[A-Za-z0-9]{6,20}$/.test(op)) return mostrar('El número de operación debe tener entre 6 y 20 caracteres.');
+            datos.operacion_yape = op;
+        }
+        boton.disabled = true;
+        try {
+            const resultado = await opciones.enviar(datos);
+            cerrarModalPago(true);
+            if (opciones.alExito) opciones.alExito(resultado);
+        } catch (e) {
+            boton.disabled = false;
+            mostrar(e.message || 'No se pudo procesar el pago.');
+        }
+    });
+}
+
+async function enviarJson(url, metodo, cuerpo) {
+    const res = await fetch(url, { method: metodo, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(cuerpo) });
+    let data = null;
+    try { data = await res.json(); } catch (e) { data = null; }
+    if (!res.ok) throw new Error((data && data.error) || 'No se pudo completar la operación.');
+    return data;
+}
+
+function pagarReferencia(referencia, referenciaId, monto, titulo, detalle, alExito) {
+    const usuario = JSON.parse(localStorage.getItem('usuarioLogueado') || 'null');
+    if (!usuario) { cargarVista('login'); return; }
+    abrirModalPago({
+        titulo, monto, detalle,
+        enviar: (datos) => enviarJson(`${API_BASE}/pagos/registrar`, 'POST', { usuario_id: usuario.id, referencia, referencia_id: referenciaId, ...datos }),
+        alExito: (r) => {
+            const pago = r.pago || {};
+            const comp = r.comprobante;
+            alert(pago.estado === 'Por_confirmar'
+                ? 'Recibimos tu número de operación. Confirmaremos tu pago y te avisaremos.'
+                : 'Pago registrado correctamente.' + (comp ? ' Tu comprobante ya está disponible.' : ''));
+            if (comp) abrirArchivoApi(`${API_BASE}/comprobantes/${comp.id}/pdf?usuarioId=${usuario.id}`);
+            if (alExito) alExito(r);
+        }
+    });
+}
+
+function enlazarTexto(texto) {
+    return esc(texto).replace(/(https:\/\/[^\s<>"']+)/g, '<a href="$1" target="_blank" rel="noopener noreferrer" style="color:var(--primary-green); font-weight:700;">$1</a>');
+}

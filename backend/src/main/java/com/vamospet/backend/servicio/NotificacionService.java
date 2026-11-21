@@ -7,8 +7,12 @@ import com.vamospet.backend.repositorio.UsuarioRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import jakarta.mail.internet.MimeMessage;
+import org.springframework.core.io.ByteArrayResource;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -27,6 +31,9 @@ public class NotificacionService {
 
     @Autowired
     private JavaMailSender mailSender;
+
+    @Value("${spring.mail.username:}")
+    private String remitente;
 
     @Autowired
     private List<CanalNotificacion> canales;
@@ -95,10 +102,29 @@ public class NotificacionService {
     public boolean enviarCorreoDirecto(String destino, String asunto, String texto) {
         try {
             SimpleMailMessage correo = new SimpleMailMessage();
-            correo.setFrom("vamospetnotis@gmail.com");
+            if (remitente != null && !remitente.isBlank()) correo.setFrom(remitente);
             correo.setTo(destino);
             correo.setSubject("Vamos Pet — " + asunto);
             correo.setText(texto + "\n\n— Equipo Vamos Pet Clínica Veterinaria");
+            mailSender.send(correo);
+            return true;
+        } catch (Exception e) {
+            log.warn("No se pudo enviar el correo a {}: {}", destino, e.getMessage());
+            return false;
+        }
+    }
+
+    public boolean enviarCorreo(String destino, String asuntoCompleto, String texto, String nombreAdjunto, byte[] adjunto) {
+        if (destino == null || destino.isBlank()) return false;
+        try {
+            MimeMessage correo = mailSender.createMimeMessage();
+            boolean conAdjunto = adjunto != null && adjunto.length > 0;
+            MimeMessageHelper ayudante = new MimeMessageHelper(correo, conAdjunto, "UTF-8");
+            if (remitente != null && !remitente.isBlank()) ayudante.setFrom(remitente);
+            ayudante.setTo(destino);
+            ayudante.setSubject(asuntoCompleto);
+            ayudante.setText(texto + "\n\n— Equipo Vamos Pet Clínica Veterinaria", false);
+            if (conAdjunto) ayudante.addAttachment(nombreAdjunto, new ByteArrayResource(adjunto), "application/pdf");
             mailSender.send(correo);
             return true;
         } catch (Exception e) {

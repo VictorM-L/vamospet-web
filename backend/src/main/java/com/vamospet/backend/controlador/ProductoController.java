@@ -1,5 +1,11 @@
 package com.vamospet.backend.controlador;
 
+import java.util.stream.Collectors;
+import java.util.Set;
+import com.vamospet.backend.repositorio.PedidoDetalleRepository;
+import com.vamospet.backend.repositorio.PedidoRepository;
+import com.vamospet.backend.modelo.Pedido;
+import com.vamospet.backend.servicio.NegocioException;
 import com.vamospet.backend.modelo.Producto;
 import com.vamospet.backend.repositorio.ProductoRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -15,8 +21,16 @@ import java.util.Map;
 @CrossOrigin(origins = "*")
 public class ProductoController {
 
+    static final Set<String> ESTADOS_POR_ENTREGAR = Set.of("Pendiente", "Listo para recoger");
+
     @Autowired
     private ProductoRepository repositorio;
+
+    @Autowired
+    private PedidoRepository pedidoRepositorio;
+
+    @Autowired
+    private PedidoDetalleRepository pedidoDetalleRepositorio;
 
     @GetMapping
     public List<Producto> listar(@RequestParam(defaultValue = "false") boolean incluirInactivos) {
@@ -79,6 +93,14 @@ public class ProductoController {
     public ResponseEntity<?> eliminar(@PathVariable Integer id) {
         Producto producto = repositorio.findById(id).orElse(null);
         if (producto == null) return ResponseEntity.notFound().build();
+        Set<Integer> porEntregar = pedidoRepositorio.findAll().stream()
+                .filter(p -> ESTADOS_POR_ENTREGAR.contains(p.getEstado()))
+                .map(Pedido::getId).collect(Collectors.toSet());
+        boolean enPedidoAbierto = !porEntregar.isEmpty() && pedidoDetalleRepositorio.findAll().stream()
+                .anyMatch(d -> id.equals(d.getProducto_id()) && porEntregar.contains(d.getPedido_id()));
+        if (enPedidoAbierto) {
+            throw new NegocioException(409, "No se puede dar de baja: el producto está en pedidos que aún no se entregan.");
+        }
 
         producto.setActivo(false);
         producto.setEstado("Descontinuado");

@@ -1,5 +1,6 @@
 package com.vamospet.backend.controlador;
 
+import com.vamospet.backend.permisos.UsuarioActual;
 import com.vamospet.backend.modelo.ArchivoExamen;
 import com.vamospet.backend.servicio.ExamenService;
 import com.vamospet.backend.servicio.NegocioException;
@@ -33,7 +34,8 @@ public class ExamenController {
     }
 
     @GetMapping("/veterinario/examenes/pendientes")
-    public ResponseEntity<?> pendientes(@RequestParam Integer usuarioId) {
+    public ResponseEntity<?> pendientes() {
+        Integer usuarioId = UsuarioActual.id();
         return ResponseEntity.ok(servicio.listar(usuarioId, null, Set.of("Resultados_Subidos")));
     }
 
@@ -47,7 +49,7 @@ public class ExamenController {
         try {
             String f = texto(b, "fecha_hora");
             return ResponseEntity.ok(servicio.agendarCirugia(entero(b, "usuario_id"), entero(b, "orden_id"),
-                    f == null ? null : LocalDateTime.parse(f), texto(b, "tipo_cirugia")));
+                    f == null ? null : LocalDateTime.parse(f), texto(b, "tipo_cirugia"), entero(b, "servicio_id")));
         } catch (DateTimeParseException e) {
             throw new NegocioException(400, "Fecha y hora inválidas.");
         }
@@ -59,14 +61,16 @@ public class ExamenController {
     }
 
     @PostMapping("/auxiliar/examenes/subir")
-    public ResponseEntity<?> subirPersonal(@RequestParam("usuario_id") Integer usuarioId, @RequestParam("orden_id") Integer ordenId,
+    public ResponseEntity<?> subirPersonal(@RequestParam("orden_id") Integer ordenId,
                                            @RequestParam("archivo") MultipartFile archivo) {
+        Integer usuarioId = UsuarioActual.id();
         return subir(usuarioId, ordenId, archivo, true);
     }
 
     @PostMapping("/cliente/examenes/subir-pdf")
-    public ResponseEntity<?> subirCliente(@RequestParam("usuario_id") Integer usuarioId, @RequestParam("orden_id") Integer ordenId,
+    public ResponseEntity<?> subirCliente(@RequestParam("orden_id") Integer ordenId,
                                           @RequestParam("archivo") MultipartFile archivo) {
+        Integer usuarioId = UsuarioActual.id();
         return subir(usuarioId, ordenId, archivo, false);
     }
 
@@ -80,20 +84,23 @@ public class ExamenController {
     }
 
     @GetMapping("/examenes")
-    public ResponseEntity<?> listar(@RequestParam Integer usuarioId, @RequestParam(required = false) Integer mascotaId,
+    public ResponseEntity<?> listar(@RequestParam(required = false) Integer mascotaId,
                                     @RequestParam(required = false) String estados) {
+        Integer usuarioId = UsuarioActual.id();
         Set<String> filtro = estados == null || estados.isBlank() ? null
                 : Arrays.stream(estados.split(",")).map(String::trim).collect(Collectors.toSet());
         return ResponseEntity.ok(servicio.listar(usuarioId, mascotaId, filtro));
     }
 
     @GetMapping("/cirugias")
-    public ResponseEntity<?> cirugias(@RequestParam Integer usuarioId, @RequestParam(required = false) Integer mascotaId) {
+    public ResponseEntity<?> cirugias(@RequestParam(required = false) Integer mascotaId) {
+        Integer usuarioId = UsuarioActual.id();
         return ResponseEntity.ok(servicio.cirugias(usuarioId, mascotaId));
     }
 
     @GetMapping("/examenes/archivo/{id}")
-    public ResponseEntity<byte[]> descargar(@PathVariable Integer id, @RequestParam Integer usuarioId) {
+    public ResponseEntity<byte[]> descargar(@PathVariable Integer id) {
+        Integer usuarioId = UsuarioActual.id();
         ExamenService.Descarga d = servicio.descargar(usuarioId, id);
         return ResponseEntity.ok()
                 .contentType(MediaType.parseMediaType(d.archivo().getTipo_contenido()))

@@ -3,6 +3,8 @@ package com.vamospet.backend.controlador;
 import com.vamospet.backend.modelo.Notificacion;
 import com.vamospet.backend.repositorio.NotificacionRepository;
 import com.vamospet.backend.servicio.NotificacionService;
+import com.vamospet.backend.permisos.UsuarioActual;
+import com.vamospet.backend.servicio.NegocioException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 import java.util.List;
@@ -38,6 +40,9 @@ public class NotificacionController {
     public Notificacion marcarLeida(@PathVariable Integer id) {
         Notificacion n = repositorio.findById(id).orElse(null);
         if (n == null) return null;
+        if (!java.util.Objects.equals(n.getUsuario_id(), UsuarioActual.id())) {
+            throw new NegocioException(403, "Solo puedes marcar tus propias notificaciones.");
+        }
         n.setLeida(true);
         return repositorio.save(n);
     }

@@ -16,7 +16,7 @@
             <p style="color: var(--text-muted); font-size: 16px; line-height: 1.6; margin-bottom: 30px;">
                 Cada huésped de <strong>Vamos Pet</strong> se hospeda bajo supervisión veterinaria permanente, con un plan de alimentación y actividad adaptado a su edad, tamaño y estado de salud.
             </p>
-            <button class="btn-primary" onclick="irAAgendar()" style="padding: 15px 30px;"><i class="fa-solid fa-hotel" style="margin-right: 8px;"></i> Reservar Estadía</button>
+            <button class="btn-primary" onclick="irAVistaCliente('VistaCliente/reservar-hospedaje')" style="padding: 15px 30px;"><i class="fa-solid fa-hotel" style="margin-right: 8px;"></i> Reservar Estadía</button>
         </div>
 
         <div class="lab-tests-grid">
@@ -51,19 +51,19 @@
 
         <div class="lab-tests-grid">
             <div class="lab-test-card hover-card" style="border: none;" onclick="mostrarInfoTest('Suite Individual', 'Espacio privado y tranquilo, pensado para mascotas que se sienten más cómodas sin compañía de otros animales.')">
-                <div class="lab-test-icon" style="background: #E0E7FF; color: #4F46E5;"><i class="fa-solid fa-house"></i></div>
+                <div class="lab-test-icon" style="background: var(--light-green); color: var(--primary-green);"><i class="fa-solid fa-house"></i></div>
                 Suite Individual
             </div>
             <div class="lab-test-card hover-card" style="border: none;" onclick="mostrarInfoTest('Habitación Compartida', 'Ideal para mascotas sociables que llegan en pareja o grupo familiar, con espacio para jugar juntas.')">
-                <div class="lab-test-icon" style="background: #E0E7FF; color: #4F46E5;"><i class="fa-solid fa-users"></i></div>
+                <div class="lab-test-icon" style="background: var(--light-green); color: var(--primary-green);"><i class="fa-solid fa-users"></i></div>
                 Habitación Compartida
             </div>
             <div class="lab-test-card hover-card" style="border: none;" onclick="mostrarInfoTest('Hospedaje Post-Operatorio', 'Observación médica constante para mascotas en recuperación de una cirugía, con control de signos vitales.')">
-                <div class="lab-test-icon" style="background: #E0E7FF; color: #4F46E5;"><i class="fa-solid fa-kit-medical"></i></div>
+                <div class="lab-test-icon" style="background: var(--light-green); color: var(--primary-green);"><i class="fa-solid fa-kit-medical"></i></div>
                 Hospedaje Post-Operatorio
             </div>
             <div class="lab-test-card hover-card" style="border: none;" onclick="mostrarInfoTest('Estadía por Horas', 'Perfecta para viajes cortos o trámites del día: dejas a tu mascota en buenas manos por unas horas.')">
-                <div class="lab-test-icon" style="background: #E0E7FF; color: #4F46E5;"><i class="fa-solid fa-clock"></i></div>
+                <div class="lab-test-icon" style="background: var(--light-green); color: var(--primary-green);"><i class="fa-solid fa-clock"></i></div>
                 Estadía por Horas
             </div>
         </div>
@@ -76,7 +76,7 @@
             <p style="color: var(--text-muted); font-size: 16px; line-height: 1.6; margin-bottom: 30px;">
                 Recibirás fotos y videos diarios de tu mascota para que estés tranquilo desde donde estés.
             </p>
-            <button class="btn-outline" onclick="irAAgendar()" style="padding: 12px 25px;"><i class="fa-regular fa-calendar-check"></i> Consultar Disponibilidad</button>
+            <button class="btn-outline" onclick="irAVistaCliente('VistaCliente/reservar-hospedaje')" style="padding: 12px 25px;"><i class="fa-regular fa-calendar-check"></i> Consultar Disponibilidad</button>
         </div>
     </div>
 

@@ -41,4 +41,35 @@ public class CirugiaProgramada {
     public void setCreado_por(Integer creado_por) { this.creado_por = creado_por; }
     public LocalDateTime getFecha_creacion() { return fecha_creacion; }
     public void setFecha_creacion(LocalDateTime fecha_creacion) { this.fecha_creacion = fecha_creacion; }
+
+    private Integer servicio_id;
+    public Integer getServicio_id() { return servicio_id; }
+    public void setServicio_id(Integer servicio_id) { this.servicio_id = servicio_id; }
+
+    private LocalDateTime inicio_real;
+    public LocalDateTime getInicio_real() { return inicio_real; }
+    public void setInicio_real(LocalDateTime inicio_real) { this.inicio_real = inicio_real; }
+
+    private LocalDateTime fin_real;
+    public LocalDateTime getFin_real() { return fin_real; }
+    public void setFin_real(LocalDateTime fin_real) { this.fin_real = fin_real; }
+
+    @Column(length = 2000)
+    private String resultado;
+    public String getResultado() { return resultado; }
+    public void setResultado(String resultado) { this.resultado = resultado; }
+
+    @Column(length = 2000)
+    private String complicaciones;
+    public String getComplicaciones() { return complicaciones; }
+    public void setComplicaciones(String complicaciones) { this.complicaciones = complicaciones; }
+
+    @Column(length = 2000)
+    private String notas_intra;
+    public String getNotas_intra() { return notas_intra; }
+    public void setNotas_intra(String notas_intra) { this.notas_intra = notas_intra; }
+
+    private String postoperatorio;
+    public String getPostoperatorio() { return postoperatorio; }
+    public void setPostoperatorio(String postoperatorio) { this.postoperatorio = postoperatorio; }
 }

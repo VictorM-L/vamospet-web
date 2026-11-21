@@ -9,20 +9,21 @@
 
             <form id="form-login">
                 <div class="input-group">
-                    <label>Correo Electrónico</label>
-                    <input type="email" id="login-email" placeholder="ejemplo@correo.com" required>
+                    <label for="login-email">Correo Electrónico</label>
+                    <input type="email" id="login-email" placeholder="ejemplo@correo.com" autocomplete="email" required>
                 </div>
                 
                 <div class="input-group">
-                    <label>Contraseña</label>
-                    <input type="password" id="login-password" placeholder="••••••••" required>
+                    <label for="login-password">Contraseña</label>
+                    <div class="campo-clave">
+                        <input type="password" id="login-password" placeholder="••••••••" autocomplete="current-password" required>
+                        <button type="button" class="boton-ojito" data-ojito="login-password" aria-label="Mostrar contraseña" aria-pressed="false"><i class="fa-regular fa-eye"></i></button>
+                    </div>
                 </div>
                 
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; font-size: 13px;">
-                    <label style="cursor: pointer; display: flex; align-items: center; gap: 6px; font-weight: 500; color: var(--text-muted);">
-                        <input type="checkbox" style="accent-color: var(--primary-green); width: 16px; height: 16px;"> Recordarme
-                    </label>
-                    <a href="#" style="color: var(--primary-green); font-weight: 600; text-decoration: none;">¿Olvidaste tu contraseña?</a>
+                    <span></span>
+                    <a href="#" onclick="cargarVista('recuperar'); return false;" style="color: var(--primary-green); font-weight: 600; text-decoration: none;">¿Olvidaste tu contraseña?</a>
                 </div>
                 
                 <button type="submit" class="btn-primary" style="width: 100%; justify-content: center; font-size: 16px;">Iniciar Sesión</button>
@@ -34,3 +35,13 @@
         </div>
     </div>
 </div>
+<script>
+(function () {
+    const correo = window.__correoRecuperado;
+    if (correo) {
+        document.getElementById('login-email').value = correo;
+        window.__correoRecuperado = null;
+        document.getElementById('login-password').focus();
+    }
+})();
+</script>

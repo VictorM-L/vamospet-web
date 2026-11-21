@@ -46,6 +46,13 @@
     let pasoActual = 1;
     let telefonoContacto = usuario.telefono || '';
 
+    let pedidoPendiente = null;
+    let estadoReceta = { conReceta: [], recetas: [] };
+    const recetaElegida = () => {
+        const id = localStorage.getItem(CLAVE_RECETA_CARRITO);
+        return estadoReceta.recetas.find(r => String(r.id) === id) || null;
+    };
+
     function calcularTotales() {
         const total = carrito.reduce((sum, p) => sum + (p.precio * p.cantidad), 0);
         return { total };
@@ -90,9 +97,24 @@
                     </div>
                 </div>
 
-                <button type="submit" class="btn-primary" style="width: 100%; padding: 15px;">Continuar a Pago <i class="fa-solid fa-arrow-right"></i></button>
+                <div id="checkout-receta"></div>
+                <button type="submit" id="checkout-continuar" class="btn-primary" style="width: 100%; padding: 15px;">Continuar a Pago <i class="fa-solid fa-arrow-right"></i></button>
             </form>
         `;
+        estadoRecetaVenta(carrito, usuario.id).then(estado => {
+            estadoReceta = estado;
+            const cont = document.getElementById('checkout-receta');
+            if (!cont || !estado.conReceta.length) return;
+            const elegida = recetaElegida();
+            const boton = document.getElementById('checkout-continuar');
+            if (elegida) {
+                cont.innerHTML = `<div class="aviso-receta"><i class="fa-solid fa-file-prescription"></i><div><strong>Receta de ${esc(elegida.mascota)}</strong><p>Vence el ${esc(elegida.vence)}. Se marcará como usada al confirmar la compra.</p></div></div>`;
+            } else {
+                cont.innerHTML = `<div class="aviso-receta bloqueado"><i class="fa-solid fa-file-prescription"></i><div><strong>Falta la receta</strong><p>${esc(estado.conReceta.join(', '))} necesita una receta aprobada y vigente. Elígela en el carrito.</p></div></div>
+                    <button type="button" class="btn-outline" style="width: 100%; padding: 12px; margin-bottom: 10px;" onclick="cargarVista('carrito')">Volver al carrito</button>`;
+                boton.disabled = true;
+            }
+        });
 
         document.getElementById('form-confirmar').addEventListener('submit', (e) => {
             e.preventDefault();
@@ -139,6 +161,11 @@
                         <h3 style="font-size: 16px; font-weight: 700;"><i class="fa-solid fa-credit-card" style="color: var(--primary-green);"></i> Datos de la Tarjeta</h3>
 
                         <div class="input-group">
+                            <label>Método de pago</label>
+                            <select id="ck-metodo"><option value="Tarjeta">Tarjeta</option><option value="Yape">Yape (QR)</option></select>
+                        </div>
+                        <div id="ck-tarjeta">
+                        <div class="input-group">
                             <label>Nombre del titular</label>
                             <input type="text" id="pago-nombre" placeholder="Como aparece en la tarjeta" required autocomplete="cc-name">
                         </div>
@@ -158,6 +185,19 @@
                             <div class="input-group" style="flex: 1;">
                                 <label>CVV</label>
                                 <input type="text" id="pago-cvv" placeholder="123" maxlength="3" required inputmode="numeric">
+                            </div>
+                        </div>
+                        <div class="input-group">
+                            <label>Correo asociado a la tarjeta</label>
+                            <input type="email" id="pago-correo" placeholder="correo@ejemplo.com" maxlength="120" required value="${esc(usuario.correo || '')}">
+                        </div>
+                        </div>
+                        <div id="ck-yape" style="display:none; text-align:center;">
+                            <img src="img/yape-qr.png" alt="QR de Yape" style="width:190px; height:190px; object-fit:contain; border:1px solid #E5E7EB; border-radius:12px;">
+                            <p style="font-size:13px; color:var(--text-muted); margin:8px 0;">Escanea el QR, paga S/ ${total.toFixed(2)} y escribe el número de operación. Confirmaremos tu pago.</p>
+                            <div class="input-group" style="text-align:left;">
+                                <label>Número de operación</label>
+                                <input type="text" id="pago-operacion" maxlength="20" placeholder="Ej. 12345678">
                             </div>
                         </div>
 
@@ -195,6 +235,17 @@
         document.getElementById('pago-mes').addEventListener('input', actualizarVencimiento);
         document.getElementById('pago-anio').addEventListener('input', actualizarVencimiento);
 
+        const selMetodo = document.getElementById('ck-metodo');
+        const alternarMetodo = () => {
+            const tarjeta = selMetodo.value === 'Tarjeta';
+            document.getElementById('ck-tarjeta').style.display = tarjeta ? 'block' : 'none';
+            document.getElementById('ck-yape').style.display = tarjeta ? 'none' : 'block';
+            ['pago-nombre', 'pago-numero', 'pago-mes', 'pago-anio', 'pago-cvv', 'pago-correo'].forEach(id => { document.getElementById(id).required = tarjeta; });
+            document.getElementById('pago-operacion').required = !tarjeta;
+        };
+        selMetodo.addEventListener('change', alternarMetodo);
+        alternarMetodo();
+
         document.getElementById('form-pago').addEventListener('submit', procesarPago);
     }
 
@@ -206,58 +257,63 @@
 
     async function procesarPago(e) {
         e.preventDefault();
-        const { total } = calcularTotales();
+        const metodo = document.getElementById('ck-metodo').value;
+        const datosPago = { metodo };
+        if (metodo === 'Tarjeta') {
+            const numero = document.getElementById('pago-numero').value.replace(/\D/g, '');
+            if (!luhnValido(numero)) { alert('El número de tarjeta no es válido.'); return; }
+            if (!vencimientoValido(document.getElementById('pago-mes').value, document.getElementById('pago-anio').value)) { alert('La tarjeta está vencida o la fecha no es válida.'); return; }
+            if (!/^\d{3}$/.test(document.getElementById('pago-cvv').value)) { alert('El CVV debe tener 3 dígitos.'); return; }
+            datosPago.correo_tarjeta = document.getElementById('pago-correo').value.trim();
+            datosPago.tarjeta_ultimos4 = numero.slice(-4);
+        } else {
+            const op = document.getElementById('pago-operacion').value.trim();
+            if (!/^[A-Za-z0-9]{6,20}$/.test(op)) { alert('El número de operación debe tener entre 6 y 20 caracteres.'); return; }
+            datosPago.operacion_yape = op;
+        }
         const boton = e.target.querySelector('button[type="submit"]');
         const textoBoton = boton.innerHTML;
         boton.disabled = true;
         boton.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Procesando...';
 
         try {
-            const chk = await fetch(`${API_BASE}/pedido-detalle/validar-stock`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(carrito.map(i => ({ producto_id: i.producto_id, cantidad: i.cantidad })))
-            });
-            if (!chk.ok) {
-                const d = await chk.json().catch(() => ({}));
-                alert(d.error || 'No hay stock suficiente.');
+            let pedido = pedidoPendiente;
+            if (!pedido) {
+                const elegida = recetaElegida();
+                const resPedido = await fetch(`${API_BASE}/pedidos`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        items: carrito.map(i => ({ producto_id: i.producto_id, cantidad: i.cantidad })),
+                        receta_id: elegida ? elegida.id : null,
+                        metodo_entrega: 'Recojo en tienda'
+                    })
+                });
+                const datosPedido = await resPedido.json().catch(() => ({}));
+                if (!resPedido.ok) {
+                    alert(datosPedido.error || 'No se pudo registrar tu pedido.');
+                    boton.disabled = false;
+                    boton.innerHTML = textoBoton;
+                    return;
+                }
+                pedido = datosPedido.pedido;
+                pedidoPendiente = pedido;
+                localStorage.removeItem(CLAVE_RECETA_CARRITO);
+            }
+
+            let resultado;
+            try {
+                resultado = await enviarJson(`${API_BASE}/pagos/registrar`, 'POST', { usuario_id: usuario.id, referencia: 'pedido', referencia_id: pedido.id, ...datosPago });
+            } catch (errPago) {
+                alert(errPago.message);
                 boton.disabled = false;
                 boton.innerHTML = textoBoton;
                 return;
             }
 
-            const resPedido = await fetch(`${API_BASE}/pedidos`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ usuario_id: usuario.id, estado: 'Pendiente', metodo_entrega: 'Recojo en tienda', total: total, canal: 'Web' })
-            });
-            if (!resPedido.ok) throw new Error();
-            const pedido = await resPedido.json();
-
-            for (const item of carrito) {
-                await fetch(`${API_BASE}/pedido-detalle`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ pedido_id: pedido.id, producto_id: item.producto_id, cantidad: item.cantidad, precio_unitario: item.precio })
-                });
-            }
-
-            const resPago = await fetch(`${API_BASE}/pagos`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ usuario_id: usuario.id, pedido_id: pedido.id, monto: total, metodo: 'Tarjeta', id_registrado_por: usuario.id })
-            });
-            if (resPago.ok) {
-                const pago = await resPago.json();
-                await fetch(`${API_BASE}/comprobantes`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ pago_id: pago.id, tipo: 'Boleta', numero: `B001-${pedido.id}` })
-                });
-            }
-
             guardarCarrito([]);
-            alert('¡Pago realizado con éxito! Te avisaremos cuando tu pedido esté listo para recoger.');
+            localStorage.removeItem(CLAVE_RECETA_CARRITO);
+            alert(resultado.pago && resultado.pago.estado === 'Por_confirmar' ? 'Recibimos tu número de operación. Confirmaremos tu pago de Yape y te avisaremos.' : '¡Pago realizado con éxito! Te avisaremos cuando tu pedido esté listo para recoger.');
             cargarVista('VistaCliente/mis-pedidos');
         } catch (error) {
             console.error('Error en checkout:', error);

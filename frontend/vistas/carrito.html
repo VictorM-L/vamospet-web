@@ -37,7 +37,7 @@
 
             const itemsHtml = carrito.map((p, index) => `
                 <div class="cart-item">
-                    <img src="${p.imagen}" class="cart-img" alt="${esc(p.nombre)}">
+                    <img src="${esc(urlImagen(p.imagen))}" class="cart-img" alt="${esc(p.nombre)}" ${ATRIBUTO_SIN_FOTO}>
                     <div class="cart-details">
                         <div style="display: flex; justify-content: space-between; align-items: flex-start;">
                             <div>
@@ -78,20 +78,61 @@
                         <i class="fa-solid fa-store"></i> Recojo en Tienda — sin costo de envío
                     </div>
 
+                    <div id="carrito-receta"></div>
                     <div class="resumen-total">
                         <span>Total a Pagar</span>
                         <span style="color: var(--primary-green);">${formatearPrecio(total)}</span>
                     </div>
 
-                    <button class="btn-primary" style="width: 100%; margin-top: 25px; justify-content: center; font-size: 16px; padding: 15px;" onclick="procesarCheckout()">
+                    <button class="btn-primary" id="carrito-pagar" style="width: 100%; margin-top: 25px; justify-content: center; font-size: 16px; padding: 15px;" onclick="procesarCheckout()">
                         <i class="fa-solid fa-lock" style="margin-right: 8px;"></i> Proceder al Pago
                     </button>
+                    <p id="carrito-bloqueo" class="boton-bloqueado-nota" hidden></p>
 
                     <div style="text-align: center; margin-top: 15px; font-size: 12px; color: var(--text-muted);">
                         <i class="fa-solid fa-shield-halved"></i> Pago 100% seguro y cifrado.
                     </div>
                 </div>
             `;
+            pintarRecetaCarrito(carrito);
+        }
+
+        let estadoReceta = { conReceta: [], recetas: [] };
+
+        function actualizarBotonPago() {
+            const boton = document.getElementById('carrito-pagar');
+            const nota = document.getElementById('carrito-bloqueo');
+            if (!boton) return;
+            let motivo = '';
+            if (estadoReceta.conReceta.length && usuarioEnSesion()) {
+                if (!estadoReceta.recetas.length) motivo = 'No puedes pagar todavía: falta una receta aprobada.';
+                else if (!localStorage.getItem(CLAVE_RECETA_CARRITO)) motivo = 'Elige la receta para continuar.';
+            }
+            boton.disabled = !!motivo;
+            nota.textContent = motivo;
+            nota.hidden = !motivo;
+        }
+
+        async function pintarRecetaCarrito(carrito) {
+            const usuario = usuarioEnSesion();
+            estadoReceta = await estadoRecetaVenta(carrito, usuario && usuario.rol_id === 2 ? usuario.id : null);
+            const cont = document.getElementById('carrito-receta');
+            if (!cont) return;
+            const guardada = localStorage.getItem(CLAVE_RECETA_CARRITO);
+            if (guardada && !estadoReceta.recetas.some(r => String(r.id) === guardada)) localStorage.removeItem(CLAVE_RECETA_CARRITO);
+            if (estadoReceta.conReceta.length && !usuario) {
+                cont.innerHTML = `<div class="aviso-receta"><i class="fa-solid fa-file-prescription"></i><div><strong>Productos con receta</strong><p>${esc(estadoReceta.conReceta.join(', '))} necesita${estadoReceta.conReceta.length > 1 ? 'n' : ''} una receta aprobada. Inicia sesión para elegirla.</p></div></div>`;
+            } else {
+                cont.innerHTML = bloqueRecetaHtml(estadoReceta, 'carrito-receta-select', localStorage.getItem(CLAVE_RECETA_CARRITO),
+                    'Sube la foto de tu receta desde la ficha de tu mascota (Mi perfil) y espera la aprobación del veterinario.');
+                const sel = document.getElementById('carrito-receta-select');
+                if (sel) sel.addEventListener('change', () => {
+                    if (sel.value) localStorage.setItem(CLAVE_RECETA_CARRITO, sel.value);
+                    else localStorage.removeItem(CLAVE_RECETA_CARRITO);
+                    actualizarBotonPago();
+                });
+            }
+            actualizarBotonPago();
         }
 
         window.cambiarCantidad = function (index, delta) {
@@ -111,6 +152,7 @@
 
         window.vaciarCarrito = function () {
             guardarCarrito([]);
+            localStorage.removeItem(CLAVE_RECETA_CARRITO);
             renderCarrito();
         };
 

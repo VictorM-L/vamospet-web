@@ -12,6 +12,7 @@
         <button class="sidebar-item" onclick="cargarVista('VistaAdmin/citas')"><i class="fa-solid fa-calendar-check"></i> Ver Citas</button>
         <button class="sidebar-item" onclick="cargarVista('VistaAdmin/examenes')"><i class="fa-solid fa-flask-vial"></i> Exámenes y Cirugías</button>
         <button class="sidebar-item" onclick="cargarVista('VistaAdmin/emergencias')"><i class="fa-solid fa-truck-medical"></i> Emergencias</button>
+        <button class="sidebar-item" onclick="cargarVista('VistaAdmin/reservas')"><i class="fa-solid fa-hotel"></i> Reservas y viajes</button>
         <button class="sidebar-item" onclick="cargarVista('VistaAdmin/comprobantes')"><i class="fa-solid fa-receipt"></i> Comprobantes</button>
         <button class="sidebar-item" onclick="cargarVista('VistaAdmin/finanzas')"><i class="fa-solid fa-file-invoice-dollar"></i> Finanzas</button>
     </aside>
@@ -42,17 +43,40 @@
                 <strong style="font-size: 16px;">Total</strong>
                 <strong style="font-size: 20px; color: var(--primary-green);" id="mostrador-total">S/ 0.00</strong>
             </div>
+            <div id="mostrador-receta"></div>
 
             <div style="display: flex; gap: 15px; margin-top: 15px; align-items: center; flex-wrap: wrap;">
-                <select id="mostrador-metodo-pago" style="flex: 1; min-width: 160px; padding: 10px; border: 1px solid #E4E7EC; border-radius: 8px; font-family: 'Poppins'; font-size: 13px;">
-                    <option value="Efectivo">Efectivo</option>
-                    <option value="Tarjeta">Tarjeta</option>
-                    <option value="Yape">Yape / Plin</option>
-                </select>
-                <button class="btn-primary" style="flex: 2; padding: 12px;" onclick="cobrarVentaMostrador()"><i class="fa-solid fa-cash-register"></i> Cobrar Venta</button>
+                <span style="flex: 1; min-width: 160px; font-size: 12px; color: var(--text-muted);">El método de pago (efectivo, tarjeta o Yape) se elige al cobrar.</span>
+                <button class="btn-primary" id="mostrador-cobrar" style="flex: 2; padding: 12px;" onclick="cobrarVentaMostrador()"><i class="fa-solid fa-cash-register"></i> Cobrar Venta</button>
             </div>
+            <p id="mostrador-bloqueo" class="boton-bloqueado-nota" hidden></p>
+        </div>
+
+        <div class="admin-table-container" id="bloque-sin-cobrar">
+            <div style="display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 10px;">
+                <h3 style="font-size: 16px; font-weight: 700;"><i class="fa-solid fa-hourglass-half" style="color: var(--primary-green);"></i> Ventas de mostrador sin cobrar</h3>
+                <button class="btn-outline" style="padding: 6px 14px; font-size: 12px;" onclick="cargarVentasSinCobrar()"><i class="fa-solid fa-rotate"></i> Actualizar</button>
+            </div>
+            <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 10px;">Al anular una venta, el stock vuelve al inventario y la receta (si usaba una) queda libre.</p>
+            <div id="mostrador-sin-cobrar"></div>
         </div>
     </main>
+</div>
+
+<div class="modal-overlay" id="modal-receta-papel" style="display: none;">
+    <div class="modal-box">
+        <h3><i class="fa-solid fa-file-prescription" style="color: var(--primary-green);"></i> Registrar receta en papel</h3>
+        <form id="form-receta-papel">
+            <div class="input-group"><label for="rp-mascota">Mascota del cliente</label><select id="rp-mascota" required></select></div>
+            <div class="input-group"><label for="rp-archivo">Foto de la receta (JPG, PNG o PDF)</label><input type="file" id="rp-archivo" accept="image/jpeg,image/png,image/webp,application/pdf" required></div>
+            <div class="input-group"><label for="rp-detalle">Medicamento e indicaciones (opcional)</label><textarea id="rp-detalle" rows="2" maxlength="500"></textarea></div>
+            <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 15px;"><i class="fa-solid fa-circle-info"></i> Queda pendiente hasta que un veterinario la apruebe. Luego aparecerá para elegirla en esta venta.</p>
+            <div style="display: flex; gap: 10px;">
+                <button type="button" class="btn-outline" style="flex: 1; padding: 12px;" onclick="document.getElementById('modal-receta-papel').style.display='none'">Cancelar</button>
+                <button type="submit" class="btn-primary" style="flex: 1; padding: 12px;">Registrar</button>
+            </div>
+        </form>
+    </div>
 </div>
 
 <div class="modal-overlay" id="modal-cliente-rapido" style="display: none;">
@@ -77,6 +101,8 @@
     let __clienteMostrador = null;
     let __productosDisponibles = [];
     let __carritoMostrador = [];
+    let __estadoReceta = { conReceta: [], recetas: [] };
+    let __recetaElegida = '';
 
     window.buscarClientePorDni = async function () {
         const dni = document.getElementById('mostrador-dni').value.trim();
@@ -111,6 +137,9 @@
             </div>
         `;
         document.getElementById('bloque-productos').style.display = 'block';
+        __carritoMostrador = [];
+        __recetaElegida = '';
+        renderCarritoMostrador();
         cargarProductosDisponibles();
     }
 
@@ -186,7 +215,7 @@
             if (existente.cantidad >= p.stock) { alert('No hay más stock disponible de este producto.'); return; }
             existente.cantidad++;
         } else {
-            __carritoMostrador.push({ producto_id: p.id, nombre: p.nombre, precio: Number(p.precio), cantidad: 1, stock: p.stock });
+            __carritoMostrador.push({ producto_id: p.id, nombre: p.nombre, precio: Number(p.precio), cantidad: 1, stock: p.stock, requiere_receta: !!p.requiere_receta });
         }
         renderCarritoMostrador();
     };
@@ -210,7 +239,7 @@
         lista.innerHTML = __carritoMostrador.map((item, i) => `
             <div style="display:flex; justify-content:space-between; align-items:center; padding: 8px 0; border-bottom: 1px solid #F3F4F6;">
                 <div>
-                    <strong style="font-size: 13px;">${esc(item.nombre)}</strong>
+                    <strong style="font-size: 13px;">${esc(item.nombre)}</strong>${item.requiere_receta ? ' <span class="status-badge status-pendiente"><i class="fa-solid fa-file-prescription"></i> Receta</span>' : ''}
                     <p style="font-size: 11px; color: var(--text-muted);">S/ ${item.precio.toFixed(2)} c/u</p>
                 </div>
                 <div style="display:flex; align-items:center; gap: 10px;">
@@ -224,69 +253,168 @@
 
         const total = __carritoMostrador.reduce((sum, i) => sum + (i.precio * i.cantidad), 0);
         document.getElementById('mostrador-total').innerText = `S/ ${total.toFixed(2)}`;
+        pintarRecetaMostrador();
     }
+
+    function actualizarCobro() {
+        let motivo = '';
+        if (__estadoReceta.conReceta.length) {
+            if (!__estadoReceta.recetas.length) motivo = 'No se puede cobrar: el cliente no tiene una receta aprobada y vigente.';
+            else if (!__recetaElegida) motivo = 'Elige la receta que autoriza esta venta.';
+        }
+        document.getElementById('mostrador-cobrar').disabled = !!motivo;
+        const nota = document.getElementById('mostrador-bloqueo');
+        nota.textContent = motivo;
+        nota.hidden = !motivo;
+    }
+
+    async function pintarRecetaMostrador() {
+        const cont = document.getElementById('mostrador-receta');
+        if (!__clienteMostrador || !__carritoMostrador.some(i => i.requiere_receta)) {
+            __estadoReceta = { conReceta: [], recetas: [] };
+            cont.innerHTML = '';
+            actualizarCobro();
+            return;
+        }
+        __estadoReceta = await estadoRecetaVenta(__carritoMostrador, __clienteMostrador.id);
+        if (!__estadoReceta.recetas.some(r => String(r.id) === String(__recetaElegida))) __recetaElegida = '';
+        cont.innerHTML = bloqueRecetaHtml(__estadoReceta, 'mostrador-receta-select', __recetaElegida,
+            'Si trae la receta en papel, regístrala y pide a un veterinario que la apruebe.')
+            + '<button type="button" class="btn-outline" style="padding: 8px 14px; font-size: 12px;" onclick="abrirRecetaPapel()"><i class="fa-solid fa-camera"></i> Registrar receta en papel</button>';
+        const sel = document.getElementById('mostrador-receta-select');
+        if (sel) sel.addEventListener('change', () => { __recetaElegida = sel.value; actualizarCobro(); });
+        actualizarCobro();
+    }
+
+    window.abrirRecetaPapel = async function () {
+        const sel = document.getElementById('rp-mascota');
+        document.getElementById('form-receta-papel').reset();
+        try {
+            const res = await fetch(`${API_BASE}/mascotas/usuario/${__clienteMostrador.id}`);
+            const mascotas = res.ok ? await res.json() : [];
+            if (!mascotas.length) { alert('Este cliente no tiene mascotas registradas. Regístrala primero en Clientes y Mascotas.'); return; }
+            sel.innerHTML = mascotas.map(m => `<option value="${m.id}">${esc(m.nombre)} (${esc(m.especie || '')})</option>`).join('');
+            document.getElementById('modal-receta-papel').style.display = 'flex';
+        } catch (e) { alert('No pudimos cargar las mascotas del cliente.'); }
+    };
+
+    document.getElementById('form-receta-papel').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const archivo = document.getElementById('rp-archivo');
+        if (!archivo.files.length) { alert('Adjunta la foto de la receta.'); return; }
+        if (archivo.files[0].size > 5 * 1024 * 1024) { alert('El archivo pesa más de 5 MB.'); return; }
+        const url = await subirImagen(archivo);
+        if (!url) return;
+        try {
+            await enviarJson(`${API_BASE}/recetas`, 'POST', {
+                mascota_id: Number(document.getElementById('rp-mascota').value),
+                archivo_url: url,
+                contenido: document.getElementById('rp-detalle').value.trim() || null
+            });
+            document.getElementById('modal-receta-papel').style.display = 'none';
+            alert('Receta registrada. Queda pendiente hasta que un veterinario la apruebe; luego podrás elegirla aquí.');
+            pintarRecetaMostrador();
+        } catch (err) { alert(err.message); }
+    });
+
+    function limpiarVentaMostrador() {
+        __clienteMostrador = null;
+        __carritoMostrador = [];
+        __recetaElegida = '';
+        document.getElementById('mostrador-dni').value = '';
+        document.getElementById('mostrador-cliente-info').innerHTML = '';
+        document.getElementById('bloque-productos').style.display = 'none';
+        document.getElementById('bloque-carrito').style.display = 'none';
+    }
+
+    window.cargarVentasSinCobrar = async function () {
+        const cont = document.getElementById('mostrador-sin-cobrar');
+        if (!cont) return;
+        try {
+            const [resPedidos, resUsuarios] = await Promise.all([fetch(`${API_BASE}/pedidos`), fetchUsuarios()]);
+            if (!resPedidos.ok) throw new Error();
+            const pedidos = await resPedidos.json();
+            const usuarios = resUsuarios.ok ? await resUsuarios.json() : [];
+            const pendientes = pedidos
+                .filter(p => p.canal === 'Mostrador' && p.estado === 'Pendiente')
+                .sort((a, b) => String(b.fecha || '').localeCompare(String(a.fecha || '')));
+            if (pendientes.length === 0) {
+                cont.innerHTML = `<p style="color: var(--text-muted); font-size: 13px;">No hay ventas de mostrador pendientes de cobro.</p>`;
+                return;
+            }
+            cont.innerHTML = pendientes.map(p => {
+                const cliente = usuarios.find(u => u.id === p.usuario_id);
+                const fecha = p.fecha ? new Date(p.fecha).toLocaleString('es-PE') : '';
+                return `
+                    <div class="venta-sin-cobrar" data-pedido="${p.id}" style="display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 10px 0; border-bottom: 1px solid #F3F4F6;">
+                        <div>
+                            <strong style="font-size: 13px;">Venta #${p.id}</strong>
+                            <span style="font-size: 12px; color: var(--text-muted);"> — ${esc(cliente ? cliente.nombre : 'N/D')} — S/ ${Number(p.total || 0).toFixed(2)}${fecha ? ' — ' + esc(fecha) : ''}</span>
+                        </div>
+                        <button class="btn-outline" style="padding: 6px 14px; font-size: 12px;" onclick="anularVentaSinCobrar(${p.id})"><i class="fa-solid fa-ban"></i> Anular</button>
+                    </div>
+                `;
+            }).join('');
+        } catch (error) {
+            cont.innerHTML = `<p style="color: var(--text-muted); font-size: 13px;"><i class="fa-solid fa-plug-circle-xmark"></i> No pudimos cargar las ventas sin cobrar.</p>`;
+        }
+    };
+
+    window.anularVentaSinCobrar = async function (pedidoId) {
+        if (!confirm(`¿Anular la venta #${pedidoId}? El stock volverá al inventario.`)) return;
+        try {
+            await enviarJson(`${API_BASE}/pedidos/${pedidoId}/anular`, 'PATCH', {});
+            alert(`Venta #${pedidoId} anulada.`);
+        } catch (err) {
+            alert(err.message);
+        }
+        cargarVentasSinCobrar();
+    };
 
     window.cobrarVentaMostrador = async function () {
         if (!__clienteMostrador) { alert('Selecciona un cliente primero.'); return; }
         if (__carritoMostrador.length === 0) return;
-
-        const total = __carritoMostrador.reduce((sum, i) => sum + (i.precio * i.cantidad), 0);
-        const metodo = document.getElementById('mostrador-metodo-pago').value;
-
+        const boton = document.getElementById('mostrador-cobrar');
+        boton.disabled = true;
+        let venta;
         try {
-            const chk = await fetch(`${API_BASE}/pedido-detalle/validar-stock`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(__carritoMostrador.map(i => ({ producto_id: i.producto_id, cantidad: i.cantidad })))
+            venta = await enviarJson(`${API_BASE}/pedidos`, 'POST', {
+                cliente_id: __clienteMostrador.id,
+                items: __carritoMostrador.map(i => ({ producto_id: i.producto_id, cantidad: i.cantidad })),
+                receta_id: __recetaElegida ? Number(__recetaElegida) : null,
+                metodo_entrega: 'Recojo en tienda'
             });
-            if (!chk.ok) {
-                const d = await chk.json().catch(() => ({}));
-                alert(d.error || 'No hay stock suficiente.');
-                return;
-            }
-
-            const resPedido = await fetch(`${API_BASE}/pedidos`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ usuario_id: __clienteMostrador.id, estado: 'Entregado', metodo_entrega: 'Recojo en tienda', total: total, canal: 'Mostrador' })
-            });
-            if (!resPedido.ok) throw new Error();
-            const pedido = await resPedido.json();
-
-            for (const item of __carritoMostrador) {
-                await fetch(`${API_BASE}/pedido-detalle`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ pedido_id: pedido.id, producto_id: item.producto_id, cantidad: item.cantidad, precio_unitario: item.precio })
-                });
-            }
-
-            const resPago = await fetch(`${API_BASE}/pagos`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ usuario_id: __clienteMostrador.id, pedido_id: pedido.id, monto: total, metodo: metodo, id_registrado_por: (JSON.parse(localStorage.getItem('usuarioLogueado') || '{}')).id || null })
-            });
-            if (resPago.ok) {
-                const pago = await resPago.json();
-                await fetch(`${API_BASE}/comprobantes`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ pago_id: pago.id, tipo: 'Boleta', numero: `B001-${pedido.id}` })
-                });
-            }
-
-            alert(`Venta registrada con éxito. Total cobrado: S/ ${total.toFixed(2)}`);
-
-            __clienteMostrador = null;
-            __carritoMostrador = [];
-            document.getElementById('mostrador-dni').value = '';
-            document.getElementById('mostrador-cliente-info').innerHTML = '';
-            document.getElementById('bloque-productos').style.display = 'none';
-            document.getElementById('bloque-carrito').style.display = 'none';
-        } catch (error) {
-            console.error('Error en venta de mostrador:', error);
-            alert('No se pudo registrar la venta. Verifica que el servidor esté corriendo.');
+        } catch (err) {
+            alert(err.message);
+            boton.disabled = false;
+            return;
         }
+        const pedido = venta.pedido;
+        const cliente = __clienteMostrador.nombre;
+        limpiarVentaMostrador();
+        abrirModalPago({
+            titulo: 'Cobrar venta #' + pedido.id,
+            monto: Number(pedido.total),
+            detalle: 'Venta en mostrador a ' + cliente,
+            enviar: (datos) => enviarJson(`${API_BASE}/pagos/registrar`, 'POST', { referencia: 'pedido', referencia_id: pedido.id, ...datos }),
+            alExito: (r) => {
+                if (r.comprobante) abrirArchivoApi(`${API_BASE}/comprobantes/${r.comprobante.id}/pdf?usuarioId=${usuarioActualId()}`);
+                alert(`Venta #${pedido.id} cobrada: S/ ${Number(pedido.total).toFixed(2)}.`);
+                cargarVentasSinCobrar();
+            },
+            alCancelar: async () => {
+                try {
+                    await enviarJson(`${API_BASE}/pedidos/${pedido.id}/anular`, 'PATCH', {});
+                    alert(`No se cobró la venta #${pedido.id}: quedó anulada, el stock volvió al inventario y la receta (si usaba una) quedó libre.`);
+                } catch (err) {
+                    alert(`No se pudo anular la venta #${pedido.id}: ${err.message} Puedes anularla en "Ventas de mostrador sin cobrar".`);
+                }
+                cargarVentasSinCobrar();
+            }
+        });
+        cargarVentasSinCobrar();
     };
+
+    cargarVentasSinCobrar();
 })();
 </script>

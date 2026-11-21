@@ -1,5 +1,6 @@
 package com.vamospet.backend.controlador;
 
+import com.vamospet.backend.permisos.UsuarioActual;
 import com.vamospet.backend.modelo.LoteProducto;
 import com.vamospet.backend.modelo.Producto;
 import com.vamospet.backend.repositorio.LoteProductoRepository;
@@ -25,7 +26,8 @@ public class LoteController {
     @Autowired private AutorizacionService autorizacion;
 
     @GetMapping("/producto/{productoId}")
-    public List<Map<String, Object>> delProducto(@PathVariable Integer productoId, @RequestParam Integer usuarioId) {
+    public List<Map<String, Object>> delProducto(@PathVariable Integer productoId) {
+        Integer usuarioId = UsuarioActual.id();
         exigirAdmin(usuarioId);
         Producto p = productoRepositorio.findById(productoId).orElse(null);
         List<Map<String, Object>> salida = new ArrayList<>();
@@ -36,7 +38,8 @@ public class LoteController {
     }
 
     @GetMapping("/por-vencer")
-    public List<Map<String, Object>> porVencer(@RequestParam Integer usuarioId, @RequestParam(defaultValue = "30") int dias) {
+    public List<Map<String, Object>> porVencer(@RequestParam(defaultValue = "30") int dias) {
+        Integer usuarioId = UsuarioActual.id();
         exigirAdmin(usuarioId);
         if (dias < 1 || dias > 365) throw new NegocioException(400, "Los días deben estar entre 1 y 365.");
         Map<Integer, Producto> productos = new HashMap<>();
@@ -47,8 +50,8 @@ public class LoteController {
     }
 
     private void exigirAdmin(Integer usuarioId) {
-        if (autorizacion.conRol(usuarioId, AutorizacionService.ADMIN) == null) {
-            throw new NegocioException(403, "Solo el administrador puede ver los lotes de inventario.");
+        if (autorizacion.conRol(usuarioId, AutorizacionService.ADMIN, AutorizacionService.AUXILIAR) == null) {
+            throw new NegocioException(403, "Solo el administrador o el auxiliar pueden ver los lotes de inventario.");
         }
     }
 

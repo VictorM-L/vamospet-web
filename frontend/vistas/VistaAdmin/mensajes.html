@@ -1,0 +1,116 @@
+<div class="fade-in admin-layout">
+    <aside class="admin-sidebar">
+        <div style="color: white; font-size: 18px; font-weight: 800; padding: 10px 18px 20px 18px; border-bottom: 1px solid #374151; margin-bottom: 10px;">
+            <i class="fa-solid fa-shield-halved" style="color: var(--primary-green);"></i> Admin Panel
+        </div>
+        <button class="sidebar-item" onclick="cargarVista('VistaAdmin/dashboard-admin')"><i class="fa-solid fa-chart-pie"></i> Dashboard</button>
+        <button class="sidebar-item active" onclick="cargarVista('VistaAdmin/mensajes')"><i class="fa-solid fa-envelope-open-text"></i> Mensajes de contacto</button>
+        <button class="sidebar-item" onclick="cargarVista('VistaAdmin/configuracion')"><i class="fa-solid fa-gear"></i> Configuración</button>
+    </aside>
+
+    <main class="admin-content">
+        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:15px;">
+            <h2 style="font-size:24px; font-weight:800; color:var(--dark-text);">Mensajes de contacto</h2>
+            <div style="display:flex; gap:10px; align-items:center;">
+                <label for="msj-filtro" style="font-size:13px; font-weight:600;">Estado:</label>
+                <select id="msj-filtro" style="padding:10px 14px; border-radius:8px; border:1px solid #E4E7EC; font-family:'Poppins';">
+                    <option value="Nuevo">Nuevos</option>
+                    <option value="Respondido">Respondidos</option>
+                    <option value="Archivado">Archivados</option>
+                    <option value="">Todos</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="bandeja-contacto">
+            <div class="bandeja-lista" id="msj-lista"><p><i class="fa-solid fa-spinner fa-spin"></i> Cargando...</p></div>
+            <div class="bandeja-detalle" id="msj-detalle"><p style="color:var(--text-muted);">Elige un mensaje para verlo.</p></div>
+        </div>
+    </main>
+</div>
+
+<script>
+(function () {
+    const $ = (id) => document.getElementById(id);
+    const esAux = rolActual() === 4;
+    let mensajes = [], elegido = null;
+    const fmt = (f) => f ? new Date(f).toLocaleString('es-PE', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—';
+    const clase = { 'Nuevo': 'status-pendiente', 'Respondido': 'status-completado', 'Archivado': 'status-cancelada' };
+
+    function pintarLista() {
+        if (!mensajes.length) {
+            $('msj-lista').innerHTML = '<p style="color:var(--text-muted);">No hay mensajes con ese estado.</p>';
+            return;
+        }
+        $('msj-lista').innerHTML = mensajes.map(m => `
+            <button type="button" class="bandeja-item ${elegido && elegido.id === m.id ? 'activo' : ''}" onclick="verMensajeContacto(${m.id})">
+                <strong>${esc(m.nombre)}</strong>
+                <span>${esc(m.asunto)} <span class="status-badge ${clase[m.estado] || ''}">${esc(m.estado)}</span></span>
+                <small>${fmt(m.creado_en)}</small>
+            </button>`).join('');
+    }
+
+    function pintarDetalle() {
+        const m = elegido;
+        if (!m) { $('msj-detalle').innerHTML = '<p style="color:var(--text-muted);">Elige un mensaje para verlo.</p>'; return; }
+        const puedeResponder = esAux && m.estado === 'Nuevo';
+        $('msj-detalle').innerHTML = `
+            <h3 style="font-size:17px; font-weight:700;">${esc(m.asunto)}</h3>
+            <p style="font-size:13px; color:var(--text-muted);">${esc(m.nombre)} · ${esc(m.correo)}${m.telefono ? ' · ' + esc(m.telefono) : ''} · ${fmt(m.creado_en)}</p>
+            <div class="bandeja-texto">${esc(m.mensaje)}</div>
+            ${m.respuesta ? `<h4 style="font-size:14px; font-weight:700;">Respuesta enviada ${fmt(m.respondido_en)}</h4><div class="bandeja-texto">${esc(m.respuesta)}</div>` : ''}
+            ${puedeResponder ? `
+                <div class="input-group"><label for="msj-respuesta">Tu respuesta (se envía a ${esc(m.correo)} con el mensaje original citado)</label>
+                <textarea id="msj-respuesta" rows="5" maxlength="2000"></textarea></div>
+                <p id="msj-error" style="color:#DC2626; font-size:13px;" hidden></p>` : ''}
+            ${esAux ? `<div style="display:flex; gap:10px; flex-wrap:wrap; margin-top:10px;">
+                ${puedeResponder ? '<button class="btn-primary" id="msj-enviar" style="padding:10px 18px;" onclick="responderMensajeContacto()"><i class="fa-solid fa-paper-plane"></i> Enviar respuesta</button>' : ''}
+                ${m.estado !== 'Archivado' ? '<button class="btn-outline" style="padding:10px 18px;" onclick="archivarMensajeContacto()"><i class="fa-solid fa-box-archive"></i> Archivar</button>' : ''}
+            </div>` : ''}`;
+    }
+
+    async function cargar() {
+        try {
+            const estado = $('msj-filtro').value;
+            mensajes = await enviarJson(`${API_BASE}/contacto${estado ? '?estado=' + encodeURIComponent(estado) : ''}`, 'GET');
+            if (elegido) elegido = mensajes.find(m => m.id === elegido.id) || null;
+            pintarLista();
+            pintarDetalle();
+        } catch (e) { $('msj-lista').innerHTML = `<p>${esc(e.message)}</p>`; }
+    }
+
+    window.verMensajeContacto = (id) => {
+        elegido = mensajes.find(m => m.id === id) || null;
+        pintarLista();
+        pintarDetalle();
+    };
+
+    window.responderMensajeContacto = async () => {
+        const texto = $('msj-respuesta').value.trim();
+        const error = $('msj-error');
+        error.hidden = true;
+        if (texto.length < 5) { error.textContent = 'Escribe la respuesta (al menos 5 caracteres).'; error.hidden = false; return; }
+        $('msj-enviar').disabled = true;
+        try {
+            elegido = await enviarJson(`${API_BASE}/contacto/${elegido.id}/responder`, 'PATCH', { respuesta: texto });
+            alert('Respuesta enviada por correo.');
+            cargar();
+        } catch (e) {
+            error.textContent = e.message;
+            error.hidden = false;
+            $('msj-enviar').disabled = false;
+        }
+    };
+
+    window.archivarMensajeContacto = async () => {
+        try {
+            await enviarJson(`${API_BASE}/contacto/${elegido.id}/archivar`, 'PATCH', {});
+            elegido = null;
+            cargar();
+        } catch (e) { alert(e.message); }
+    };
+
+    $('msj-filtro').addEventListener('change', () => { elegido = null; cargar(); });
+    cargar();
+})();
+</script>

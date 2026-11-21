@@ -3,6 +3,8 @@
     <p style="color: #9CA3AF; font-size: 16px;">Correas, juguetes, camas y todo lo que necesita para estar cómodo y feliz.</p>
 </div>
 
+<section class="banners-tienda" id="banners-accesorios" hidden aria-label="Promociones de Accesorios"></section>
+
 <div class="fade-in tienda-layout">
 
     <aside class="tienda-sidebar">
@@ -19,12 +21,10 @@
         </div>
     </aside>
 
-    <div class="tienda-carousel-wrapper">
-        <button class="carousel-arrow prev" onclick="desplazarCarrusel('grid-accesorios', -1)" aria-label="Anterior"><i class="fa-solid fa-chevron-left"></i></button>
-        <div class="tienda-carousel-track" id="grid-accesorios">
+    <div class="tienda-contenido">
+        <div class="tienda-grid" id="grid-accesorios">
             <p style="color: var(--text-muted);"><i class="fa-solid fa-spinner fa-spin"></i> Cargando productos...</p>
         </div>
-        <button class="carousel-arrow next" onclick="desplazarCarrusel('grid-accesorios', 1)" aria-label="Siguiente"><i class="fa-solid fa-chevron-right"></i></button>
     </div>
 </div>
 
@@ -41,14 +41,6 @@
         function nombreCategoria(categoriaId) {
             const c = categoriasAccesorios.find(x => x.id === categoriaId);
             return c ? c.nombre : 'Accesorios';
-        }
-
-        function imagenPorDefecto(categoriaId) {
-            const nombre = nombreCategoria(categoriaId).toLowerCase();
-            if (nombre.includes('cama')) return 'https://images.unsplash.com/photo-1596704122119-21b06f8c7eeb?q=80&w=300&auto=format&fit=crop';
-            if (nombre.includes('correa') || nombre.includes('collar')) return 'https://images.unsplash.com/photo-1601322238423-f227546059e6?q=80&w=300&auto=format&fit=crop';
-            if (nombre.includes('juguete')) return 'https://images.unsplash.com/photo-1576201836106-db1758fd1c97?q=80&w=300&auto=format&fit=crop';
-            return 'https://images.unsplash.com/photo-1576201836106-db1758fd1c97?q=80&w=300&auto=format&fit=crop';
         }
 
         function renderProductos() {
@@ -69,10 +61,10 @@
             grid.innerHTML = filtrados.map(p => `
                 <div class="shop-card">
                     <div class="shop-card-media" onclick="verProductoDetalle(${p.id})" style="cursor: pointer;">
-                        <img src="${p.imagen || imagenPorDefecto(p.categoria_id)}" alt="${esc(p.nombre)}">
+                        <img src="${esc(urlImagen(p.imagen))}" alt="${esc(p.nombre)}" loading="lazy" ${ATRIBUTO_SIN_FOTO}>
                     </div>
                     <div class="shop-card-body">
-                        <div class="shop-card-cat">${nombreCategoria(p.categoria_id)}</div>
+                        <div class="shop-card-cat">${esc(nombreCategoria(p.categoria_id))}</div>
                         <div class="shop-card-name" onclick="verProductoDetalle(${p.id})" style="cursor: pointer;">${esc(p.nombre)}</div>
                         <div class="shop-card-price">${formatearPrecio(p.precio)}</div>
                         <button class="shop-card-btn" onclick='agregarProductoAccesorio(${p.id})' ${(p.stock || 0) <= 0 ? 'disabled' : ''}>
@@ -91,7 +83,7 @@
                 nombre: p.nombre,
                 categoria: nombreCategoria(p.categoria_id),
                 precio: Number(p.precio),
-                imagen: p.imagen || imagenPorDefecto(p.categoria_id)
+                imagen: urlImagen(p.imagen)
             });
             alert(`"${p.nombre}" fue agregado al carrito.`);
         };
@@ -137,5 +129,6 @@
 
         document.getElementById('buscador-accesorios').addEventListener('input', renderProductos);
         cargarProductosAccesorios();
+        montarBanners('banners-accesorios', 'Accesorios');
     })();
 </script>

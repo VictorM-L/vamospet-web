@@ -182,7 +182,7 @@ public class ExamenService {
                     + "(máximo " + DIAS_VIGENCIA + " días antes de la cirugía). Solicita y aprueba un examen primero.";
 
     @Transactional
-    public CirugiaProgramada agendarCirugia(Integer usuarioId, Integer ordenId, LocalDateTime fechaHora, String tipoCirugia) {
+    public CirugiaProgramada agendarCirugia(Integer usuarioId, Integer ordenId, LocalDateTime fechaHora, String tipoCirugia, Integer servicioId) {
         Usuario quien = autorizacion.conRol(usuarioId, AutorizacionService.ADMIN, AutorizacionService.VETERINARIO);
         if (quien == null) throw new NegocioException(403, "Solo un veterinario o el administrador pueden programar cirugías.");
         OrdenExamen orden = ordenId == null ? null : ordenRepositorio.findById(ordenId).orElse(null);
@@ -200,20 +200,25 @@ public class ExamenService {
                 .anyMatch(c -> ordenId.equals(c.getOrden_id()) && !"Cancelada".equals(c.getEstado()));
         if (yaUsada) throw new NegocioException(409, "Esta aprobación ya se usó para una cirugía programada.");
 
+        Servicio servicio = servicioId == null ? null : servicioRepositorio.findById(servicioId).orElse(null);
+        if (servicio == null || !esServicioQuirurgico(servicio)) throw new NegocioException(400, "Elige el servicio quirúrgico que se realizará.");
+        if (Boolean.FALSE.equals(servicio.getActivo())) throw new NegocioException(409, "Ese servicio quirúrgico no está activo.");
         Integer vetId = orden.getVeterinario_id();
-        if (!agendaService.tieneHorario(vetId) || !agendaService.franjaLibre(vetId, fechaHora)) {
-            throw new NegocioException(409, "Esa franja no está disponible para el veterinario. Elige otra.");
+        int duracion = AgendaService.duracionDe(servicio);
+        if (!agendaService.tieneHorario(vetId) || !agendaService.franjaLibre(vetId, fechaHora, duracion, null)) {
+            throw new NegocioException(409, "El veterinario no tiene libres " + duracion + " minutos desde esa hora. Elige otra.");
         }
         String tipo = recortar(limpiar(tipoCirugia), 150);
         if (tipo == null) tipo = orden.getCirugia_prevista();
-        if (tipo == null) throw new NegocioException(400, "Indica el tipo de cirugía.");
+        if (tipo == null) tipo = servicio.getNombre();
 
         Cita cita = new Cita();
         cita.setMascota_id(orden.getMascota_id());
         cita.setVeterinario_id(vetId);
+        cita.setServicio_id(servicio.getId());
         cita.setFecha_hora(fechaHora);
         cita.setEstado("Confirmada");
-        cita.setCosto(BigDecimal.ZERO);
+        cita.setCosto(servicio.getPrecio_base() == null ? BigDecimal.ZERO : servicio.getPrecio_base());
         try {
             cita = citaRepositorio.saveAndFlush(cita);
         } catch (DataIntegrityViolationException e) {
@@ -225,8 +230,10 @@ public class ExamenService {
         c.setCita_id(cita.getId());
         c.setMascota_id(orden.getMascota_id());
         c.setVeterinario_id(vetId);
+        c.setServicio_id(servicio.getId());
         c.setTipo_cirugia(tipo);
         c.setFecha_hora(fechaHora);
+        c.setEstado("Programada");
         c.setCreado_por(quien.getId());
         c = cirugiaRepositorio.save(c);
 
@@ -249,8 +256,10 @@ public class ExamenService {
         c.setCita_id(cita.getId());
         c.setMascota_id(cita.getMascota_id());
         c.setVeterinario_id(cita.getVeterinario_id() != null ? cita.getVeterinario_id() : orden.get().getVeterinario_id());
+        c.setServicio_id(servicio.getId());
         c.setTipo_cirugia(servicio.getNombre());
         c.setFecha_hora(cita.getFecha_hora());
+        c.setEstado("Confirmada".equals(cita.getEstado()) ? "Programada" : "Por_confirmar");
         c.setCreado_por(orden.get().getVeterinario_id());
         cirugiaRepositorio.save(c);
     }
@@ -296,48 +305,44 @@ public class ExamenService {
         if (quien.getRol_id() == AutorizacionService.VETERINARIO && !quien.getId().equals(c.getVeterinario_id())) {
             throw new NegocioException(403, "Esta cirugía está asignada a otro veterinario.");
         }
-        if (!"Realizada".equals(estado) && !"Cancelada".equals(estado)) {
-            throw new NegocioException(400, "El estado debe ser Realizada o Cancelada.");
-        }
-        if (!"Programada".equals(c.getEstado())) {
-            throw new NegocioException(409, "Solo se puede cambiar una cirugía Programada (estado actual: " + c.getEstado() + ").");
-        }
-        if ("Realizada".equals(estado) && c.getFecha_hora() != null && c.getFecha_hora().isAfter(LocalDateTime.now())) {
-            throw new NegocioException(409, "La cirugía aún no llega a su fecha y hora, no se puede marcar como realizada.");
-        }
-        String res = limpiar(resultado);
-        String med = limpiar(medicamentos);
         if ("Realizada".equals(estado)) {
-            if (res == null) throw new NegocioException(400, "Escribe el resultado de la cirugía.");
-            if (res.length() > 2000 || (med != null && med.length() > 2000)) {
-                throw new NegocioException(400, "El resultado y los medicamentos admiten hasta 2000 caracteres.");
-            }
-        } else {
-            res = null;
-            med = null;
+            throw new NegocioException(400, "La cirugía se completa paso a paso desde el tablero de cirugías.");
+        }
+        if (!"Cancelada".equals(estado)) {
+            throw new NegocioException(400, "Desde aquí solo se puede cancelar una cirugía.");
+        }
+        if (!"Programada".equals(c.getEstado()) && !"Por_confirmar".equals(c.getEstado())) {
+            throw new NegocioException(409, "Solo se cancela una cirugía por confirmar o programada (estado actual: " + c.getEstado() + ").");
         }
         Cita cita = c.getCita_id() == null ? null : citaRepositorio.findById(c.getCita_id()).orElse(null);
         if (cita != null && !"Atendida".equals(cita.getEstado()) && !"Cancelada".equals(cita.getEstado()) && !"No asistió".equals(cita.getEstado())) {
-            cita.setEstado("Realizada".equals(estado) ? "Atendida" : "Cancelada");
+            cita.setEstado("Cancelada");
             citaRepositorio.save(cita);
             notificacionService.cancelarProgramadas("cita:" + cita.getId());
         }
-        return aplicarEstadoCirugia(c, estado, quien.getId(), res, med);
+        return aplicarEstadoCirugia(c, estado, quien.getId(), null, null);
     }
 
     @Transactional
     public void sincronizarConCita(Integer citaId, String estadoCita) {
         if (citaId == null || estadoCita == null) return;
-        String estado;
-        switch (estadoCita) {
-            case "Atendida" -> estado = "Realizada";
-            case "Cancelada", "No asistió" -> estado = "Cancelada";
-            default -> { return; }
+        if ("Confirmada".equals(estadoCita)) {
+            cirugiaRepositorio.findAll().stream()
+                    .filter(c -> citaId.equals(c.getCita_id()) && "Por_confirmar".equals(c.getEstado()))
+                    .findFirst()
+                    .ifPresent(c -> {
+                        c.setEstado("Programada");
+                        cirugiaRepositorio.save(c);
+                        evento(c.getMascota_id(), "Cirugía confirmada", c.getTipo_cirugia() + " confirmada para el "
+                                + c.getFecha_hora().toLocalDate() + " " + c.getFecha_hora().toLocalTime().withSecond(0).withNano(0) + ".", c.getVeterinario_id());
+                    });
+            return;
         }
+        if (!Set.of("Cancelada", "No asistió", "Rechazada").contains(estadoCita)) return;
         cirugiaRepositorio.findAll().stream()
-                .filter(c -> citaId.equals(c.getCita_id()) && "Programada".equals(c.getEstado()))
+                .filter(c -> citaId.equals(c.getCita_id()) && ("Programada".equals(c.getEstado()) || "Por_confirmar".equals(c.getEstado())))
                 .findFirst()
-                .ifPresent(c -> aplicarEstadoCirugia(c, estado, c.getVeterinario_id(), null, null));
+                .ifPresent(c -> aplicarEstadoCirugia(c, "Cancelada", c.getVeterinario_id(), null, null));
     }
 
     private CirugiaProgramada aplicarEstadoCirugia(CirugiaProgramada c, String estado, Integer vetId, String resultado, String medicamentos) {
@@ -357,6 +362,7 @@ public class ExamenService {
             r.setVeterinario_id(vetId);
             r.setContenido(medicamentos);
             r.setEstado("Aprobada");
+            r.setAprobada_en(LocalDateTime.now());
             recetaRepositorio.save(r);
         }
         Mascota mascota = mascotaRepositorio.findById(c.getMascota_id()).orElse(null);

@@ -33,6 +33,14 @@
 
         <div style="flex: 1; min-width: 300px; display: flex; flex-direction: column; gap: 30px;">
             <div class="admin-table-container">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; gap: 10px;">
+                    <h3 style="font-size: 18px; font-weight: 700;"><i class="fa-solid fa-id-card" style="color: var(--primary-green); margin-right: 8px;"></i> Mis datos</h3>
+                    <button class="btn-outline" style="padding: 6px 12px; font-size: 12px;" onclick="abrirModalPerfil()"><i class="fa-solid fa-pen"></i> Editar</button>
+                </div>
+                <dl class="datos-perfil" id="datos-perfil"></dl>
+            </div>
+
+            <div class="admin-table-container">
                 <h3 style="font-size: 18px; font-weight: 700; margin-bottom: 15px;"><i class="fa-regular fa-calendar-check" style="color: var(--primary-green); margin-right: 8px;"></i> Próximas Citas</h3>
                 <div id="citas-cliente-lista">
                     <p style="color: var(--text-muted); font-size: 13px;">Aún no tienes citas programadas.</p>
@@ -45,8 +53,39 @@
                     <p style="color: var(--text-muted); font-size: 13px;">Aún no has realizado pedidos.</p>
                 </div>
                 <button class="btn-outline" style="width: 100%; margin-top: 15px; padding: 10px; font-size: 13px;" onclick="cargarVista('VistaCliente/mis-pedidos')">Ver todos mis pedidos</button>
+                <button class="btn-primary" style="width: 100%; margin-top: 10px; padding: 10px; font-size: 13px;" onclick="cargarVista('VistaCliente/mis-pagos')"><i class="fa-solid fa-credit-card"></i> Mis pagos y comprobantes</button>
+                <button class="btn-outline" style="width: 100%; margin-top: 10px; padding: 10px; font-size: 13px;" onclick="cargarVista('VistaCliente/reservar-hospedaje')"><i class="fa-solid fa-hotel"></i> Hospedaje</button>
+                <button class="btn-outline" style="width: 100%; margin-top: 10px; padding: 10px; font-size: 13px;" onclick="cargarVista('VistaCliente/reservar-viaje')"><i class="fa-solid fa-plane"></i> Viaja con tu mascota</button>
             </div>
         </div>
+    </div>
+</div>
+
+<div class="modal-overlay" id="modal-perfil" style="display: none;">
+    <div class="modal-box">
+        <h3><i class="fa-solid fa-id-card" style="color: var(--primary-green);"></i> Editar mis datos</h3>
+        <form id="form-perfil" novalidate>
+            <div class="input-group">
+                <label for="perfil-edit-nombre">Nombre completo</label>
+                <input type="text" id="perfil-edit-nombre" data-regla="nombre" maxlength="100" autocomplete="name" required>
+                <small class="mensaje-campo" data-mensaje-para="perfil-edit-nombre" aria-live="polite"></small>
+            </div>
+            <div class="input-group">
+                <label for="perfil-edit-telefono">Teléfono celular</label>
+                <input type="tel" id="perfil-edit-telefono" data-regla="telefono" maxlength="9" inputmode="numeric" autocomplete="tel-national" required>
+                <small class="mensaje-campo" data-mensaje-para="perfil-edit-telefono" aria-live="polite"></small>
+            </div>
+            <div class="input-group">
+                <label for="perfil-edit-direccion">Dirección (opcional)</label>
+                <input type="text" id="perfil-edit-direccion" maxlength="255" autocomplete="street-address">
+                <small class="mensaje-campo" data-mensaje-para="perfil-edit-direccion" aria-live="polite"></small>
+            </div>
+            <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 10px;">Tu DNI y tu correo no se cambian desde aquí. Si necesitas corregirlos, acércate a la clínica.</p>
+            <div style="display: flex; gap: 10px; margin-top: 20px;">
+                <button type="button" class="btn-outline" style="flex: 1; padding: 12px;" onclick="cerrarModalPerfil()">Cancelar</button>
+                <button type="submit" class="btn-primary" id="perfil-guardar" style="flex: 1; padding: 12px; justify-content: center;">Guardar</button>
+            </div>
+        </form>
     </div>
 </div>
 
@@ -90,7 +129,7 @@
 
 <script>
 (function () {
-    const API_MASCOTAS_URL = 'http://localhost:8080/api/mascotas';
+    const API_MASCOTAS_URL = `${API_BASE}/mascotas`;
     let usuarioActual = null;
 
     const usuarioJSON = localStorage.getItem('usuarioLogueado');
@@ -99,6 +138,69 @@
         document.getElementById('perfil-nombre').innerText = `¡Hola, ${usuarioActual.nombre.split(' ')[0]}!`;
         document.getElementById('perfil-correo').innerHTML = `<i class="fa-solid fa-envelope" style="color: var(--primary-green); margin-right: 5px;"></i> ${esc(usuarioActual.correo)}`;
     }
+
+    function pintarDatosPerfil() {
+        const caja = document.getElementById('datos-perfil');
+        if (!usuarioActual) { caja.innerHTML = ''; return; }
+        const filas = [
+            ['Nombre', usuarioActual.nombre],
+            ['DNI', usuarioActual.dni ? enmascararDni(usuarioActual.dni) : ''],
+            ['Correo', usuarioActual.correo],
+            ['Teléfono', usuarioActual.telefono],
+            ['Dirección', usuarioActual.direccion]
+        ];
+        caja.innerHTML = filas.map(([t, v]) => `<dt>${t}</dt><dd>${v ? esc(v) : '<span style="color: var(--text-muted);">Sin registrar</span>'}</dd>`).join('');
+    }
+    pintarDatosPerfil();
+
+    window.abrirModalPerfil = function () {
+        if (!usuarioActual) return;
+        document.getElementById('perfil-edit-nombre').value = usuarioActual.nombre || '';
+        document.getElementById('perfil-edit-telefono').value = usuarioActual.telefono || '';
+        document.getElementById('perfil-edit-direccion').value = usuarioActual.direccion || '';
+        document.querySelectorAll('#form-perfil .mensaje-campo').forEach(m => { m.textContent = ''; m.className = 'mensaje-campo'; });
+        document.querySelectorAll('#form-perfil .campo-invalido').forEach(i => i.classList.remove('campo-invalido'));
+        document.getElementById('modal-perfil').style.display = 'flex';
+        document.getElementById('perfil-edit-nombre').focus();
+    };
+
+    window.cerrarModalPerfil = function () {
+        document.getElementById('modal-perfil').style.display = 'none';
+    };
+
+    document.getElementById('form-perfil').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        if (!usuarioActual || !formularioCuentaValido(e.target)) return;
+        const boton = document.getElementById('perfil-guardar');
+        boton.disabled = true;
+        try {
+            const res = await fetch(`${API_URL}/${usuarioActual.id}/perfil?usuarioId=${encodeURIComponent(usuarioActual.id)}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    nombre: normalizarNombre(document.getElementById('perfil-edit-nombre').value),
+                    telefono: document.getElementById('perfil-edit-telefono').value.trim(),
+                    direccion: document.getElementById('perfil-edit-direccion').value.trim()
+                })
+            });
+            const data = await res.json().catch(() => ({}));
+            if (!res.ok) {
+                const mapa = { nombre: 'perfil-edit-nombre', telefono: 'perfil-edit-telefono', direccion: 'perfil-edit-direccion' };
+                if (!mostrarErroresServidor(data.campos, mapa)) alert(data.error || 'No se pudieron guardar tus datos.');
+                return;
+            }
+            actualizarUsuarioEnSesion({ nombre: data.nombre, telefono: data.telefono, direccion: data.direccion });
+            usuarioActual = usuarioEnSesion();
+            document.getElementById('perfil-nombre').innerText = `¡Hola, ${usuarioActual.nombre.split(' ')[0]}!`;
+            pintarDatosPerfil();
+            actualizarMenuUsuario();
+            cerrarModalPerfil();
+        } catch (error) {
+            alert('No pudimos conectar con el servidor (verifica que Spring Boot esté corriendo).');
+        } finally {
+            boton.disabled = false;
+        }
+    });
 
     function iconoPorEspecie(especie) {
         if (!especie) return 'fa-paw';
@@ -163,32 +265,66 @@
     loadCitasCliente();
     loadPedidosCliente();
 
+    async function enviarGestionCita(url, metodo, cuerpo, exito) {
+        try {
+            const res = await fetch(url, { method: metodo, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(cuerpo || {}) });
+            const data = await res.json().catch(() => ({}));
+            if (!res.ok) { alert(data.error || 'No se pudo completar la acción.'); return; }
+            alert(exito);
+            loadCitasCliente();
+        } catch (e) {
+            alert('No pudimos conectar con el servidor.');
+        }
+    }
+
+    window.cancelarMiCita = function (id) {
+        if (!confirm('¿Cancelar esta cita? Podrás agendar otra cuando quieras.')) return;
+        enviarGestionCita(`${API_BASE}/citas/${id}/cancelar`, 'PATCH', {}, 'Tu cita fue cancelada.');
+    };
+
+    window.solicitarCancelacionCita = function (id) {
+        const motivo = prompt(`Faltan menos de ${horasCancelacionClinica()} horas para tu cita. Cuéntanos el motivo y la clínica te responderá:`);
+        if (motivo === null) return;
+        enviarGestionCita(`${API_BASE}/citas/${id}/solicitud-cancelacion`, 'POST', { motivo: motivo.trim() }, 'Enviamos tu solicitud. Te avisaremos la respuesta por notificación.');
+    };
+
     async function loadCitasCliente() {
+        await cargarConfiguracionClinica();
         const contenedor = document.getElementById('citas-cliente-lista');
         if (!usuarioActual) return;
         try {
             const [resCitas, resServicios] = await Promise.all([
-                fetch(`http://localhost:8080/api/citas/usuario/${usuarioActual.id}`),
-                fetch(`http://localhost:8080/api/servicios?incluirInactivos=true`)
+                fetch(`${API_BASE}/citas/usuario/${usuarioActual.id}`),
+                fetch(`${API_BASE}/servicios?incluirInactivos=true`)
             ]);
             if (!resCitas.ok) return;
             const citas = await resCitas.json();
             const servicios = resServicios.ok ? await resServicios.json() : [];
 
-            const proximas = citas.filter(c => c.estado !== 'Atendida' && c.estado !== 'Cancelada' && c.estado !== 'No asistió');
-            if (proximas.length === 0) return;
+            const proximas = citas.filter(c => ['Pendiente', 'Confirmada', 'Por reasignar'].includes(c.estado));
+            if (proximas.length === 0) {
+                contenedor.innerHTML = '<p style="color: var(--text-muted); font-size: 13px;">Aún no tienes citas programadas.</p>';
+                return;
+            }
 
             contenedor.innerHTML = proximas.map(c => {
                 const servicio = servicios.find(s => s.id === c.servicio_id);
                 const fecha = c.fecha_hora ? new Date(c.fecha_hora).toLocaleString('es-PE', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }) : '';
                 const claseEstado = claseEstadoCita(c.estado);
+                const horas = c.fecha_hora ? (new Date(c.fecha_hora).getTime() - Date.now()) / 3600000 : 0;
+                let gestion;
+                if (c.cancelacion_solicitada) gestion = '<span class="etiqueta-solicitud"><i class="fa-solid fa-clock"></i> Cancelación solicitada</span>';
+                else if (horas >= horasCancelacionClinica()) gestion = `<button class="btn-outline" style="padding: 4px 10px; font-size: 11px; margin-top: 8px;" onclick="cancelarMiCita(${c.id})">Cancelar cita</button>`;
+                else gestion = `<button class="btn-outline" style="padding: 4px 10px; font-size: 11px; margin-top: 8px;" onclick="solicitarCancelacionCita(${c.id})">Solicitar cancelación</button>`;
                 return `
                     <div style="border: 1px solid #E4E7EC; border-radius: 12px; padding: 15px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
                         <div>
-                            <h4 style="font-size: 14px; font-weight: 700;">${servicio ? servicio.nombre : 'Servicio'}</h4>
+                            <h4 style="font-size: 14px; font-weight: 700;">${servicio ? esc(servicio.nombre) : 'Servicio'}</h4>
                             <p style="font-size: 12px; color: var(--text-muted); margin-top: 3px;">${fecha}</p>
+                            ${c.enlace_videollamada ? `<a href="${esc(c.enlace_videollamada)}" target="_blank" rel="noopener noreferrer" style="font-size: 12px; font-weight: 700; color: var(--primary-green);"><i class="fa-solid fa-video"></i> Unirme a la videollamada</a>` : ''}
+                            <div>${gestion}</div>
                         </div>
-                        <span class="status-badge ${claseEstado}">${c.estado}</span>
+                        <span class="status-badge ${claseEstado}">${esc(c.estado)}</span>
                     </div>
                 `;
             }).join('');
@@ -201,7 +337,7 @@
         const contenedor = document.getElementById('pedidos-cliente-lista');
         if (!usuarioActual) return;
         try {
-            const res = await fetch(`http://localhost:8080/api/pedidos/usuario/${usuarioActual.id}`);
+            const res = await fetch(`${API_BASE}/pedidos/usuario/${usuarioActual.id}`);
             if (!res.ok) return;
             const pedidos = await res.json();
             if (pedidos.length === 0) return;

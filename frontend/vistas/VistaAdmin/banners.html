@@ -1,0 +1,154 @@
+<div class="fade-in admin-layout">
+    <aside class="admin-sidebar">
+        <div style="color: white; font-size: 18px; font-weight: 800; padding: 10px 18px 20px 18px; border-bottom: 1px solid #374151; margin-bottom: 10px;">
+            <i class="fa-solid fa-shield-halved" style="color: var(--primary-green);"></i> Admin Panel
+        </div>
+        <button class="sidebar-item" onclick="cargarVista('VistaAdmin/dashboard-admin')"><i class="fa-solid fa-chart-pie"></i> Dashboard</button>
+        <button class="sidebar-item" onclick="cargarVista('VistaAdmin/inventario')"><i class="fa-solid fa-box-open"></i> Inventario Tienda</button>
+        <button class="sidebar-item active" onclick="cargarVista('VistaAdmin/banners')"><i class="fa-solid fa-images"></i> Banners de la tienda</button>
+        <button class="sidebar-item" onclick="cargarVista('VistaAdmin/proveedores')"><i class="fa-solid fa-truck-field"></i> Proveedores</button>
+        <button class="sidebar-item" onclick="cargarVista('VistaAdmin/compras')"><i class="fa-solid fa-cart-flatbed"></i> Compras</button>
+        <button class="sidebar-item" onclick="cargarVista('VistaAdmin/devoluciones')"><i class="fa-solid fa-rotate-left"></i> Devoluciones</button>
+    </aside>
+
+    <main class="admin-content">
+        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:15px;">
+            <h2 style="font-size:24px; font-weight:800; color:var(--dark-text);">Banners de la tienda</h2>
+            <button data-roles="4" class="btn-primary" onclick="abrirNuevoBanner()"><i class="fa-solid fa-plus"></i> Subir banner</button>
+        </div>
+
+        <div class="selector-modalidad" style="max-width:420px;">
+            <button type="button" class="btn-outline activo" id="bn-tab-Farmacia" onclick="elegirSeccionBanner('Farmacia')">Farmacia</button>
+            <button type="button" class="btn-outline" id="bn-tab-Accesorios" onclick="elegirSeccionBanner('Accesorios')">Accesorios</button>
+        </div>
+        <p id="bn-ayuda" style="font-size:13px; color:var(--text-muted);"></p>
+
+        <div class="gestion-banners" id="bn-lista"><p><i class="fa-solid fa-spinner fa-spin"></i> Cargando...</p></div>
+    </main>
+</div>
+
+<div class="modal-overlay" id="modal-banner" style="display:none;">
+    <div class="modal-box">
+        <h3><i class="fa-solid fa-image" style="color:var(--primary-green);"></i> <span id="bn-modal-titulo">Subir banner</span></h3>
+        <form id="form-banner">
+            <div class="input-group">
+                <label>Imagen para PC <span id="bn-pc-obligatoria">*</span></label>
+                <input type="file" id="bn-pc" accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp">
+                <small style="color:var(--text-muted);">1920 × 700 px. JPG, PNG o WebP, hasta 2 MB.</small>
+            </div>
+            <div class="input-group">
+                <label>Imagen para celular (opcional)</label>
+                <input type="file" id="bn-movil" accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp">
+                <small style="color:var(--text-muted);">800 × 600 px. Si no la subes, en el celular se recorta al centro la de PC.</small>
+            </div>
+            <label id="bn-bloque-activo" style="display:flex; gap:8px; align-items:center; font-size:13px; margin:8px 0;"><input type="checkbox" id="bn-activo" checked> Mostrar en la tienda apenas se suba</label>
+            <label id="bn-bloque-quitar" style="display:none; gap:8px; align-items:center; font-size:13px; margin:8px 0;"><input type="checkbox" id="bn-quitar-movil"> Quitar la imagen para celular</label>
+            <p id="bn-error" style="color:#DC2626; font-size:13px; display:none;"></p>
+            <button type="submit" class="btn-primary" style="width:100%; padding:12px;">Guardar</button>
+        </form>
+        <button class="btn-outline" style="width:100%; padding:12px; margin-top:10px;" onclick="document.getElementById('modal-banner').style.display='none'">Cancelar</button>
+    </div>
+</div>
+
+<script>
+(function () {
+    const $ = (id) => document.getElementById(id);
+    const esAux = rolActual() === 4;
+    const MAXIMO = 6, LIMITE = 2 * 1024 * 1024;
+    let seccion = 'Farmacia', banners = [], editando = null;
+
+    function validarArchivo(f, etiqueta) {
+        if (!f) return null;
+        if (!/\.(jpe?g|png|webp)$/i.test(f.name)) return `${etiqueta}: debe ser JPG, PNG o WebP.`;
+        if (f.size > LIMITE) return `${etiqueta}: pesa más de 2 MB.`;
+        return null;
+    }
+
+    function mostrarError(t) {
+        $('bn-error').textContent = t || '';
+        $('bn-error').style.display = t ? 'block' : 'none';
+    }
+
+    function pintar() {
+        const activos = banners.filter(b => b.activo).length;
+        $('bn-ayuda').textContent = `${activos} de ${MAXIMO} banners activos en ${seccion}. Rotan solos cada 5 segundos en la página de ${seccion}.`;
+        if (!banners.length) {
+            $('bn-lista').innerHTML = `<p style="color:var(--text-muted);">Aún no hay banners en ${seccion}. Mientras no haya ninguno activo, la tienda no muestra el bloque.</p>`;
+            return;
+        }
+        $('bn-lista').innerHTML = banners.map((b, i) => `
+            <div class="tarjeta-banner ${b.activo ? '' : 'inactivo'}">
+                <img src="${esc(urlImagen(b.imagen_pc))}" alt="Banner ${i + 1}" ${ATRIBUTO_SIN_FOTO}>
+                <div class="tarjeta-banner-cuerpo">
+                    <div><strong>Posición ${b.orden}</strong> · <span class="status-badge ${b.activo ? 'status-completado' : 'status-cancelada'}">${b.activo ? 'Activo' : 'Inactivo'}</span>
+                        <span style="color:var(--text-muted);"> · ${b.imagen_movil ? 'con imagen para celular' : 'sin imagen para celular'}</span></div>
+                    ${esAux ? `<div class="tarjeta-banner-acciones">
+                        <button class="btn-outline" style="padding:5px 10px; font-size:12px;" ${i === 0 ? 'disabled' : ''} onclick="moverBanner(${b.id}, ${b.orden - 1})" title="Subir"><i class="fa-solid fa-arrow-up"></i></button>
+                        <button class="btn-outline" style="padding:5px 10px; font-size:12px;" ${i === banners.length - 1 ? 'disabled' : ''} onclick="moverBanner(${b.id}, ${b.orden + 1})" title="Bajar"><i class="fa-solid fa-arrow-down"></i></button>
+                        <button class="btn-outline" style="padding:5px 10px; font-size:12px;" onclick="activarBanner(${b.id}, ${!b.activo})">${b.activo ? 'Desactivar' : 'Activar'}</button>
+                        <button class="btn-outline" style="padding:5px 10px; font-size:12px;" onclick="abrirReemplazoBanner(${b.id})"><i class="fa-solid fa-arrows-rotate"></i> Reemplazar</button>
+                        <button class="btn-outline" style="padding:5px 10px; font-size:12px; color:#DC2626; border-color:#DC2626;" onclick="eliminarBanner(${b.id})"><i class="fa-regular fa-trash-can"></i></button>
+                    </div>` : ''}
+                </div>
+            </div>`).join('');
+    }
+
+    async function cargar() {
+        try {
+            banners = await enviarJson(`${API_BASE}/banners/gestion?seccion=${seccion}`, 'GET');
+            pintar();
+        } catch (e) { $('bn-lista').innerHTML = `<p>${esc(e.message)}</p>`; }
+    }
+
+    window.elegirSeccionBanner = function (s) {
+        seccion = s;
+        ['Farmacia', 'Accesorios'].forEach(x => $('bn-tab-' + x).classList.toggle('activo', x === s));
+        cargar();
+    };
+
+    function abrirModal(banner) {
+        editando = banner;
+        $('form-banner').reset();
+        mostrarError('');
+        $('bn-modal-titulo').textContent = banner ? `Reemplazar banner (posición ${banner.orden})` : `Subir banner a ${seccion}`;
+        $('bn-pc-obligatoria').style.display = banner ? 'none' : 'inline';
+        $('bn-bloque-activo').style.display = banner ? 'none' : 'flex';
+        $('bn-bloque-quitar').style.display = banner && banner.imagen_movil ? 'flex' : 'none';
+        $('modal-banner').style.display = 'flex';
+    }
+    window.abrirNuevoBanner = () => abrirModal(null);
+    window.abrirReemplazoBanner = (id) => abrirModal(banners.find(b => b.id === id));
+
+    $('form-banner').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const pc = $('bn-pc').files[0], movil = $('bn-movil').files[0];
+        if (!editando && !pc) return mostrarError('Elige la imagen para PC.');
+        if (editando && !pc && !movil && !$('bn-quitar-movil').checked) return mostrarError('Elige la imagen que quieres reemplazar.');
+        const error = validarArchivo(pc, 'Imagen para PC') || validarArchivo(movil, 'Imagen para celular');
+        if (error) return mostrarError(error);
+        const fd = new FormData();
+        if (pc) fd.append('imagen_pc', pc);
+        if (movil) fd.append('imagen_movil', movil);
+        if (editando) fd.append('quitar_movil', $('bn-quitar-movil').checked);
+        else { fd.append('seccion', seccion); fd.append('activo', $('bn-activo').checked); }
+        const res = await fetch(editando ? `${API_BASE}/banners/${editando.id}` : `${API_BASE}/banners`, { method: editando ? 'PUT' : 'POST', body: fd });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) return mostrarError(data.error || 'No se pudo guardar el banner.');
+        $('modal-banner').style.display = 'none';
+        cargar();
+    });
+
+    window.moverBanner = async (id, posicion) => {
+        try { await enviarJson(`${API_BASE}/banners/${id}/orden`, 'PATCH', { posicion }); cargar(); } catch (e) { alert(e.message); }
+    };
+    window.activarBanner = async (id, activo) => {
+        try { await enviarJson(`${API_BASE}/banners/${id}/activo`, 'PATCH', { activo }); cargar(); } catch (e) { alert(e.message); }
+    };
+    window.eliminarBanner = async (id) => {
+        if (!confirm('¿Eliminar este banner? Se borra también su imagen.')) return;
+        try { await enviarJson(`${API_BASE}/banners/${id}`, 'DELETE', {}); cargar(); } catch (e) { alert(e.message); }
+    };
+
+    cargar();
+})();
+</script>

@@ -20,6 +20,12 @@ public class Pago {
     private String metodo;
 
     private Integer id_registrado_por;
+    private String estado = "Pagado";
+    private String correo_tarjeta;
+    private String tarjeta_ultimos4;
+    private String operacion_yape;
+    private Integer estancia_id;
+    private Integer viaje_id;
 
     public Integer getId_registrado_por() { return id_registrado_por; }
     public void setId_registrado_por(Integer id_registrado_por) { this.id_registrado_por = id_registrado_por; }
@@ -44,4 +50,17 @@ public class Pago {
 
     public String getMetodo() { return metodo; }
     public void setMetodo(String metodo) { this.metodo = metodo; }
+
+    public String getEstado() { return estado; }
+    public void setEstado(String estado) { this.estado = estado; }
+    public String getCorreo_tarjeta() { return correo_tarjeta; }
+    public void setCorreo_tarjeta(String correo_tarjeta) { this.correo_tarjeta = correo_tarjeta; }
+    public String getTarjeta_ultimos4() { return tarjeta_ultimos4; }
+    public void setTarjeta_ultimos4(String tarjeta_ultimos4) { this.tarjeta_ultimos4 = tarjeta_ultimos4; }
+    public String getOperacion_yape() { return operacion_yape; }
+    public void setOperacion_yape(String operacion_yape) { this.operacion_yape = operacion_yape; }
+    public Integer getEstancia_id() { return estancia_id; }
+    public void setEstancia_id(Integer estancia_id) { this.estancia_id = estancia_id; }
+    public Integer getViaje_id() { return viaje_id; }
+    public void setViaje_id(Integer viaje_id) { this.viaje_id = viaje_id; }
 }

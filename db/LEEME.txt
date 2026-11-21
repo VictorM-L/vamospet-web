@@ -9,8 +9,7 @@ Orden para una instalación limpia (base vacía llamada vamospet_db):
 
   psql -U postgres -d vamospet_db -f db/06_migracion_mk16.sql            (OBLIGATORIO desde el MK16)
 
-04_seguridad_roles.sql se ejecuta AL FINAL (ver seguridad_final/PENDIENTE_SEGURIDAD_FINAL.txt).
-Cambia las dos claves CAMBIAR_... antes de ejecutarlo.
+04_seguridad_roles.sql: reemplazado por 17_roles_postgres.sql. No lo ejecutes.
 
 Cuentas de prueba (clave Demo1234): admin@vamospet.test, vet1@vamospet.test, vet2@vamospet.test,
 aux@vamospet.test, cliente1@vamospet.test, cliente2@vamospet.test
@@ -25,3 +24,66 @@ Agrega productos, horarios, citas, pedidos, etc. de prueba. NO uses 03/03b en un
 Sirve tanto para una base nueva (después del 01) como para tu base actual: no borra nada, es idempotente
 (puedes ejecutarla dos veces) y crea un "LOTE-INICIAL" con el stock que ya tienes cada producto.
 Haz un respaldo antes:  pg_dump -U postgres vamospet_db > respaldo_antes_mk16.sql
+
+09_recuperacion.sql (MK20): agrega la columna "proposito" a codigo_verificacion (Registro / Recuperacion) y un índice
+para el límite de envíos. No borra nada y se puede ejecutar dos veces. Requiere haber ejecutado antes 08_migracion_mk19.sql.
+
+10_roles_y_cuentas_prueba.sql (MK21): agrega a cita los campos de motivo y de solicitud de cancelación, rehace el índice
+ux_cita_vet_franja para que una cita Cancelada, Rechazada o Por reasignar libere la hora del veterinario, y crea una
+cuenta de prueba por rol (clave Prueba2026): admin.prueba@vamospet.test, vet.prueba@vamospet.test,
+aux.prueba@vamospet.test y cliente.prueba@vamospet.test. El veterinario de prueba atiende Medicina general de lunes a
+sábado de 9:00 a 13:00. No borra nada y se puede ejecutar dos veces. Requiere 09_recuperacion.sql.
+
+11_duracion_cirugia.sql (MK22): agrega a servicio la duración (minutos, 30 por defecto) y el cupo diario; marca qué
+veterinarios hacen grooming; agrega alergias y peso a la mascota; hora real de inicio y fin a cita y cirugía; resultado,
+complicaciones, notas y decisión postoperatoria a la cirugía (estados Por_confirmar, Programada, En_curso, Postoperatorio,
+Realizada, Cancelada); cuidados especiales y guardería sin cuarto a la estancia; y la tabla viaje_documento (un archivo
+por requisito). Crea los paquetes Grooming - Baño (S/ 50), Corte (S/ 40) y Completo (S/ 70); Grooming - Estética y
+Guardería por día quedan inactivos hasta que les pongas precio. No borra nada y se puede ejecutar dos veces.
+Requiere 10_roles_y_cuentas_prueba.sql.
+
+12_banner.sql (MK23): crea la tabla banner (sección Farmacia o Accesorios, imagen para PC, imagen para celular opcional,
+orden, activo y fecha de creación). El límite de 6 banners activos por sección lo controla el sistema. No borra nada y
+se puede ejecutar dos veces. Requiere 11_duracion_cirugia.sql.
+
+13_contacto_config.sql (MK24): crea mensaje_contacto (bandeja del formulario de contacto, con estados Nuevo, Respondido
+y Archivado) y configuracion_clinica (una sola fila con nombre, dirección, teléfono, WhatsApp, correo, horario de
+atención, emergencias 24 h, horario del hospedaje y horas mínimas para cancelar una cita, 24 por defecto). La fila
+se llena con los datos que ya mostraba la página de contacto; revísalos y corrígelos en Panel Admin > Configuración.
+No borra nada y se puede ejecutar dos veces. Requiere 12_banner.sql.
+
+14_verificar_huerfanos.sql (MK25): solo consulta. Lista las filas huérfanas de producto.categoria_id,
+movimiento_stock.usuario_id y notificacion.usuario_id. Debe devolver 0 filas antes de ejecutar el 15.
+
+15_receta_fk.sql (MK25): crea las claves foráneas de esas tres columnas (si hay huérfanos, se detiene y no cambia
+nada); agrega a receta aprobada_en, usada, usada_en y pedido_id (las recetas ya aprobadas toman su fecha de registro
+como fecha de aprobación) y a pedido_detalle la columna receta_id. Se puede ejecutar dos veces. Requiere
+13_contacto_config.sql.
+
+MK26 y MK27: no traen scripts nuevos. La base queda igual que con el 15.
+
+16_bcrypt.sql (MK28): amplía usuario.contrasena a 255 caracteres y muestra cuántas claves siguen sin cifrar.
+Antes de ejecutarlo, haz el respaldo (pg_dump -U postgres -F c -f backup_antes_bcrypt.backup vamospet_db).
+Las claves se cifran solas al arrancar el backend del MK28; en la consola sale
+"[Seguridad] Contraseñas migradas a BCrypt: N". Después, este SELECT debe dar 0:
+SELECT count(*) FROM usuario WHERE contrasena IS NOT NULL AND contrasena NOT LIKE '$2%';
+Se puede ejecutar dos veces.
+
+17_roles_postgres.sql (MK28): crea app_escritura (lee, inserta y actualiza; borra solo en banner,
+cita_costo_adicional, horario_atencion, veterinario_especialidad y notificacion, que son las únicas tablas
+donde la aplicación elimina filas) y app_lectura (solo lectura), con permisos sobre las secuencias para los
+inserts. Ninguno puede crear ni modificar tablas: los scripts db/ se siguen ejecutando como postgres.
+El script no guarda claves: después de ejecutarlo pon la clave con
+psql -U postgres -d vamospet_db  y dentro de psql: \password app_escritura  (te pide la clave dos veces; sale con \q)
+y usa ese usuario en DB_USERNAME / DB_PASSWORD de backend/.env.properties.
+Se puede ejecutar dos veces. Requiere 16_bcrypt.sql.
+
+18_cifrar_claves_pendientes.sql (MK29): desde el MK29 el backend ya no cifra claves al arrancar y una clave en
+texto plano no permite entrar. Este script cifra con BCrypt (extensión pgcrypto) las que sigan en texto plano,
+por ejemplo las cuentas de prueba (Demo1234) de una base creada de nuevo con 01, 03 y 05. En tu base actual
+debe decir 0 claves sin cifrar. Ejecútalo como postgres. Se puede ejecutar dos veces. Requiere 16_bcrypt.sql.
+
+19_rutas_relativas.sql (MK31): desde el MK31 el frontend lo sirve el mismo backend y las imágenes subidas se
+guardan como /uploads/archivo.jpg. Este script cambia las que se guardaron como
+http://localhost:8080/uploads/... (o 127.0.0.1) a /uploads/... en cualquier tabla. Muestra cuántas filas cambió por
+columna. Ejecútalo como postgres. Se puede ejecutar dos veces.

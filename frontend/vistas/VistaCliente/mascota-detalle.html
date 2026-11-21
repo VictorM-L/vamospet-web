@@ -54,7 +54,18 @@
 
     function badgeEstadoReceta(estado) {
         const clase = estado === 'Aprobada' ? 'status-completado' : (estado === 'Rechazada' ? 'status-cancelada' : 'status-pendiente');
-        return `<span class="status-badge ${clase}">${estado || 'Pendiente'}</span>`;
+        return `<span class="status-badge ${clase}">${esc(estado || 'Pendiente')}</span>`;
+    }
+
+    function usoReceta(r) {
+        if (r.estado !== 'Aprobada') return '';
+        if (r.usada) return `<p style="font-size: 12px; color: var(--text-muted);"><i class="fa-solid fa-check"></i> Usada en una compra${r.usada_en ? ' el ' + new Date(r.usada_en).toLocaleDateString('es-PE') : ''}</p>`;
+        const inicio = r.aprobada_en || r.fecha;
+        if (!inicio) return '';
+        const vence = new Date(new Date(inicio).getTime() + 30 * 86400000);
+        return vence < new Date()
+            ? '<p style="font-size: 12px; color: #B42318;">Vencida: ya no sirve para comprar</p>'
+            : `<p style="font-size: 12px; color: var(--primary-green);">Sirve para una compra hasta el ${vence.toLocaleDateString('es-PE')}</p>`;
     }
 
     function esArchivoImagen(url) {
@@ -73,6 +84,7 @@
         ]);
 
         const mascota = resMascota.ok ? await resMascota.json() : null;
+        window.__mascotaDetalle = mascota;
         const vacunas = resVacunas.ok ? await resVacunas.json() : [];
         const recetas = resRecetas.ok ? await resRecetas.json() : [];
         const historial = (resHistorial.ok ? await resHistorial.json() : []).sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
@@ -112,6 +124,7 @@
                         <strong style="font-size: 14px;">Receta médica</strong>
                         ${badgeEstadoReceta(r.estado)}
                     </div>
+                    ${usoReceta(r)}
                     <p style="font-size: 12px; color: var(--text-muted); margin: 3px 0;">${r.fecha ? new Date(r.fecha).toLocaleDateString('es-PE') : ''}</p>
                     ${r.contenido ? `<p style="font-size: 13px; color: var(--dark-text); margin-top: 4px;">${esc(r.contenido)}</p>` : ''}
                     ${r.archivo_url ? `<a href="${esc(r.archivo_url)}" target="_blank" style="font-size: 12px; color: var(--primary-green); font-weight: 600;"><i class="fa-solid fa-arrow-up-right-from-square"></i> Ver archivo</a>` : ''}
@@ -131,7 +144,7 @@
                 <div>
                     <strong style="font-size: 14px;">${esc(h.tipo_evento || 'Evento médico')}</strong>
                     <p style="font-size: 12px; color: var(--text-muted);">${h.fecha ? new Date(h.fecha).toLocaleDateString('es-PE') : ''}</p>
-                    <p style="font-size: 13px; color: var(--dark-text); margin-top: 4px; white-space: pre-line;">${esc(h.descripcion || '')}</p>
+                    <p style="font-size: 13px; color: var(--dark-text); margin-top: 4px; white-space: pre-line;">${enlazarTexto(h.descripcion || '')}</p>
                 </div>
             </div>
         `).join('') : `<p style="color: var(--text-muted); font-size: 13px;">Sin eventos registrados aún.</p>`;
@@ -146,7 +159,7 @@
                     <p style="font-size: 12px; color: var(--text-muted);">Solicitado ${o.fecha_solicitud ? new Date(o.fecha_solicitud).toLocaleDateString('es-PE') : ''}${o.cirugia_prevista ? ' · Previo a: ' + esc(o.cirugia_prevista) : ''}${o.estado === 'Apto_Cirugia' && o.vigente_hasta ? ' · Vigente hasta ' + esc(o.vigente_hasta) : ''}</p>
                     ${o.indicaciones ? `<p style="font-size: 12px;">Indicaciones: ${esc(o.indicaciones)}</p>` : ''}
                     ${o.observaciones ? `<p style="font-size: 12px;">Observaciones del veterinario: ${esc(o.observaciones)}</p>` : ''}
-                    ${o.archivos.map(a => `<a href="${API_BASE}/examenes/archivo/${a.id}?usuarioId=${usuarioActual.id}" target="_blank" style="display:block; font-size:12px; color: var(--primary-green);"><i class="fa-solid fa-paperclip"></i> ${esc(a.nombre)}</a>`).join('')}
+                    ${o.archivos.map(a => `<a href="#" onclick="abrirArchivoApi('${API_BASE}/examenes/archivo/${a.id}?usuarioId=${usuarioActual.id}'); return false;" style="display:block; font-size:12px; color: var(--primary-green);"><i class="fa-solid fa-paperclip"></i> ${esc(a.nombre)}</a>`).join('')}
                     ${!esVeterinario && usuarioActual.rol_id === 2 && (o.estado === 'Pendiente' || o.estado === 'Rechazado') ? `<button class="btn-outline" style="padding: 5px 12px; font-size: 12px; margin-top: 6px;" onclick="elegirResultadoExamen(${o.id})"><i class="fa-solid fa-upload"></i> Subir resultado (PDF o JPEG, máx. 5 MB)</button>` : ''}
                 </div>
             </div>`).join('') : `<p style="color: var(--text-muted); font-size: 13px;">Sin exámenes solicitados.</p>`;
@@ -154,7 +167,7 @@
             <div class="historial-item">
                 <div class="historial-icono"><i class="fa-solid fa-user-doctor"></i></div>
                 <div><strong style="font-size: 14px;">${esc(c.tipo_cirugia)}</strong>
-                <p style="font-size: 12px; color: var(--text-muted);">${new Date(c.fecha_hora).toLocaleString('es-PE', { dateStyle: 'medium', timeStyle: 'short' })} · ${esc(c.estado)}</p></div>
+                <p style="font-size: 12px; color: var(--text-muted);">${new Date(c.fecha_hora).toLocaleString('es-PE', { dateStyle: 'medium', timeStyle: 'short' })} · ${esc(String(c.estado).replace(/_/g, ' '))}</p></div>
             </div>`).join('') : '';
 
         contenedor.innerHTML = `
@@ -170,7 +183,10 @@
                     </div>
                     <div>
                         <h1 style="font-size: 26px; font-weight: 800; color: var(--dark-text);">${esc(mascota.nombre)}</h1>
-                        <p style="color: var(--text-muted); font-size: 14px;">${mascota.especie || ''}${mascota.raza ? ' · ' + mascota.raza : ''}${mascota.sexo ? ' · ' + mascota.sexo : ''}</p>
+                        <p style="color: var(--text-muted); font-size: 14px;">${esc(mascota.especie || '')}${mascota.raza ? ' · ' + esc(mascota.raza) : ''}${mascota.sexo ? ' · ' + esc(mascota.sexo) : ''}</p>
+                        <p style="font-size: 13px; margin-top: 4px;"><i class="fa-solid fa-weight-scale" style="color: var(--primary-green);"></i> ${mascota.peso_kg != null ? esc(mascota.peso_kg) + ' kg' : 'Peso sin registrar'}
+                            · <i class="fa-solid fa-triangle-exclamation" style="color: ${mascota.alergias ? '#DC2626' : 'var(--text-muted)'};"></i> ${mascota.alergias ? 'Alergias: ' + esc(mascota.alergias) : 'Sin alergias registradas'}
+                            ${esVeterinario ? `<button class="btn-outline" style="padding: 4px 10px; font-size: 12px; margin-left: 6px;" onclick="editarDatosClinicosMascota()"><i class="fa-solid fa-pen"></i> Editar</button>` : ''}</p>
                     </div>
                 </div>
                 ${!esVeterinario ? `<button class="btn-primary" onclick="abrirModalSubirReceta()"><i class="fa-solid fa-upload"></i> Subir Receta</button>` : ''}
@@ -217,6 +233,18 @@
         input.click();
     };
 
+    window.editarDatosClinicosMascota = async () => {
+        const m = window.__mascotaDetalle;
+        if (!m) return;
+        const alergias = prompt('Alergias (deja vacío si no tiene)', m.alergias || '');
+        if (alergias === null) return;
+        const peso = prompt('Peso en kg (ej. 12.5)', m.peso_kg != null ? m.peso_kg : '');
+        if (peso === null) return;
+        try {
+            await enviarJson(`${API_BASE}/mascotas/${m.id}/datos-clinicos`, 'PATCH', { alergias, peso_kg: peso });
+            cargarYRenderizar();
+        } catch (e) { alert(e.message); }
+    };
     window.abrirModalSubirReceta = () => document.getElementById('modal-subir-receta').style.display = 'flex';
     window.cerrarModalSubirReceta = () => document.getElementById('modal-subir-receta').style.display = 'none';
 

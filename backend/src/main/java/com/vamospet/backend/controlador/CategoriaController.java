@@ -1,5 +1,6 @@
 package com.vamospet.backend.controlador;
 
+import com.vamospet.backend.servicio.NegocioException;
 import com.vamospet.backend.modelo.Categoria;
 import com.vamospet.backend.repositorio.CategoriaRepository;
 import com.vamospet.backend.repositorio.ProductoRepository;
@@ -42,8 +43,7 @@ public class CategoriaController {
         boolean enUso = productoRepositorio.findAll().stream()
                 .anyMatch(p -> id.equals(p.getCategoria_id()) && !Boolean.FALSE.equals(p.getActivo()));
         if (enUso) {
-            return ResponseEntity.status(HttpStatus.CONFLICT)
-                    .body(Map.of("error", "No se puede dar de baja: hay productos activos usando esta categoría."));
+            throw new NegocioException(409, "No se puede dar de baja: hay productos activos en esta categoría. Muévelos a otra categoría o dalos de baja primero.");
         }
         categoria.setActivo(false);
         repositorio.save(categoria);

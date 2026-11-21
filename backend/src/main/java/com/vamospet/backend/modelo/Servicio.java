@@ -32,7 +32,19 @@ public class Servicio {
     public void setRequiere_pago_previo(Boolean requiere_pago_previo) { this.requiere_pago_previo = requiere_pago_previo; }
 
     private Boolean activo = true;
+    private String tipo = "Cita";
 
     public Boolean getActivo() { return activo; }
     public void setActivo(Boolean activo) { this.activo = activo; }
+
+    public String getTipo() { return tipo; }
+    public void setTipo(String tipo) { this.tipo = tipo; }
+
+    private Integer duracion_min;
+    public Integer getDuracion_min() { return duracion_min; }
+    public void setDuracion_min(Integer duracion_min) { this.duracion_min = duracion_min; }
+
+    private Integer cupo_diario;
+    public Integer getCupo_diario() { return cupo_diario; }
+    public void setCupo_diario(Integer cupo_diario) { this.cupo_diario = cupo_diario; }
 }

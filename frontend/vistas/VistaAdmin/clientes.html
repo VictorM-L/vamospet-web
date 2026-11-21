@@ -14,6 +14,7 @@
         <button class="sidebar-item" onclick="cargarVista('VistaAdmin/proveedores')"><i class="fa-solid fa-truck-field"></i> Proveedores</button>
         <button class="sidebar-item" onclick="cargarVista('VistaAdmin/compras')"><i class="fa-solid fa-cart-flatbed"></i> Compras</button>
         <button class="sidebar-item" onclick="cargarVista('VistaAdmin/devoluciones')"><i class="fa-solid fa-rotate-left"></i> Devoluciones</button>
+        <button class="sidebar-item" onclick="cargarVista('VistaAdmin/reservas')"><i class="fa-solid fa-hotel"></i> Reservas y viajes</button>
         <button class="sidebar-item" onclick="cargarVista('VistaAdmin/comprobantes')"><i class="fa-solid fa-receipt"></i> Comprobantes</button>
         <button class="sidebar-item" onclick="cargarVista('VistaAdmin/finanzas')"><i class="fa-solid fa-file-invoice-dollar"></i> Finanzas</button>
         <button class="sidebar-item" onclick="cargarVista('VistaAdmin/reportes')"><i class="fa-solid fa-chart-column"></i> Reportes</button>
@@ -25,7 +26,7 @@
     <main class="admin-content">
         <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px;">
             <h2 style="font-size: 24px; font-weight: 800; color: var(--dark-text);">Directorio de Clientes</h2>
-            <button class="btn-primary" onclick="abrirModalClienteSinCuentaAdmin()"><i class="fa-solid fa-user-plus"></i> Cliente Nuevo (sin cuenta)</button>
+            <button data-roles="4" class="btn-primary" onclick="abrirModalClienteSinCuentaAdmin()"><i class="fa-solid fa-user-plus"></i> Cliente Nuevo (sin cuenta)</button>
         </div>
 
         <div style="background: white; padding: 15px 20px; border-radius: 15px; box-shadow: var(--shadow-soft); border: 1px solid #E4E7EC; display: flex; align-items: center; gap: 15px; flex-wrap: wrap;">
@@ -73,13 +74,17 @@
 
 <div class="modal-overlay" id="modal-activar-cuenta" style="display: none;">
     <div class="modal-box">
-        <h3><i class="fa-solid fa-unlock" style="color: var(--primary-green);"></i> Activar Cuenta — <span id="activar-nombre-cliente"></span></h3>
-        <form id="form-activar-cuenta">
-            <div class="input-group"><label>Correo</label><input type="email" id="activar-correo" required></div>
-            <div class="input-group"><label>Contraseña</label><input type="password" id="activar-contrasena" required></div>
+        <h3><i class="fa-solid fa-envelope-open-text" style="color: var(--primary-green);"></i> Invitar a crear cuenta — <span id="activar-nombre-cliente"></span></h3>
+        <form id="form-activar-cuenta" novalidate>
+            <div class="input-group">
+                <label for="activar-correo">Correo del cliente</label>
+                <input type="email" id="activar-correo" data-regla="correo" data-verificar-duplicado="correo" maxlength="100" required>
+                <small class="mensaje-campo" data-mensaje-para="activar-correo" aria-live="polite"></small>
+            </div>
+            <p style="font-size: 12px; color: var(--text-muted); line-height: 1.5;">Le enviaremos una invitación. El cliente entra a "Crear cuenta" con su DNI y recibe un código para crear su propia contraseña. Nadie del personal la escribe ni la ve.</p>
             <div style="display: flex; gap: 10px; margin-top: 15px;">
                 <button type="button" class="btn-outline" style="flex: 1; padding: 12px;" onclick="cerrarModalActivarCuenta()">Cancelar</button>
-                <button type="submit" class="btn-primary" style="flex: 1; padding: 12px;">Activar</button>
+                <button type="submit" class="btn-primary" style="flex: 1; padding: 12px; justify-content: center;">Enviar invitación</button>
             </div>
         </form>
     </div>
@@ -112,12 +117,12 @@
             const tieneCuenta = cliente.correo && cliente.correo.trim() !== '';
             const badgeCuenta = tieneCuenta
                 ? `<span class="status-badge status-completado">Con cuenta</span>`
-                : `<button class="btn-outline" style="padding: 5px 12px; font-size: 11px;" data-nombre="${esc(cliente.nombre || '')}" onclick="abrirModalActivarCuenta(${cliente.id}, this.dataset.nombre)">Activar cuenta</button>`;
+                : `<button data-roles="4" class="btn-outline" style="padding: 5px 12px; font-size: 11px;" data-nombre="${esc(cliente.nombre || '')}" onclick="abrirModalActivarCuenta(${cliente.id}, this.dataset.nombre)">Invitar a crear cuenta</button>`;
 
             const deBaja = cliente.activo === false;
             const botonBaja = deBaja
-                ? `<button class="btn-outline" style="padding: 5px 12px; font-size: 11px; margin-left: 6px;" onclick="reactivarCliente(${cliente.id})">Reactivar</button>`
-                : `<button style="background:none; border:none; color:#EF4444; cursor:pointer; font-size:14px; margin-left: 6px;" title="Dar de baja" onclick="darDeBajaCliente(${cliente.id})"><i class="fa-solid fa-user-slash"></i></button>`;
+                ? `<button data-roles="1 4" class="btn-outline" style="padding: 5px 12px; font-size: 11px; margin-left: 6px;" onclick="reactivarCliente(${cliente.id})">Reactivar</button>`
+                : `<button data-roles="1 4" style="background:none; border:none; color:#EF4444; cursor:pointer; font-size:14px; margin-left: 6px;" title="Dar de baja" onclick="darDeBajaCliente(${cliente.id})"><i class="fa-solid fa-user-slash"></i></button>`;
 
             return `
                 <tr style="${deBaja ? 'opacity: .55;' : ''}">
@@ -128,7 +133,7 @@
                         </div>
                     </td>
                     <td style="font-size: 12px; color: var(--text-muted);">${enmascararDni(cliente.dni)}</td>
-                    <td>${tieneCuenta ? cliente.correo : (cliente.telefono || '—') + '<br>' + (cliente.correo_contacto ? `<span style="font-size:11px;color:var(--text-muted);">${esc(cliente.correo_contacto)}</span>` : `<button style="background:none;border:none;color:var(--primary-green);cursor:pointer;font-size:11px;padding:0;" onclick="agregarCorreoContacto(${cliente.id})">+ agregar correo</button>`)}</td>
+                    <td>${tieneCuenta ? cliente.correo : (cliente.telefono || '—') + '<br>' + (cliente.correo_contacto ? `<span style="font-size:11px;color:var(--text-muted);">${esc(cliente.correo_contacto)}</span>` : `<button data-roles="4" style="background:none;border:none;color:var(--primary-green);cursor:pointer;font-size:11px;padding:0;" onclick="agregarCorreoContacto(${cliente.id})">+ agregar correo</button>`)}</td>
                     <td>${tagsHtml}</td>
                     <td style="white-space: nowrap;">${badgeCuenta}${botonBaja}</td>
                 </tr>
@@ -214,30 +219,32 @@
     window.abrirModalActivarCuenta = function (id, nombre) {
         __idClienteActivar = id;
         document.getElementById('activar-nombre-cliente').innerText = nombre;
+        const cliente = __clientesTodos.find(c => c.id === id);
+        document.getElementById('activar-correo').value = cliente && cliente.correo_contacto ? cliente.correo_contacto : '';
         document.getElementById('modal-activar-cuenta').style.display = 'flex';
     };
     window.cerrarModalActivarCuenta = () => document.getElementById('modal-activar-cuenta').style.display = 'none';
 
     document.getElementById('form-activar-cuenta').addEventListener('submit', async (e) => {
         e.preventDefault();
+        const input = document.getElementById('activar-correo');
+        input.dataset.duplicado = '0';
+        if (!validarCampoCuenta(input, true)) return;
         try {
-            const res = await fetch(`${API_BASE}/usuarios/${__idClienteActivar}/activar`, {
-                method: 'PATCH',
+            const correo = input.value.trim();
+            const res = await fetch(`${API_BASE}/usuarios/${__idClienteActivar}/invitacion`, {
+                method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    correo: document.getElementById('activar-correo').value,
-                    contrasena: document.getElementById('activar-contrasena').value
-                })
+                body: JSON.stringify({ correo })
             });
-            const data = await res.json();
-            if (!res.ok) { alert(data.error || 'No se pudo activar la cuenta.'); return; }
-
-            __clientesTodos = __clientesTodos.map(c => c.id === data.id ? data : c);
+            const data = await res.json().catch(() => ({}));
+            if (!res.ok) { alert(data.error || 'No se pudo enviar la invitación.'); return; }
+            __clientesTodos = __clientesTodos.map(c => c.id === __idClienteActivar ? { ...c, correo_contacto: correo } : c);
             cerrarModalActivarCuenta();
             document.getElementById('form-activar-cuenta').reset();
             pintarClientesAdmin(__clientesTodos);
-            alert('Cuenta activada. El cliente ya puede iniciar sesión con ese correo.');
-        } catch { alert('No se pudo activar la cuenta.'); }
+            alert(data.mensaje || 'Invitación enviada.');
+        } catch { alert('No se pudo enviar la invitación.'); }
     });
 
     (async () => {

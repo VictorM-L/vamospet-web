@@ -1,55 +1,80 @@
-# VamosPet - Sistema de Gestión Veterinaria
-Proyecto web desarrollado para la administración de historias clínicas, citas, inventario y facturación de la clínica veterinaria VamosPet.
+# Vamos Pet — Sistema de gestión veterinaria
+
+Plataforma web para la clínica veterinaria Vamos Pet (Miraflores, Lima): citas, historia clínica, exámenes y cirugías, hospedaje y viajes, tienda con farmacia, venta en mostrador, cobros con comprobante y reportes. Cada rol (Administrador, Veterinario, Auxiliar y Cliente) ve y hace solo lo que le corresponde.
+
+## Equipo
+
+| Integrante | GitHub |
+|---|---|
+| García Valera, Alec Adriano | [GodLie67](https://github.com/GodLie67) |
+| Ramírez Chicoma, Angela Anschely | [angelaarc](https://github.com/angelaarc) |
+| López Alzamora, Víctor Manuel | [VictorM-L](https://github.com/VictorM-L) |
+| Zanabria Arones, Stefano Fernando | [StefanoZanabria](https://github.com/StefanoZanabria) |
+| Maldonado Caycho, Yllary Vayolet | [yllarymaldonado898-beep](https://github.com/yllarymaldonado898-beep) |
+
+| Curso | Docente | Sección |
+|---|---|---|
+| Integrador I | Danila Raquel Neira Sacaski | 49617 |
+| Marcos de Desarrollo Web | Franz Bruce Mendoza Arce | 49616 |
+
+Universidad Tecnológica del Perú · Ingeniería de Sistemas e Informática · 6.° ciclo.
 
 ## Tecnologías
-* **Backend:** Java, Spring Boot
-* **Frontend:** HTML, CSS, JavaScript (Vanilla)
-* **Base de Datos:** PostgreSQL
 
-## Requisitos
-- JDK 25
-- PostgreSQL 16
-- Un servidor estático para el frontend Live Server
-- No hace falta instalar Maven: el proyecto incluye el wrapper (mvnw)
-
-## Configuración
-El backend lee sus claves de variables de entorno. Hay que definirlas antes de ejecutar:
-| Variable | Para qué sirve |
+| Capa | Tecnología |
 |---|---|
-| **** | Contraseña del usuario de PostgreSQL |
-| **** | Contraseña de aplicación del correo que envía las notificaciones |
-| **** | Clave del asistente virtual |
+| Backend | Java 25, Spring Boot 4.0.5 (Web MVC, Data JPA, Validation, Security, Mail, Actuator) |
+| Seguridad | BCrypt, token JWT HS256, matriz de acceso por rol (`PermisosApi`) |
+| Base de datos | PostgreSQL 18 (H2 solo en las pruebas) |
+| Frontend | HTML, CSS y JavaScript sin frameworks, servido por el mismo JAR |
+| Documentos | OpenPDF (comprobantes y reportes), Apache POI (Excel), ZXing (QR) |
+| Pruebas | JUnit 5, Mockito, MockMvc, jsdom, Postman |
 
-(Solicitar los valores de prueba al administrador del repositorio).
+## Cómo ejecutarlo
 
-## Base de datos
-1. Crear una base de datos llamada `vamospet_db`.
-2. Ejecutar `db/01_esquema.sql`.
-3. Ejecutar `db/02_datos_prueba.sql`.
-(Nota: El esquema actual ya incluye todas las migraciones previas).
+Requisitos: JDK 25 y PostgreSQL 18. Maven no hace falta: el proyecto trae `mvnw`.
 
-## Cómo ejecutar el backend
-    cd backend
-    ./mvnw spring-boot:run
-(En Windows: `mvnw.cmd spring-boot:run`). El backend queda en http://localhost:8080.
+1. Base de datos: crea `vamospet_db` y ejecuta los scripts de `db/` en orden (ver `db/LEEME.txt`).
+2. Credenciales: copia `backend/.env.properties.example` como `backend/.env.properties` y llena los valores. Ese archivo nunca se sube a Git.
+3. Arranca en desarrollo:
+   ```
+   cd backend
+   .\mvnw.cmd spring-boot:run
+   ```
+   Abre `http://localhost:8080`. En desarrollo el servidor lee `frontend/` directamente: guardas un HTML o JS y recargas.
+4. Pruebas: `.\mvnw.cmd test` (unitarias e integración, no necesitan PostgreSQL).
+5. Producción (JAR):
+   ```
+   cd backend
+   .\mvnw.cmd clean package
+   java -jar target\vamospet.jar --spring.profiles.active=prod
+   ```
+   El `.env.properties` va en la carpeta desde donde ejecutas `java -jar`.
 
-## Cómo ejecutar el frontend
-Abrir `frontend/index.html` con un servidor estático (por ejemplo Live Server en 127.0.0.1:5500). El frontend llama al backend en http://localhost:8080, por lo que el backend debe estar encendido.
+Más detalle en `FICHA_EJECUCION.md` y `docs/OPERACION.md`.
 
-## Usuarios de prueba
-| Rol | Correo | Contraseña |
-|---|---|---|
-| Administrador | [admin@vamospet.com] | [clave] |
-| Cliente | [juan@gmail.com] | [123456] |
-| Veterinario | [c@gmail.com] | [123456] |
-| Auxiliar | [t@gmail.com] | [clave] |
+## Estructura
 
-## Pruebas
-    cd backend
-    ./mvnw test
+```
+backend/      API Spring Boot (controlador, servicio, repositorio, modelo, permisos, seguridad)
+frontend/     index.html, css/, js/app.js, vistas/ por rol, vendor/ (fuentes e íconos locales)
+db/           scripts SQL numerados; nunca se edita uno ya entregado
+docs/         MOF, seguridad, operación, evidencias por etapa
+postman/      colección y entorno para probar la API
+herramientas/ scripts de PowerShell (Git, Milestones, fotos)
+```
 
-## Cómo trabajamos en el repositorio
-- `main` es la versión estable. No se trabaja directo en ella.
-- Cada tarea se hace en una rama (`feature/...` o `docs/...`) y se fusiona con un Pull Request.
-- Mensajes de commit: feat, fix, docs, refactor, test y chore.
-- No se suben credenciales, archivos de configuración local ni datos reales.
+## Ramas y contribución
+
+`main` (versión estable), `develop` (integración) y `feature/etapa-N-tema`. Todo cambio entra por Pull Request a `develop` con revisión de otro integrante. Reglas en `CONTRIBUTING.md`; historial en `CHANGELOG.md`.
+
+## Documentación
+
+| Archivo | Contenido |
+|---|---|
+| `ARQUITECTURA.md` | Capas, seguridad, pruebas y limitaciones |
+| `FICHA_EJECUCION.md` | Pasos de instalación y problemas comunes |
+| `docs/MOF_VamosPet.md` | Funciones por rol generadas desde la matriz de acceso |
+| `docs/SEGURIDAD.md` | Pruebas de inyección SQL, XSS, CSRF, cabeceras y OWASP ZAP |
+| `docs/OPERACION.md` | Perfiles, empaquetado, Actuator y logs |
+| `postman/LEEME.md` | Cómo correr la colección |

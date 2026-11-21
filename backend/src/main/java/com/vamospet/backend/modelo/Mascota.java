@@ -49,4 +49,13 @@ public class Mascota {
     public String getCodigo_unico_temporal() { return codigo_unico_temporal; }
     @JsonIgnore
     public void setCodigo_unico_temporal(String codigo_unico_temporal) { this.codigo_unico_temporal = codigo_unico_temporal; }
+
+    @Column(length = 500)
+    private String alergias;
+    public String getAlergias() { return alergias; }
+    public void setAlergias(String alergias) { this.alergias = alergias; }
+
+    private java.math.BigDecimal peso_kg;
+    public java.math.BigDecimal getPeso_kg() { return peso_kg; }
+    public void setPeso_kg(java.math.BigDecimal peso_kg) { this.peso_kg = peso_kg; }
 }

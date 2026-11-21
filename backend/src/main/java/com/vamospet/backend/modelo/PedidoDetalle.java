@@ -15,6 +15,7 @@ public class PedidoDetalle {
     private Integer producto_id;
     private Integer cantidad;
     private BigDecimal precio_unitario;
+    private Integer receta_id;
 
     public Integer getId() { return id; }
     public void setId(Integer id) { this.id = id; }
@@ -30,4 +31,7 @@ public class PedidoDetalle {
 
     public BigDecimal getPrecio_unitario() { return precio_unitario; }
     public void setPrecio_unitario(BigDecimal precio_unitario) { this.precio_unitario = precio_unitario; }
+
+    public Integer getReceta_id() { return receta_id; }
+    public void setReceta_id(Integer receta_id) { this.receta_id = receta_id; }
 }

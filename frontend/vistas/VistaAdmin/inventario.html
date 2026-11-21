@@ -14,6 +14,7 @@
         <button class="sidebar-item" onclick="cargarVista('VistaAdmin/proveedores')"><i class="fa-solid fa-truck-field"></i> Proveedores</button>
         <button class="sidebar-item" onclick="cargarVista('VistaAdmin/compras')"><i class="fa-solid fa-cart-flatbed"></i> Compras</button>
         <button class="sidebar-item" onclick="cargarVista('VistaAdmin/devoluciones')"><i class="fa-solid fa-rotate-left"></i> Devoluciones</button>
+        <button class="sidebar-item" onclick="cargarVista('VistaAdmin/reservas')"><i class="fa-solid fa-hotel"></i> Reservas y viajes</button>
         <button class="sidebar-item" onclick="cargarVista('VistaAdmin/comprobantes')"><i class="fa-solid fa-receipt"></i> Comprobantes</button>
         <button class="sidebar-item" onclick="cargarVista('VistaAdmin/finanzas')"><i class="fa-solid fa-file-invoice-dollar"></i> Finanzas</button>
         <button class="sidebar-item" onclick="cargarVista('VistaAdmin/reportes')"><i class="fa-solid fa-chart-column"></i> Reportes</button>
@@ -26,9 +27,10 @@
         <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px;">
             <h2 style="font-size: 24px; font-weight: 800; color: var(--dark-text);">Inventario Tienda</h2>
             <div style="display: flex; gap: 10px; flex-wrap: wrap;">
-                <button class="btn-outline" onclick="abrirModalCategorias()"><i class="fa-solid fa-tags"></i> Categorías</button>
+                <button data-roles="4" class="btn-outline" onclick="abrirModalCategorias()"><i class="fa-solid fa-tags"></i> Categorías</button>
                 <button class="btn-outline" onclick="abrirModalReportes()"><i class="fa-solid fa-chart-line"></i> Reportes</button>
-                <button class="btn-primary" onclick="abrirModalNuevoProducto()"><i class="fa-solid fa-plus"></i> Nuevo Producto</button>
+                <button class="btn-outline" onclick="cargarVista('VistaAdmin/banners')"><i class="fa-solid fa-images"></i> Banners</button>
+                <button data-roles="4" class="btn-primary" onclick="abrirModalNuevoProducto()"><i class="fa-solid fa-plus"></i> Nuevo Producto</button>
             </div>
         </div>
 
@@ -50,7 +52,7 @@
                 </div>
             </div>
             <div class="metric-card">
-                <div class="metric-icon" style="background: #E0E7FF; color: #4F46E5;"><i class="fa-solid fa-tags"></i></div>
+                <div class="metric-icon" style="background: var(--light-green); color: var(--primary-green);"><i class="fa-solid fa-tags"></i></div>
                 <div>
                     <h4 style="color: var(--text-muted); font-size: 13px; font-weight: 600; margin-bottom: 5px;">Valor a venta</h4>
                     <h2 style="font-size: 20px; font-weight: 800; color: var(--dark-text);" id="val-venta">—</h2>
@@ -112,8 +114,9 @@
         <form id="form-nuevo-producto">
             <div class="input-group" style="text-align: center;">
                 <label>Foto principal</label>
-                <img id="prod-imagen-preview" src="https://images.unsplash.com/photo-1628527304948-0615f2a7ed82?q=80&w=200&auto=format&fit=crop" style="width: 90px; height: 90px; object-fit: cover; border-radius: 14px; margin: 6px auto 10px auto; display: block; border: 1px solid #E4E7EC;">
+                <img id="prod-imagen-preview" src="img/producto-sin-foto.svg" onerror="this.onerror=null;this.src='img/producto-sin-foto.svg'" style="width: 90px; height: 90px; object-fit: cover; border-radius: 14px; margin: 6px auto 10px auto; display: block; border: 1px solid #E4E7EC;">
                 <input type="file" id="prod-imagen-archivo" accept="image/png, image/jpeg, image/webp, image/gif" onchange="previsualizarImagen(this, 'prod-imagen-preview')">
+                <small style="display:block; color: var(--text-muted); margin-top: 4px;">Usa una foto cuadrada, de preferencia 800 × 800 px.</small>
             </div>
 
             <div class="input-group">
@@ -222,7 +225,7 @@
         <h3><i class="fa-solid fa-clock-rotate-left" style="color: var(--primary-green);"></i> Kardex — <span id="kardex-nombre-producto"></span></h3>
         <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 15px;">Stock actual: <strong id="kardex-stock-actual" style="color: var(--dark-text);">—</strong></p>
 
-        <form id="form-nuevo-movimiento" style="background: #F9FAFB; border-radius: 12px; padding: 15px; margin-bottom: 18px;">
+        <form id="form-nuevo-movimiento" data-roles="4" style="background: #F9FAFB; border-radius: 12px; padding: 15px; margin-bottom: 18px;">
             <div style="display: flex; gap: 10px; margin-bottom: 10px;">
                 <select id="mov-tipo" style="flex: 1; padding: 9px; border: 1px solid #E4E7EC; border-radius: 8px; font-family: 'Poppins'; font-size: 13px;">
                     <option value="Entrada">Entrada (compra)</option>
@@ -279,7 +282,7 @@
     }
 
     function colorPorTipo(tipo) {
-        return tipo === 'Accesorio' ? '#4F46E5' : 'var(--primary-green)';
+        return tipo === 'Accesorio' ? 'var(--primary-green-dark)' : 'var(--primary-green)';
     }
 
     function badgeStock(p) {
@@ -308,7 +311,7 @@
                 <td>
                     <div style="display: flex; align-items: center; gap: 10px;">
                         <div style="width: 40px; height: 40px; background: #F3F4F6; border-radius: 8px; display: flex; justify-content: center; align-items: center; overflow: hidden;">
-                            ${p.imagen ? `<img src="${p.imagen}" style="width:100%; height:100%; object-fit:cover;">` : `<i class="fa-solid ${iconoPorTipo(p.tipo)}" style="color: ${colorPorTipo(p.tipo)};"></i>`}
+                            ${p.imagen ? `<img src="${esc(urlImagen(p.imagen))}" ${ATRIBUTO_SIN_FOTO} style="width:100%; height:100%; object-fit:cover;">` : `<i class="fa-solid ${iconoPorTipo(p.tipo)}" style="color: ${colorPorTipo(p.tipo)};"></i>`}
                         </div>
                         <strong>${esc(p.nombre)}</strong>
                     </div>
@@ -319,11 +322,11 @@
                 <td>S/ ${Number(p.precio).toFixed(2)}</td>
                 <td>${badgeEstadoProducto(p.estado)}</td>
                 <td style="white-space: nowrap;">
-                    <button style="background:none; border:none; color:var(--primary-green); cursor:pointer; font-size:15px; margin-right: 8px;" title="Editar" onclick="abrirModalEditarProducto(${p.id})"><i class="fa-solid fa-pen"></i></button>
-                    <button style="background:none; border:none; color:#4F46E5; cursor:pointer; font-size:15px; margin-right: 8px;" title="Kardex / Stock" onclick="abrirModalKardex(${p.id})"><i class="fa-solid fa-clock-rotate-left"></i></button>
+                    <button data-roles="4" style="background:none; border:none; color:var(--primary-green); cursor:pointer; font-size:15px; margin-right: 8px;" title="Editar" onclick="abrirModalEditarProducto(${p.id})"><i class="fa-solid fa-pen"></i></button>
+                    <button style="background:none; border:none; color:var(--primary-green); cursor:pointer; font-size:15px; margin-right: 8px;" title="Kardex / Stock" onclick="abrirModalKardex(${p.id})"><i class="fa-solid fa-clock-rotate-left"></i></button>
                     ${p.activo === false
-                        ? `<button class="btn-outline" style="padding: 4px 10px; font-size: 11px;" onclick="reactivarProductoInventario(${p.id})">Reactivar</button>`
-                        : `<button style="background:none; border:none; color:#EF4444; cursor:pointer; font-size:15px;" title="Dar de baja" onclick="eliminarProductoInventario(${p.id})"><i class="fa-regular fa-trash-can"></i></button>`}
+                        ? `<button data-roles="4" class="btn-outline" style="padding: 4px 10px; font-size: 11px;" onclick="reactivarProductoInventario(${p.id})">Reactivar</button>`
+                        : `<button data-roles="4" style="background:none; border:none; color:#EF4444; cursor:pointer; font-size:15px;" title="Dar de baja" onclick="eliminarProductoInventario(${p.id})"><i class="fa-regular fa-trash-can"></i></button>`}
                 </td>
             </tr>
         `).join('');
@@ -426,8 +429,8 @@
             <div style="display:flex; justify-content:space-between; align-items:center; padding: 8px 0; border-bottom: 1px solid #F3F4F6; ${c.activo === false ? 'opacity: .55;' : ''}">
                 <span style="font-size: 13px;">${esc(c.nombre)} <span style="color: var(--text-muted); font-size: 11px;">(${c.tipo})${c.activo === false ? ' · inactiva' : ''}</span></span>
                 ${c.activo === false
-                    ? `<button class="btn-outline" style="padding: 4px 10px; font-size: 11px;" onclick="reactivarCategoria(${c.id})">Reactivar</button>`
-                    : `<button style="background:none; border:none; color:#EF4444; cursor:pointer;" title="Dar de baja" onclick="eliminarCategoria(${c.id})"><i class="fa-regular fa-trash-can"></i></button>`}
+                    ? `<button data-roles="4" class="btn-outline" style="padding: 4px 10px; font-size: 11px;" onclick="reactivarCategoria(${c.id})">Reactivar</button>`
+                    : `<button data-roles="4" style="background:none; border:none; color:#EF4444; cursor:pointer;" title="Dar de baja" onclick="eliminarCategoria(${c.id})"><i class="fa-regular fa-trash-can"></i></button>`}
             </div>
         `).join('');
     }
@@ -489,7 +492,7 @@
         __productoEnEdicionId = null;
         document.getElementById('titulo-modal-producto').innerHTML = '<i class="fa-solid fa-box-open" style="color: var(--primary-green);"></i> Nuevo Producto';
         document.getElementById('form-nuevo-producto').reset();
-        document.getElementById('prod-imagen-preview').src = 'https://images.unsplash.com/photo-1628527304948-0615f2a7ed82?q=80&w=200&auto=format&fit=crop';
+        document.getElementById('prod-imagen-preview').src = IMAGEN_SIN_FOTO;
         document.getElementById('nota-stock-inicial').style.display = 'block';
         llenarSelectCategorias();
         document.getElementById('grupo-vencimiento').style.display = 'block';
@@ -515,7 +518,7 @@
         document.getElementById('prod-proveedor').value = p.proveedor || '';
         document.getElementById('prod-vencimiento').value = p.fecha_vencimiento || '';
         document.getElementById('prod-requiere-receta').checked = !!p.requiere_receta;
-        document.getElementById('prod-imagen-preview').src = p.imagen || 'https://images.unsplash.com/photo-1628527304948-0615f2a7ed82?q=80&w=200&auto=format&fit=crop';
+        document.getElementById('prod-imagen-preview').src = urlImagen(p.imagen);
         document.getElementById('nota-stock-inicial').style.display = 'none';
 
         llenarSelectCategorias();
@@ -595,7 +598,7 @@
         try {
             const res = await fetch(`${API_BASE}/productos/${id}`, { method: 'DELETE' });
             const data = await res.json().catch(() => ({}));
-            if (!res.ok) throw new Error();
+            if (!res.ok) { alert(data.error || 'No se pudo dar de baja el producto.'); return; }
 
             __productosInventario = __productosInventario.map(p =>
                 p.id === id ? { ...p, activo: false, estado: 'Descontinuado' } : p);

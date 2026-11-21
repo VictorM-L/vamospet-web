@@ -16,7 +16,7 @@
             <p style="color: var(--text-muted); font-size: 16px; line-height: 1.6; margin-bottom: 30px;">
                 Cada aerolínea y país de destino exige requisitos distintos. En <strong>Vamos Pet</strong> revisamos el itinerario junto a ti y preparamos toda la documentación con la anticipación necesaria.
             </p>
-            <button class="btn-primary" onclick="irAAgendar()" style="padding: 15px 30px;"><i class="fa-solid fa-plane" style="margin-right: 8px;"></i> Agendar Revisión de Viaje</button>
+            <button class="btn-primary" onclick="irAVistaCliente('VistaCliente/reservar-viaje')" style="padding: 15px 30px;"><i class="fa-solid fa-plane" style="margin-right: 8px;"></i> Solicitar viaje y subir documentos</button>
         </div>
 
         <div class="lab-tests-grid">
@@ -51,19 +51,19 @@
 
         <div class="lab-tests-grid">
             <div class="lab-test-card hover-card" style="border: none;" onclick="mostrarInfoTest('1. Evaluación Médica', 'Chequeo general para confirmar que tu mascota está en condiciones de salud óptimas para viajar.')">
-                <div class="lab-test-icon" style="background: #E0E7FF; color: #4F46E5;"><i class="fa-solid fa-1"></i></div>
+                <div class="lab-test-icon" style="background: var(--light-green); color: var(--primary-green);"><i class="fa-solid fa-1"></i></div>
                 Evaluación Médica
             </div>
             <div class="lab-test-card hover-card" style="border: none;" onclick="mostrarInfoTest('2. Aplicación de Vacunas', 'Aplicamos las vacunas o refuerzos faltantes según el calendario y los requisitos del país de destino.')">
-                <div class="lab-test-icon" style="background: #E0E7FF; color: #4F46E5;"><i class="fa-solid fa-2"></i></div>
+                <div class="lab-test-icon" style="background: var(--light-green); color: var(--primary-green);"><i class="fa-solid fa-2"></i></div>
                 Aplicación de Vacunas
             </div>
             <div class="lab-test-card hover-card" style="border: none;" onclick="mostrarInfoTest('3. Emisión del Certificado', 'Con todo en regla, emitimos el certificado de salud internacional listo para presentar ante la aerolínea.')">
-                <div class="lab-test-icon" style="background: #E0E7FF; color: #4F46E5;"><i class="fa-solid fa-3"></i></div>
+                <div class="lab-test-icon" style="background: var(--light-green); color: var(--primary-green);"><i class="fa-solid fa-3"></i></div>
                 Emisión del Certificado
             </div>
             <div class="lab-test-card hover-card" style="border: none;" onclick="mostrarInfoTest('4. Entrega de Documentos', 'Te entregamos toda la documentación física y digital lista para el día del viaje.')">
-                <div class="lab-test-icon" style="background: #E0E7FF; color: #4F46E5;"><i class="fa-solid fa-4"></i></div>
+                <div class="lab-test-icon" style="background: var(--light-green); color: var(--primary-green);"><i class="fa-solid fa-4"></i></div>
                 Entrega de Documentos
             </div>
         </div>
@@ -76,7 +76,7 @@
             <p style="color: var(--text-muted); font-size: 16px; line-height: 1.6; margin-bottom: 30px;">
                 Recomendamos iniciar el trámite con al menos 30 días de anticipación, ya que algunos países exigen plazos mínimos entre la vacunación y el viaje.
             </p>
-            <button class="btn-outline" onclick="irAAgendar()" style="padding: 12px 25px;"><i class="fa-regular fa-calendar-check"></i> Consultar Requisitos</button>
+            <button class="btn-outline" onclick="irAVistaCliente('VistaCliente/reservar-viaje')" style="padding: 12px 25px;"><i class="fa-regular fa-calendar-check"></i> Consultar Requisitos</button>
         </div>
     </div>
 

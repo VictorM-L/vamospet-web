@@ -7,15 +7,15 @@
 
 | Capa | Tecnología | Ubicación |
 |------|-----------|-----------|
-| Frontend | HTML + CSS + JavaScript (SPA ligera, sin framework) servida con Live Server | `frontend/` |
+| Frontend | HTML + CSS + JavaScript (SPA ligera, sin framework) servida por el mismo backend (en `prod`, desde el JAR) | `frontend/` |
 | Backend | Java 25, Spring Boot 4.0.5 (API REST) | `backend/` |
 | Base de datos | PostgreSQL (`vamospet_db`) | `db/` |
-| Servicios externos | Gmail SMTP (notificaciones), Gemini (asistente de IA) | `application.properties` |
+| Servicios externos | Gmail SMTP (notificaciones), Gemini (asistente de IA) | Claves en `backend/.env.properties` |
 
 ```mermaid
 flowchart LR
-  U[Navegador] -->|HTTP + JSON| F[Frontend<br/>Live Server :5500]
-  F -->|fetch /api/*| B[Backend Spring Boot :8080]
+  U[Navegador] -->|HTML, CSS, JS| B[Backend Spring Boot :8080<br/>sirve frontend y API]
+  U -->|fetch /api/* con token| B
   B -->|JPA / JDBC| D[(PostgreSQL :5432)]
   B -->|SMTP| M[Gmail]
   B -->|HTTPS| G[Gemini API]
@@ -68,7 +68,7 @@ erDiagram
 3. **Reportes con estructura común** (`ReporteService.Tabla`): un solo generador de datos y dos exportadores (`ReportePdfService`, `ReporteExcelService`).
 4. **Notificaciones por canales** (`CanalNotificacion`): hoy solo correo; añadir otro canal no cambia el servicio.
 5. **Franja fija de 30 minutos** por cita (constante en `AgendaService`).
-6. **Seguridad por capas (preparada):** contraseñas con BCrypt (interruptor `seguridad.bcrypt.activo`), roles de PostgreSQL de mínimo privilegio (`db/04_seguridad_roles.sql`) y credenciales por variables de entorno; se activan al cierre del proyecto.
+6. **Seguridad por capas:** contraseñas con BCrypt, roles de PostgreSQL de mínimo privilegio (`db/17_roles_postgres.sql`) y credenciales fuera del código (`backend/.env.properties` o variables de entorno). El token JWT llega en el MK29.
 
 ## 6. Librerías y para qué se usan
 
@@ -111,21 +111,27 @@ Los nombres de tabla van en singular, como el resto del esquema (`orden_examen`,
 
 | Medida | Estado | Dónde |
 |--------|--------|-------|
-| BCrypt para contraseñas | Implementado, se activa con `seguridad.bcrypt.activo=true` | `SecurityConfig`, `UsuarioController`, `MigracionContrasenas` |
-| Roles de PostgreSQL (`app_escritura`, `app_lectura`) | Script listo | `db/04_seguridad_roles.sql` |
-| Cabeceras CSP y X-Frame-Options | Activo | `SecurityConfig` |
-| Autorización por rol en reportes y en listados de usuarios | Activo (por `usuarioId`) | `ReporteFormalController`, `UsuarioController` |
+| BCrypt para contraseñas | Activo. Una clave en texto plano ya no entra; en una base nueva se cifran con `db/18_cifrar_claves_pendientes.sql` | `ClaveService` |
+| Regla de contraseña: 8 a 64 caracteres, al menos una letra y un número | Activo en registro, activación de cuenta y recuperación; la página muestra la misma lista | `ReglasCuenta`, `app.js` (`REQUISITOS_CLAVE`) |
+| Roles de PostgreSQL (`app_escritura` sin DELETE salvo 5 tablas, `app_lectura`) | Script listo | `db/17_roles_postgres.sql` |
+| Credenciales fuera del código | Activo | `application.properties` lee `DB_URL`, `DB_USERNAME`, `DB_PASSWORD`, `MAIL_USERNAME`, `MAIL_PASSWORD`, `GEMINI_API_KEY` |
+| Cabeceras CSP, X-Frame-Options y nosniff | Activo; la política se ajusta a la web servida por el JAR (detalle en `docs/SEGURIDAD.md`) | `SecurityConfig` |
+| Bloqueo del login: 5 intentos fallidos → 15 minutos por correo | Activo (en memoria) | `IntentosLoginService` |
+| `/actuator/health` solo Admin | Activo | `SecurityConfig` |
+| Matriz de acceso por rol (183 operaciones) con la identidad tomada del token | Activo. Sin token o con token vencido: 401; rol sin permiso o dato ajeno: 403. Los controladores leen quién pregunta con `UsuarioActual.id()` (del token), nunca de un parámetro `usuarioId` o `usuario_id`; si el navegador lo envía, debe coincidir con el token. `MatrizAccesoIT` falla si un endpoint vuelve a pedir ese parámetro | `PermisosApi`, `InterceptorPermisos` |
 | Escape de HTML en el frontend | Activo (`esc()` en `app.js`) | `frontend/` |
-| Autenticación con token (JWT) en toda la API | **Pendiente / mejora futura** | — |
+| Token JWT (HS256, firmado con `JWT_SECRET`) | Activo. Se entrega al iniciar sesión y viaja en `Authorization: Bearer`. Cliente: vence a los 20 minutos sin actividad (el navegador lo renueva con `POST /api/sesion/renovar` mientras hay actividad). Personal: 8 horas desde que entró, sin renovación. `POST /api/sesion/cerrar` lo invalida | `JwtService`, `FiltroJwt`, `SesionService`, `SecurityConfig`, `app.js` |
+| Descarga de PDF y archivos | Con token (el navegador los pide con `fetch` y los abre desde memoria); ya no se aceptan enlaces con `?usuarioId=` solo | `abrirArchivoApi` en `app.js` |
 
 ## 8. Pruebas
 
 - Unitarias: `AgendaServiceTest`, `InventarioServiceTest` (con lotes), `ReporteExcelServiceTest`, `ArchivoClinicoValidadorTest`, `ExamenServiceTest`, `AtencionMedicaServiceTest`, `EmergenciaServiceTest` (`.\mvnw.cmd test`), sin necesidad de PostgreSQL.
-- Integración: `ReporteFormalControllerIT` con base H2 en memoria (perfil `test`).
+- Integración: las clases `*IT` (por ejemplo `ReporteFormalControllerIT`, `VentaRecetaIT`, `MatrizAccesoIT`) con base H2 en memoria (perfil `test`). El `pom.xml` las incluye en surefire, así que `.\mvnw.cmd test` corre unitarias e integración juntas.
 
 ## 9. Limitaciones conocidas
 
-- La API todavía no usa tokens: se identifica al usuario con `usuarioId`, que un atacante podría falsificar.
+- Los tokens invalidados al cerrar sesión se recuerdan en memoria: si el backend se reinicia, un token cerrado vuelve a valer hasta su vencimiento (máximo 20 minutos para clientes y 8 horas para el personal).
+- Cambiar o recuperar la contraseña no invalida los tokens que ya estaban emitidos; vencen solos.
 - Varias consultas usan `findAll()` y filtran en memoria; con muchos datos conviene consultas con filtros en BD.
 - Los reportes exportados a Excel guardan los valores como texto (igual que el PDF).
 - La verificación de prefijos de RUC (10, 15, 17, 20) debe contrastarse con la normativa vigente de SUNAT.
