@@ -234,6 +234,32 @@ class InventarioServiceTest {
         assertEquals(2, inventario.stockVendible(p));
     }
 
+    @Test
+    @DisplayName("Lotes: con todo el stock en un lote vencido no queda nada para vender")
+    void todoVencido() {
+        Producto p = new Producto();
+        p.setId(6);
+        p.setStock(9);
+        p.setFecha_vencimiento(LocalDate.now().minusDays(37));
+        when(loteRepositorio.delProducto(6)).thenReturn(List.of(lote(8, 6, "LOTE-INICIAL", 9, LocalDate.now().minusDays(37))));
+        assertEquals(0, inventario.stockVendible(p));
+    }
+
+    @Test
+    @DisplayName("El aviso de falta de stock nombra el producto, lo vendible y lo vencido")
+    void mensajeFaltante() {
+        assertEquals("Antiinflamatorio Vet: pediste 1 y hay 0 disponibles para la venta (9 unidades vencidas no se venden)",
+                InventarioService.describirFaltante("Antiinflamatorio Vet", 1, 0, 9));
+        assertEquals("Shampoo: pediste 3 y hay 1 disponible para la venta",
+                InventarioService.describirFaltante("Shampoo", 3, 1, 1));
+        assertEquals("Collar: pediste 5 y hay 2 disponibles para la venta (1 unidad vencida no se vende)",
+                InventarioService.describirFaltante("Collar", 5, 2, 3));
+        assertEquals("Producto #7: pediste 1 y hay 0 disponibles para la venta",
+                InventarioService.describirFaltante("Producto #7", 1, 0, null));
+        assertEquals("No hay stock suficiente. A: pediste 2 y hay 1 disponible para la venta; B: pediste 1 y hay 0 disponibles para la venta.",
+                InventarioService.mensajeSinStock(List.of("A: pediste 2 y hay 1 disponible para la venta", "B: pediste 1 y hay 0 disponibles para la venta")));
+    }
+
     private Usuario usuario(int id, int rol, boolean activo) {
         Usuario u = new Usuario();
         u.setId(id);

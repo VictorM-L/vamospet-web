@@ -133,11 +133,11 @@ public class VentaService {
             }
             if (e.getValue() > MAXIMO_POR_PRODUCTO) throw new NegocioException(400, "Máximo " + MAXIMO_POR_PRODUCTO + " unidades de " + prod.getNombre() + ".");
             int disponible = inventarioService.stockVendible(prod);
-            if (disponible < e.getValue()) faltantes.add(prod.getNombre() + " (quedan " + disponible + ")");
+            if (disponible < e.getValue()) faltantes.add(InventarioService.describirFaltante(prod.getNombre(), e.getValue(), disponible, prod.getStock()));
             if (Boolean.TRUE.equals(prod.getRequiere_receta())) conReceta.add(prod.getNombre());
             productos.put(prod.getId(), prod);
         }
-        if (!faltantes.isEmpty()) throw new NegocioException(409, "No hay stock suficiente de: " + String.join(", ", faltantes));
+        if (!faltantes.isEmpty()) throw new NegocioException(409, InventarioService.mensajeSinStock(faltantes));
 
         Receta receta = null;
         if (!conReceta.isEmpty()) {

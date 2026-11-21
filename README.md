@@ -61,7 +61,7 @@ frontend/     index.html, css/, js/app.js, vistas/ por rol, vendor/ (fuentes e �
 db/           scripts SQL numerados; nunca se edita uno ya entregado
 docs/         MOF, seguridad, operación, evidencias por etapa
 postman/      colección y entorno para probar la API
-herramientas/ scripts de PowerShell (Git, Milestones, fotos)
+herramientas/ scripts de PowerShell (Git, Milestones, fotos, respaldo y restauración)
 ```
 
 ## Ramas y contribución
@@ -78,3 +78,10 @@ herramientas/ scripts de PowerShell (Git, Milestones, fotos)
 | `docs/SEGURIDAD.md` | Pruebas de inyección SQL, XSS, CSRF, cabeceras y OWASP ZAP |
 | `docs/OPERACION.md` | Perfiles, empaquetado, Actuator y logs |
 | `postman/LEEME.md` | Cómo correr la colección |
+| `docs/PLAN_DE_PRUEBAS.md` | Plan y matriz de casos de prueba de las etapas 1 a 9 |
+| `docs/pruebas/` | Plantillas de UAT, usabilidad, accesibilidad y navegadores |
+| `docs/RESPALDOS.md` | Respaldo diario, restauración, regla 3-2-1 y mantenimiento |
+| `docs/DESPLIEGUE.md` | Instalación en la clínica, verificación y plan de reversa |
+| `docs/SUSTENTACION.md` | Lista de verificación y guion de la demostración |
+| `docs/INFORME_ESQUEMA.md` | Esquema del informe en 8 secciones |
+| `docs/evidencias/` | Capturas por etapa (cada carpeta tiene su LEEME) |

@@ -685,7 +685,7 @@
       "name": "4. Auxiliar: venta en mostrador y anulación",
       "item": [
         {
-          "name": "Elegir un producto sin receta con stock",
+          "name": "Elegir un producto sin receta con lote vigente",
           "request": {
             "method": "GET",
             "header": [],
@@ -706,10 +706,13 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
+                  "const hoy = new Date().toISOString().slice(0, 10);",
+                  "const vendible = p => !p.requiere_receta && (p.stock || 0) > 0 && p.activo !== false && p.estado === \"Activo\" && (!p.fecha_vencimiento || p.fecha_vencimiento >= hoy);",
+                  "const candidatos = pm.response.json().filter(vendible).sort((a, b) => (b.stock || 0) - (a.stock || 0));",
                   "pm.test(\"Responde 200\", function () { pm.response.to.have.status(200); });",
-                  "const producto = pm.response.json().find(p => !p.requiere_receta && (p.stock || 0) > 0 && p.activo !== false && p.estado === \"Activo\");",
-                  "pm.test(\"Hay un producto disponible para la prueba\", function () { pm.expect(producto).to.be.an(\"object\"); });",
-                  "if (producto) { pm.collectionVariables.set(\"productoId\", producto.id); pm.collectionVariables.set(\"stockAntes\", producto.stock); }"
+                  "pm.test(\"Hay un producto sin receta con lote vigente para la prueba\", function () { pm.expect(candidatos.length).to.be.above(0); });",
+                  "pm.collectionVariables.set(\"productoId\", candidatos.length ? candidatos[0].id : \"\");",
+                  "pm.collectionVariables.set(\"stockAntes\", candidatos.length ? candidatos[0].stock : \"\");"
                 ]
               }
             }
@@ -747,6 +750,18 @@
           },
           "event": [
             {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.collectionVariables.unset(\"pedidoId\");",
+                  "if (!pm.collectionVariables.get(\"productoId\")) {",
+                  "    pm.execution.skipRequest();",
+                  "}"
+                ]
+              }
+            },
+            {
               "listen": "test",
               "script": {
                 "type": "text/javascript",
@@ -780,6 +795,17 @@
           },
           "event": [
             {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (!pm.collectionVariables.get(\"productoId\") || (pm.info.requestName !== \"Registrar venta en mostrador (queda Pendiente)\" && !pm.collectionVariables.get(\"pedidoId\"))) {",
+                  "    pm.execution.skipRequest();",
+                  "}"
+                ]
+              }
+            },
+            {
               "listen": "test",
               "script": {
                 "type": "text/javascript",
@@ -809,6 +835,17 @@
             }
           },
           "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (!pm.collectionVariables.get(\"productoId\") || (pm.info.requestName !== \"Registrar venta en mostrador (queda Pendiente)\" && !pm.collectionVariables.get(\"pedidoId\"))) {",
+                  "    pm.execution.skipRequest();",
+                  "}"
+                ]
+              }
+            },
             {
               "listen": "test",
               "script": {
