@@ -1,4 +1,4 @@
-$ErrorActionPreference = 'Stop'
+﻿$ErrorActionPreference = 'Stop'
 $destino = Join-Path $PSScriptRoot '..\frontend\img\fotos'
 New-Item -ItemType Directory -Force -Path $destino | Out-Null
 $fotos = [ordered]@{

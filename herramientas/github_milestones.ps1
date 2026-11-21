@@ -1,4 +1,4 @@
-$ErrorActionPreference = 'Stop'
+﻿$ErrorActionPreference = 'Stop'
 if (-not (Get-Command gh -ErrorAction SilentlyContinue)) { throw 'Instala GitHub CLI (https://cli.github.com) y ejecuta gh auth login.' }
 $repo = 'VictorM-L/vamospet-web'
 $hitos = @(

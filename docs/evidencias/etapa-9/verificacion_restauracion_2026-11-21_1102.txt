@@ -1,0 +1,72 @@
+PS C:\Users\VICTOR\Documents\Pruebas\VamosPet_Web> Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
+>> .\herramientas\restaurar.ps1 -Respaldo C:\Respaldos\VamosPet\vamospet_2026-11-21_043049
+Se restaurará C:\Respaldos\VamosPet\vamospet_2026-11-21_043049\vamospet_db.backup en la base NUEVA 'vamospet_restaurada'. La base 'vamospet_db' no se toca.
+Contraseña de 'postgres' (solo se usa mientras corre este script): ********
+Base restaurada en 'vamospet_restaurada'.
+
+Tabla                    Restaurada Actual
+-----                    ---------- ------
+archivo_examen                    7      7
+articulo_blog                     2      2
+banner                            0      0
+categoria_producto               11     11
+cirugia_programada                5      5
+cita                             63     63
+cita_costo_adicional              8      8
+codigo_verificacion               0      0
+compra                            1      1
+compra_detalle                    1      1
+comprobante                      39     39
+configuracion_clinica             1      1
+contacto_emergencia               0      0
+cuarto                           10     10
+devolucion                        2      2
+devolucion_detalle                2      2
+especialidad                     13     13
+estancia                          0      0
+historial_evento                 62     62
+horario_atencion                 56     56
+hospedaje                         0      0
+internamiento                     1      1
+lote_producto                    17     17
+mascota                          36     36
+mensaje_contacto                  0      0
+movimiento_stock                 36     36
+notificacion                    104    104
+orden_examen                      6      6                                                                                                                           
+pago                             39     39                                                                                                                           
+pedido                           13     13                                                                                                                           
+pedido_detalle                   15     15                                                                                                                           
+producto                         17     17                                                                                                                           
+producto_imagen                   0      0
+proveedor                         4      4
+receta                            8      8
+rol                               4      4
+servicio                         32     32
+usuario                          48     48
+vacuna                           14     14
+veterinario_especialidad         20     20
+viaje                             0      0
+viaje_documento                   0      0
+viaje_mascota                     0      0
+viaje_solicitud                   0      0
+
+
+Comparación guardada en C:\Respaldos\VamosPet\vamospet_2026-11-21_043049\verificacion_restauracion_2026-11-21_1102.txt
+Archivos de uploads restaurados en C:\Respaldos\VamosPet\vamospet_2026-11-21_043049\archivos_restaurados\uploads
+PS C:\Users\VICTOR\Documents\Pruebas\VamosPet_Web> dir C:\Respaldos\VamosPet\vamospet_2026-11-21_043049      
+                                                                                          
+
+    Directorio: C:\Respaldos\VamosPet\vamospet_2026-11-21_043049
+
+
+Mode                 LastWriteTime         Length Name                                                                                                              
+----                 -------------         ------ ----                                                                                                              
+d-----        21/11/2026     11:02                archivos_restaurados                                                                                              
+-a----        21/11/2026     04:30            383 manifiesto.txt                                                                                                    
+-a----        21/11/2026     04:30          26671 uploads.zip                                                                                                       
+-a----        21/11/2026     04:30         194297 vamospet_db.backup                                                                                                
+-a----        21/11/2026     11:02           2035 verificacion_restauracion_2026-11-21_1102.txt                                                                     
+
+
+PS C:\Users\VICTOR\Documents\Pruebas\VamosPet_Web> 

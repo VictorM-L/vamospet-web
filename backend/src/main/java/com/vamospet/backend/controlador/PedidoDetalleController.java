@@ -50,13 +50,13 @@ public class PedidoDetalleController {
             Producto p = productoRepositorio.findById(e.getKey()).orElse(null);
             int disponible = p == null ? 0 : inventarioService.stockVendible(p);
             if (p == null || disponible < e.getValue()) {
-                faltantes.add((p != null ? p.getNombre() : "Producto #" + e.getKey())
-                        + " (quedan " + disponible + ")");
+                faltantes.add(InventarioService.describirFaltante(p != null ? p.getNombre() : "Producto #" + e.getKey(),
+                        e.getValue(), disponible, p != null ? p.getStock() : null));
             }
         }
         if (!faltantes.isEmpty()) {
             return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of(
-                    "error", "No hay stock suficiente de: " + String.join(", ", faltantes)));
+                    "error", InventarioService.mensajeSinStock(faltantes)));
         }
         return ResponseEntity.ok(Map.of("ok", true));
     }

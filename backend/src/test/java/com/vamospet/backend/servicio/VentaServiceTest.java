@@ -332,8 +332,22 @@ class VentaServiceTest {
         comoCliente();
         Producto p = producto(2, "20.00", false);
         when(inventarioService.stockVendible(p)).thenReturn(1);
-        assertTrue(assertThrows(NegocioException.class, () -> servicio.vender(CLIENTE, pedido(null, new VentaService.Item(2, 3))))
-                .getMessage().contains("quedan 1"));
+        assertEquals("No hay stock suficiente. Shampoo: pediste 3 y hay 1 disponible para la venta.",
+                assertThrows(NegocioException.class, () -> servicio.vender(CLIENTE, pedido(null, new VentaService.Item(2, 3)))).getMessage());
+        verifyNoInteractions(pedidoRepositorio);
+    }
+
+    @Test
+    @DisplayName("Si el stock está vencido, el mensaje dice cuántas se pueden vender y cuántas están vencidas")
+    void sinStockPorVencimiento() {
+        comoCliente();
+        Producto p = producto(2, "20.00", false);
+        p.setNombre("Antiinflamatorio Vet");
+        p.setStock(9);
+        when(inventarioService.stockVendible(p)).thenReturn(0);
+        NegocioException e = assertThrows(NegocioException.class, () -> servicio.vender(CLIENTE, pedido(null, new VentaService.Item(2, 1))));
+        assertEquals(409, e.getEstado());
+        assertEquals("No hay stock suficiente. Antiinflamatorio Vet: pediste 1 y hay 0 disponibles para la venta (9 unidades vencidas no se venden).", e.getMessage());
         verifyNoInteractions(pedidoRepositorio);
     }
 

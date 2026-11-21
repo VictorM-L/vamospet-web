@@ -87,3 +87,16 @@ debe decir 0 claves sin cifrar. Ejecútalo como postgres. Se puede ejecutar dos 
 guardan como /uploads/archivo.jpg. Este script cambia las que se guardaron como
 http://localhost:8080/uploads/... (o 127.0.0.1) a /uploads/... en cualquier tabla. Muestra cuántas filas cambió por
 columna. Ejecútalo como postgres. Se puede ejecutar dos veces.
+
+07_datos_para_rellenar.sql (lo subió el equipo como 07_datos_pa'rellenar.sql; se renombró sin cambiar su contenido):
+datos de demostración ficticios (especialidades, servicios, 22 cuentas con clave Demo1234, 3 clientes sin cuenta,
+28 mascotas, horarios, citas de las semanas cercanas con su historial, vacunas, pagos y comprobantes, y 4 recetas).
+- NO lo ejecutes en tu base actual: ya tiene estos datos (las altas de catálogo, cuentas y mascotas no insertan nada),
+  pero el bloque de citas calcula las fechas desde el día en que se ejecuta y agregaría 39 citas nuevas con sus
+  pagos y comprobantes cada vez.
+- NO lo ejecutes en la base real de la clínica: los datos son inventados.
+- En una base nueva de demostración: ejecútalo después de 17_roles_postgres.sql y luego ejecuta
+  18_cifrar_claves_pendientes.sql (sus cuentas vienen con la clave en texto plano). Las especialidades, horarios y
+  2 citas de los DNI 79461303, 10000002 y 10000003 se omiten solos si esas cuentas no existen.
+- La asignación de la especialidad 'cirugia' no coincide con 'Cirugía' (falta la tilde) y se omite.
+- No choca con las tablas actuales: se probó sin errores sobre una copia de la base del MK31 y sobre una base nueva.

@@ -2,6 +2,16 @@
 
 Una entrada por entrega (MK). Cada una dice qué cambió, qué scripts SQL trae y qué pruebas agrega.
 
+## MK32 — Etapa 9, parte 2: pruebas, respaldos, despliegue y documentación
+- Plan de pruebas con matriz de 71 casos (etapas 1 a 9) y plantillas de UAT, usabilidad (SUS), accesibilidad y navegadores.
+- Respaldos: `herramientas/respaldo.ps1` (pg_dump con `app_lectura` y `pgpass.conf`, uploads y uploads_clinicos, carpeta con fecha, manifiesto con SHA-256, rotación de 14 días, segunda carpeta opcional), `registrar_tarea_respaldo.ps1` (tarea diaria a las 23:00) y `restaurar.ps1` (restaura en una base nueva y compara filas; con `-Activar` reemplaza la actual sin borrarla).
+- Documentos: `RESPALDOS.md`, `DESPLIEGUE.md`, `SUSTENTACION.md`, `INFORME_ESQUEMA.md` y un LEEME de capturas en cada `docs/evidencias/etapa-N`.
+- Mensaje de falta de stock con el producto, lo pedido, lo disponible para la venta y las unidades vencidas.
+- Postman: la venta en mostrador elige un producto con lote vigente y salta la venta si no hay ninguno.
+- `db/07_datos_pa'rellenar.sql` pasa a `db/07_datos_para_rellenar.sql` (mismo contenido; revisado en `db/LEEME.txt`).
+- `CONTRIBUTING.md` con el prefijo `refactor:`; scripts de PowerShell guardados en UTF-8 con BOM.
+- Pruebas: `VentaServiceTest.sinStockPorVencimiento`, `InventarioServiceTest.todoVencido` y `mensajeFaltante`.
+
 ## MK31 — Etapa 9, parte 1: Git, pruebas de seguridad, Postman y operación
 - El JAR sirve también el frontend: todo se abre en `http://localhost:8080`. `app.js` toma la dirección de la API del propio servidor (ya no tiene `localhost:8080` escrito).
 - Perfiles `dev` (por defecto; lee `frontend/` en vivo) y `prod` (usa la copia dentro del JAR). `mvn clean package` genera `backend/target/vamospet.jar`.

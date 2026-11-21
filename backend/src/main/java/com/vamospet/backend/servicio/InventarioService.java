@@ -171,6 +171,20 @@ public class InventarioService {
         return Math.min(stock, vigentes + (sinLoteVigente ? sinLote : 0));
     }
 
+    public static String describirFaltante(String nombre, int pedido, int vendible, Integer stock) {
+        int vencidas = Math.max(0, (stock == null ? 0 : stock) - Math.max(vendible, 0));
+        StringBuilder t = new StringBuilder(nombre).append(": pediste ").append(pedido).append(" y hay ")
+                .append(Math.max(vendible, 0)).append(Math.max(vendible, 0) == 1 ? " disponible" : " disponibles").append(" para la venta");
+        if (vencidas > 0) {
+            t.append(" (").append(vencidas).append(vencidas == 1 ? " unidad vencida no se vende" : " unidades vencidas no se venden").append(")");
+        }
+        return t.toString();
+    }
+
+    public static String mensajeSinStock(List<String> faltantes) {
+        return "No hay stock suficiente. " + String.join("; ", faltantes) + ".";
+    }
+
     public List<LoteProducto> lotesPorVencer(int dias) {
         LocalDate limite = LocalDate.now().plusDays(dias);
         return loteRepositorio.findAll().stream()

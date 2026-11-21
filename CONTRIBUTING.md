@@ -18,6 +18,7 @@ Mensaje corto en español con un prefijo:
 |---|---|
 | `feat:` | Función nueva |
 | `fix:` | Corrección de un error |
+| `refactor:` | Cambio interno que no altera lo que hace el sistema (renombrar, reorganizar, simplificar) |
 | `test:` | Pruebas nuevas o ajustadas |
 | `docs:` | Documentación |
 | `chore:` | Configuración, scripts, dependencias |
