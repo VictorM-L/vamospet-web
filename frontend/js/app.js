@@ -217,25 +217,38 @@ function prepararFormulariosCuenta(raiz) {
     });
 }
 
+function campoVisible(input) {
+    for (let el = input; el && el !== document.body; el = el.parentElement) {
+        if (el.hidden || el.style.display === 'none') return false;
+        if (window.getComputedStyle(el).display === 'none') return false;
+    }
+    return true;
+}
+
 function formularioCuentaValido(form) {
     let primero = null;
     form.querySelectorAll('[data-regla]').forEach(input => {
+        if (!campoVisible(input)) { mensajeCampo(input, '', null); return; }
         if (!validarCampoCuenta(input, true) && !primero) primero = input;
     });
     form.querySelectorAll('[data-requisitos-para]').forEach(lista => {
         const input = document.getElementById(lista.dataset.requisitosPara);
-        if (input && !claveCumpleRequisitos(input.value)) {
+        if (input && campoVisible(input) && !claveCumpleRequisitos(input.value)) {
             mensajeCampo(input, 'La contraseña aún no cumple todos los requisitos.', 'error');
             if (!primero) primero = input;
         }
     });
     form.querySelectorAll('[data-confirma]').forEach(input => {
+        if (!campoVisible(input)) return;
         if (!validarConfirmacion(input)) {
             if (!input.value) mensajeCampo(input, 'Repite la contraseña.', 'error');
             if (!primero) primero = input;
         }
     });
-    if (primero) primero.focus();
+    if (primero) {
+        if (typeof primero.scrollIntoView === 'function') primero.scrollIntoView({ block: 'center' });
+        primero.focus();
+    }
     return !primero;
 }
 
