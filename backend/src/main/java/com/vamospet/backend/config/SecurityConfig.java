@@ -26,7 +26,7 @@ public class SecurityConfig {
             + "script-src 'self' 'unsafe-inline'; "
             + "style-src 'self' 'unsafe-inline'; "
             + "font-src 'self'; "
-            + "img-src 'self' data: blob: https://images.unsplash.com; "
+            + "img-src 'self' data: blob:; "
             + "frame-src https://www.google.com; "
             + "connect-src 'self'; "
             + "object-src 'none'; "

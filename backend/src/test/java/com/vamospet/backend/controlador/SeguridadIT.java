@@ -132,7 +132,7 @@ class SeguridadIT {
     }
 
     @Test
-    @DisplayName("Cabeceras de seguridad: CSP sin orígenes externos para scripts, anti-iframe y nosniff")
+    @DisplayName("Cabeceras de seguridad: CSP sin orígenes externos para scripts ni imágenes, anti-iframe y nosniff")
     void cabeceras() throws Exception {
         MockHttpServletResponse r = mvc.perform(get("/api/servicios")).andReturn().getResponse();
         String csp = r.getHeader("Content-Security-Policy");
@@ -140,7 +140,8 @@ class SeguridadIT {
         assertTrue(csp.contains("script-src 'self' 'unsafe-inline';"));
         assertTrue(csp.contains("object-src 'none'"));
         assertTrue(csp.contains("frame-ancestors 'self'"));
-        assertFalse(csp.contains("cdnjs") || csp.contains("googleapis"));
+        assertFalse(csp.contains("cdnjs") || csp.contains("googleapis") || csp.contains("unsplash"));
+        assertTrue(csp.contains("img-src 'self' data: blob:;"));
         assertEquals("SAMEORIGIN", r.getHeader("X-Frame-Options"));
         assertEquals("nosniff", r.getHeader("X-Content-Type-Options"));
     }
