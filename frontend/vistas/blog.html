@@ -25,7 +25,7 @@
 
             grid.innerHTML = articulos.map(a => `
                 <div class="blog-card">
-                    <img src="${a.imagen_url || 'https://images.unsplash.com/photo-1601758228041-f3b2795255f1?q=80&w=500&auto=format&fit=crop'}" alt="${esc(a.titulo || 'Artículo')}">
+                    <img src="${a.imagen_url || 'img/producto-sin-foto.svg'}" alt="${esc(a.titulo || 'Artículo')}">
                     <div class="blog-card-content">
                         <span class="blog-card-tag">${esc(a.categoria || 'General')}</span>
                         <h3>${esc(a.titulo || '')}</h3>

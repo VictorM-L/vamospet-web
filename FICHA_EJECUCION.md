@@ -11,7 +11,7 @@
 | CORS | Los controladores usan `@CrossOrigin(origins = "*")` |
 | Archivos clínicos | Se guardan en `backend/uploads_clinicos/` (NO se sirven como estáticos; solo se descargan por la API con permiso) |
 | Credenciales | Fuera del código: archivo local `backend/.env.properties` (no se sube a Git ni va en el ZIP). Modelo sin valores: `backend/.env.properties.example` |
-| Fuentes e íconos | Locales en `frontend/vendor/` (Poppins, Fraunces, Font Awesome 6.4.0, con sus licencias). El sitio funciona sin internet salvo las fotos de Unsplash, el mapa y el video |
+| Fuentes e íconos | Locales en `frontend/vendor/` (Poppins, Fraunces, Font Awesome 6.4.0, con sus licencias). El sitio funciona sin internet, fotos incluidas (`frontend/img/fotos/`); solo el mapa de Google necesita conexión |
 
 ## Pasos
 
